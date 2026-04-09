@@ -14,7 +14,9 @@
       "status": "in-progress",
       "risk": "high",
       "note": "We have roughly 18 to 36 months before well-funded competitors crowd this space. The plan is to be the established name before that happens — not try to fight our way in after.",
-      "proposed_solution": "Ship visible proof of an AI-native, full-pipeline toolchain narrative early while the competitive window is still open."
+      "proposed_solution": "Ship visible proof of an AI-native, full-pipeline toolchain narrative early while the competitive window is still open.",
+      "modified_at": "2026-04-01T23:50:30-04:00",
+      "modified_by": "strategy"
     },
     {
       "id": 2,
@@ -27,7 +29,9 @@
       "status": "paused",
       "risk": "high",
       "note": "We want to launch as a paid tool when the AI features are clearly better than anything else. No one has defined the bar yet. That needs to happen.",
-      "proposed_solution": "Partner with Analytics and Engineering to define measurable “good enough to charge for” Copilot criteria the founder can approve."
+      "proposed_solution": "Partner with Analytics and Engineering to define measurable “good enough to charge for” Copilot criteria the founder can approve.",
+      "modified_at": "2026-04-01T23:50:30-04:00",
+      "modified_by": "strategy"
     },
     {
       "id": 3,
@@ -41,7 +45,9 @@
       "status": "paused",
       "risk": "high",
       "note": "An unfinished game breaks the whole argument for the tools. We need a hard ceiling on what v1.0 of the game contains — biomes, rooms, mechanics — and a founder decision to commit to it.",
-      "proposed_solution": "Facilitate a founder decision that caps Ashen Hollow v1.0 content and records scope explicitly in the risk register."
+      "proposed_solution": "Facilitate a founder decision that caps Ashen Hollow v1.0 content and records scope explicitly in the risk register.",
+      "modified_at": "2026-04-01T23:50:30-04:00",
+      "modified_by": "strategy"
     }
   ],
   "risks_p0": [],
@@ -181,7 +187,9 @@
       "risk": "low",
       "note": "The browser-first approach is working. A desktop version comes after we've proven the web product, not before.",
       "proposed_solution": "Defer desktop packaging until the web product shows retention and economics worth the extra distribution cost.",
-      "sort_order": 0
+      "sort_order": 0,
+      "modified_at": "2026-04-02T01:37:29-04:00",
+      "modified_by": "strategy"
     },
     {
       "id": "strategy-o5",
@@ -194,7 +202,9 @@
       "risk": "low",
       "note": "Makes the tools much stickier with a real user base. A phase two move — only after the saved file format is stable and enough people are using the tools.",
       "proposed_solution": "Treat a Godot plugin as phase two after export schema stability and real user demand justify the integration effort.",
-      "sort_order": 1
+      "sort_order": 1,
+      "modified_at": "2026-04-02T01:37:29-04:00",
+      "modified_by": "strategy"
     },
     {
       "id": "strategy-o6",
@@ -207,7 +217,9 @@
       "risk": "med",
       "note": "Next step from the initial business plan (Apr 2026). Same work as strategic review and risk register review — keep dates honest in metrics.",
       "proposed_solution": "Run strategic-review plus risk-register-review each quarter; update risk_register, competitors, and metrics.last_quarterly_review.",
-      "sort_order": 2
+      "sort_order": 2,
+      "modified_at": "2026-04-02T01:37:29-04:00",
+      "modified_by": "strategy"
     },
     {
       "id": "str-o-1775106803755",
@@ -234,7 +246,9 @@
         "Can the founder name one reachable first customer or LOI path in a single vertical?",
         "Prefer internal dogfooding on MV agent workflows before any external offer?"
       ],
-      "internal_use_assessment": "2026-04-02. MV already uses lightweight assurance (charters, Truthfulness directive, decisions folder, dashboard output fields). Gaps are mostly enforcement (prompt-level vs automated CI). Next internal step: tighten agent completion hygiene; let that inform whether external product work is justified."
+      "internal_use_assessment": "2026-04-02. MV already uses lightweight assurance (charters, Truthfulness directive, decisions folder, dashboard output fields). Gaps are mostly enforcement (prompt-level vs automated CI). Next internal step: tighten agent completion hygiene; let that inform whether external product work is justified.",
+      "modified_at": "2026-04-02T18:07:09-04:00",
+      "modified_by": "strategy"
     },
     {
       "id": "strategy-o7",
@@ -243,11 +257,13 @@
         "sprite",
         "other-income"
       ],
-      "title": "Review Business Brand Guide v0.2 — Strategy cells in \u00a71.3 matrix",
+      "title": "Review Business Brand Guide v0.2 — Strategy cells in §1.3 matrix",
       "status": "done",
       "risk": "med",
       "note": "Complete 2026-04-02. Approved: north star, flywheel, web-first, competitive table vs current plan. Matrix ticked in HTML v0.2.1. Memo: docs/reports/business-brand-guide-v0.2-stakeholder-reviews-2026-04-02.md. Refresh competitive row when a comparable integrated AI toolchain entrant appears.",
-      "proposed_solution": "Work through \u00a71.3, comment in writing or tick confirmation, and hand updates to Marketing for a v0.3 draft if anything must change."
+      "proposed_solution": "Work through §1.3, comment in writing or tick confirmation, and hand updates to Marketing for a v0.3 draft if anything must change.",
+      "modified_at": "2026-04-03T07:41:01-04:00",
+      "modified_by": "strategy"
     }
   ],
   "strategy_chart": {

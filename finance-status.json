@@ -1,6 +1,6 @@
 {
-  "_note": "Updated by the finance agent after each task. Plain language \u2014 no jargon.",
-  "updated": "2026-04-01",
+  "_note": "Updated by the finance agent after each task. Plain language — no jargon.",
+  "updated": "2026-04-07",
   "schema_version": "v1.0",
   "priorities": [
     {
@@ -13,8 +13,10 @@
       "title": "Measure the actual AI API cost per assistant session so we can model unit economics",
       "status": "needs-review",
       "risk": "high",
-      "note": "Copilot is sunsetted, so the current measurement plan is obsolete. The core unknown remains: what an actual assistant session costs in tokens/$ in practice (including system prompts, tool calls, retries, and long-context overhead). Without real per-session cost distribution (p50/p90/p99), pricing and margin targets are guesswork.",
-      "proposed_solution": "Instrument the current AI assistant stack (replacement for Copilot) to log per-session token usage and provider billing signals (prompt+completion tokens, model, cached tokens if applicable), plus overhead from tool calls/retries. Roll up to per-session cost distributions and an expected marginal cost per active user to ground pricing and margin targets."
+      "note": "Copilot is sunsetted, so the current measurement plan is obsolete. The core unknown remains: what an actual assistant session costs in tokens/$ in practice (including system prompts, tool calls, retries, and long-context overhead). Without real per-session cost distribution (p50/p90/p99), pricing and margin targets are guesswork. A margin template using estimated costs exists at `artifacts/finance/paid-tier-margin-template.md` — cost assumptions there must be replaced with measured data.",
+      "proposed_solution": "Instrument the current AI assistant stack (replacement for Copilot) to log per-session token usage and provider billing signals (prompt+completion tokens, model, cached tokens if applicable), plus overhead from tool calls/retries. Roll up to per-session cost distributions and an expected marginal cost per active user to ground pricing and margin targets.",
+      "modified_at": "2026-04-01T23:50:30-04:00",
+      "modified_by": "finance"
     },
     {
       "id": 2,
@@ -26,7 +28,9 @@
       "status": "paused",
       "risk": "high",
       "note": "Blocked on having real cost data. Once we know the cost per user per month, we can model what price makes this business work.",
-      "proposed_solution": "Once cost per user is known, build base, bull, and bear pricing scenarios tied to contribution margin targets."
+      "proposed_solution": "Once cost per user is known, build base, bull, and bear pricing scenarios tied to contribution margin targets.",
+      "modified_at": "2026-04-01T23:50:30-04:00",
+      "modified_by": "finance"
     },
     {
       "id": 3,
@@ -34,11 +38,13 @@
         "business",
         "other-income"
       ],
-      "title": "Set up monthly cost tracking \u2014 actual spend vs. budget by line item",
+      "title": "Set up monthly cost tracking — actual spend vs. budget by line item",
       "status": "in-progress",
       "risk": "med",
-      "note": "Currently no structured view of what we're spending. Need a simple monthly summary: API costs, hosting, tooling subscriptions \u2014 actual vs. expected.",
-      "proposed_solution": "Maintain a monthly actual-versus-budget view across API, hosting, and subscriptions with simple variance notes."
+      "note": "Currently no structured view of what we're spending. Need a simple monthly summary: API costs, hosting, tooling subscriptions — actual vs. expected.",
+      "proposed_solution": "Maintain a monthly actual-versus-budget view across API, hosting, and subscriptions with simple variance notes.",
+      "modified_at": "2026-04-01T23:50:30-04:00",
+      "modified_by": "finance"
     }
   ],
   "risks_p0": [],
@@ -52,21 +58,26 @@
     {
       "title": "What is the maximum acceptable API cost per paying user per month?",
       "note": "This threshold defines what the pricing floor must be. Without it, we can't assess whether any pricing option is financially viable."
+    },
+    {
+      "title": "Review the paid-tier margin template and confirm the $9/month pricing floor",
+      "note": "Margin template published at `artifacts/finance/paid-tier-margin-template.md`. Shows contribution margin at $6/$9/$14 price points across bear/base/bull AI cost scenarios — all positive under current Gemini pricing. Recommendation is $9/month as the safer floor. Founder needs to confirm this aligns with willingness-to-pay signals before a public price is set.",
+      "os_contexts": ["business", "other-income"]
     }
   ],
   "actions": [
     {
       "id": "unit-economics-update",
       "name": "Unit Economics Update",
-      "description": "Updated contribution margin model \u2014 revenue per user, API cost per user, margin per paying user.",
+      "description": "Updated contribution margin model — revenue per user, API cost per user, margin per paying user.",
       "trigger": "Monthly or after any AI API pricing change",
-      "last_run": null,
-      "output_location": null
+      "last_run": "2026-04-07",
+      "output_location": "artifacts/finance/paid-tier-margin-template.md"
     },
     {
       "id": "runway-check",
       "name": "Runway Check",
-      "description": "Runway calculation under current, optimistic, and bear spend scenarios \u2014 months remaining, break-even conditions.",
+      "description": "Runway calculation under current, optimistic, and bear spend scenarios — months remaining, break-even conditions.",
       "trigger": "Monthly",
       "last_run": null,
       "output_location": null
@@ -82,7 +93,7 @@
     {
       "id": "api-cost-alert",
       "name": "API Cost Alert",
-      "description": "Cost spike analysis \u2014 root cause, projection at current growth rate, options to contain.",
+      "description": "Cost spike analysis — root cause, projection at current growth rate, options to contain.",
       "trigger": "Any API call volume change exceeding 150% of the 4-week average",
       "last_run": null,
       "output_location": null
@@ -95,11 +106,13 @@
         "business",
         "other-income"
       ],
-      "title": "Establish a cost alert threshold \u2014 flag anything over 150% of the four-week average",
+      "title": "Establish a cost alert threshold — flag anything over 150% of the four-week average",
       "status": "paused",
       "risk": "med",
       "note": "A sudden API cost spike (bad prompt, unexpected traffic) could generate a large bill before anyone notices. A simple threshold alert prevents surprises.",
-      "proposed_solution": "After baselines exist, alert when any API spend exceeds 150% of the trailing four-week average and investigate spikes."
+      "proposed_solution": "After baselines exist, alert when any API spend exceeds 150% of the trailing four-week average and investigate spikes.",
+      "modified_at": "2026-04-01T23:50:30-04:00",
+      "modified_by": "finance"
     },
     {
       "id": "finance-o5",
@@ -108,10 +121,13 @@
         "other-income"
       ],
       "title": "Business plan: rough margin on any paid tier (revenue minus API, hosting, and payment fees)",
-      "status": "in-progress",
-      "risk": "high",
-      "note": "Next step from the initial business plan (Apr 2026). Per-session cost is not enough alone \u2014 we need a simple margin view before promising a price.",
-      "proposed_solution": "After Copilot cost-per-session is measured, publish a one-page margin template for the first paid SKU (ARPU minus variable costs)."
+      "status": "done",
+      "risk": "med",
+      "note": "Margin template published at artifacts/finance/paid-tier-margin-template.md (2026-04-07). Covers $6/$9/$14 price points across bear/base/bull AI cost scenarios. Contribution margin is positive at all price points under current Gemini pricing. Key remaining gap: AI API cost per session is still an estimate from charter benchmarks — not yet measured from real instrumentation. Template is structured to be updated when Priority #1 (token logging) delivers real data. Risk lowered from high to med: the model is viable; the residual risk is cost estimate accuracy, not structural model viability.",
+      "proposed_solution": "Done. Template at artifacts/finance/paid-tier-margin-template.md. Next: replace AI API cost assumption with measured p50/p90 actuals when Engineering instruments token logging.",
+      "output_location": "artifacts/finance/paid-tier-margin-template.md",
+      "modified_at": "2026-04-07T00:00:00-04:00",
+      "modified_by": "finance"
     }
   ],
   "finance_chart": {

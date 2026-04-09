@@ -1,15 +1,17 @@
 {
-  "_note": "Updated by the game systems designer after each task. Plain language \u2014 no jargon.",
+  "_note": "Updated by the game systems designer after each task. Plain language — no jargon.",
   "updated": "2026-03-31",
   "schema_version": "v1.0",
   "priorities": [
     {
       "id": 1,
-      "title": "Define the base movement system \u2014 jump, dash, and wall mechanics with exact values",
+      "title": "Define the base movement system — jump, dash, and wall mechanics with exact values",
       "status": "in-progress",
       "risk": "high",
       "note": "All level design depends on the movement parameters being locked. Gap widths, platform heights, and challenge construction are all derived from the movement system. These values need to be finalized before level design can commit to room geometry.",
-      "proposed_solution": "Lock jump, dash, wall mechanics, and numeric parameters in living balance docs so level design can size gaps and platforms."
+      "proposed_solution": "Lock jump, dash, wall mechanics, and numeric parameters in living balance docs so level design can size gaps and platforms.",
+      "modified_at": "2026-03-31T20:16:08-04:00",
+      "modified_by": "design"
     },
     {
       "id": 2,
@@ -17,7 +19,9 @@
       "status": "paused",
       "risk": "high",
       "note": "The first gating ability defines the whole progression structure. Needs Game Director alignment on the player arc before this can be decided.",
-      "proposed_solution": "After macro arc alignment, specify the first ability the player earns and exactly which locks and routes it opens."
+      "proposed_solution": "After macro arc alignment, specify the first ability the player earns and exactly which locks and routes it opens.",
+      "modified_at": "2026-03-31T20:16:08-04:00",
+      "modified_by": "design"
     }
   ],
   "risks_p0": [],
@@ -32,7 +36,7 @@
     {
       "id": "ability-spec",
       "name": "Ability Spec",
-      "description": "Complete spec for a new ability \u2014 inputs, effects, cost, cooldown, frame parameters, edge cases, balance baseline.",
+      "description": "Complete spec for a new ability — inputs, effects, cost, cooldown, frame parameters, edge cases, balance baseline.",
       "trigger": "A new ability is proposed or approved for development",
       "last_run": null,
       "output_location": null
@@ -40,7 +44,7 @@
     {
       "id": "balance-model",
       "name": "Balance Model",
-      "description": "Parameterized balance model with derived values \u2014 no arbitrary number assignments.",
+      "description": "Parameterized balance model with derived values — no arbitrary number assignments.",
       "trigger": "A system is under design or post-playtesting data is available",
       "last_run": null,
       "output_location": null
@@ -48,7 +52,7 @@
     {
       "id": "feel-audit",
       "name": "Feel Audit",
-      "description": "Compare current movement or combat parameters against design targets \u2014 specific deltas and recommended corrections.",
+      "description": "Compare current movement or combat parameters against design targets — specific deltas and recommended corrections.",
       "trigger": "Movement or combat reported as feeling off",
       "last_run": null,
       "output_location": null
@@ -56,7 +60,7 @@
     {
       "id": "system-interaction-map",
       "name": "System Interaction Map",
-      "description": "Map interactions between a new mechanic and existing systems \u2014 second-order effects, conflicts, required adjustments.",
+      "description": "Map interactions between a new mechanic and existing systems — second-order effects, conflicts, required adjustments.",
       "trigger": "A new mechanic is proposed that touches existing systems",
       "last_run": null,
       "output_location": null
@@ -65,11 +69,13 @@
   "opportunities": [
     {
       "id": "gs-o3",
-      "title": "Draft the combat system fundamentals \u2014 attack frames, iframes, enemy hitbox conventions",
+      "title": "Draft the combat system fundamentals — attack frames, iframes, enemy hitbox conventions",
       "status": "paused",
       "risk": "med",
       "note": "Held until movement system is locked. Combat parameters should be derived from the same base model, not designed in isolation.",
-      "proposed_solution": "Derive combat frame data, iframes, and hitbox conventions from the locked movement model rather than inventing them in isolation."
+      "proposed_solution": "Derive combat frame data, iframes, and hitbox conventions from the locked movement model rather than inventing them in isolation.",
+      "modified_at": "2026-04-01T22:23:57-04:00",
+      "modified_by": "game-systems"
     },
     {
       "id": "gs-o4",
@@ -77,7 +83,9 @@
       "status": "paused",
       "risk": "med",
       "note": "As abilities are added, interaction effects compound. Building a system interaction map early prevents edge cases from becoming game-breaking sequence breaks later.",
-      "proposed_solution": "Maintain an ability interaction map as mechanics are added so unintended sequence breaks are caught early."
+      "proposed_solution": "Maintain an ability interaction map as mechanics are added so unintended sequence breaks are caught early.",
+      "modified_at": "2026-04-01T22:23:57-04:00",
+      "modified_by": "game-systems"
     }
   ],
   "game_systems_chart": {

@@ -13,7 +13,9 @@
       "status": "paused",
       "risk": "high",
       "note": "A room that can't be reached from the start point breaks the game silently. Automated reachability checking must be in place before any world graph is exported to the game runtime.",
-      "proposed_solution": "Implement automated world-graph reachability validation on export so unreachable rooms fail before they hit the runtime."
+      "proposed_solution": "Implement automated world-graph reachability validation on export so unreachable rooms fail before they hit the runtime.",
+      "modified_at": "2026-04-01T23:50:30-04:00",
+      "modified_by": "level-design"
     },
     {
       "id": 3,
@@ -25,7 +27,9 @@
       "status": "paused",
       "risk": "high",
       "note": "Blocked on game systems locking the movement values. Once those are finalized, all room geometry should be reviewed for playability.",
-      "proposed_solution": "When movement values freeze, audit room geometry against those parameters for fair gaps, platforms, and gates."
+      "proposed_solution": "When movement values freeze, audit room geometry against those parameters for fair gaps, platforms, and gates.",
+      "modified_at": "2026-04-01T23:50:30-04:00",
+      "modified_by": "level-design"
     }
   ],
   "risks_p0": [],

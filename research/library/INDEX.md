@@ -32,6 +32,7 @@
 | 2026-04-03 | Sprite Workbench arch viz — master program plan | [../../docs/sprite-workbench-architecture-visualization-master-plan.md](../../docs/sprite-workbench-architecture-visualization-master-plan.md) | End-to-end milestones (M0 design lock … M7 AI), workstreams, SC-1–SC-8 success criteria, user journeys, risk mitigations; links HI-FI mockup | draft |
 | 2026-04-03 | Agent OS Workbench architecture dashboard — HI-FI mockup | [../../docs/mockups/agent-os-sprite-arch-dashboard-mockup.html](../../docs/mockups/agent-os-sprite-arch-dashboard-mockup.html) | Static HTML: shell, nav, KPI cards, Structure/Relationship/Change tabs, SVG graph + legend, inspector + AI CTA; tokens `--os-control`, mode-pill pattern, no `transition: all` | draft |
 | 2026-04-03 | Pixel art quality standards — production gate | [../../docs/pixel-art-quality-standards.md](../../docs/pixel-art-quality-standards.md) | Animation-owned checklist: `AH-*` palette, silhouette + animation bar, anti-alias/transparency policy, lossless export; art bible v0.2 + charter cross-refs | final |
+| 2026-04-08 | Agent OS repo split workspace contract | [technical/agent-os-repo-split-workspace-contract-2026-04-08.md](technical/agent-os-repo-split-workspace-contract-2026-04-08.md) | App-root versus workspace-root contract for the Agent OS split, plus phase-1 move/stay/split boundary and QA evidence | final |
 
 ### Competitive Analysis
 
@@ -60,4 +61,4 @@ Common tags used across library documents:
 
 ---
 
-*Last updated: 2026-04-03 — Sprite workbench arch viz: master plan + HI-FI mockup indexed*
+*Last updated: 2026-04-08 — Agent OS repo split workspace contract indexed*

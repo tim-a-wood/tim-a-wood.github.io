@@ -13,7 +13,9 @@
       "status": "done",
       "risk": "med",
       "note": "Room environment suggestions now log a durable helpfulness record per generation. Each preview build gets a stable suggestion id, tracks outcome (accept / tweak / reject), context, time-to-decision, preview/open-game inspections, lightweight reason codes, latency/errors/cancellations/crash-near-AI-use signals, and a persistence check on later room saves. Rollups now include explicit request/view/decision/persist funnels, denominators, and low-sample warnings.",
-      "proposed_solution": "Keep using the new `room.environment.ai_helpfulness` ledger and `/environment/feedback` hook as the base contract. Next reporting work should read those persisted suggestion records directly instead of falling back to raw invocation counts."
+      "proposed_solution": "Keep using the new `room.environment.ai_helpfulness` ledger and `/environment/feedback` hook as the base contract. Next reporting work should read those persisted suggestion records directly instead of falling back to raw invocation counts.",
+      "modified_at": "2026-04-01T23:50:30-04:00",
+      "modified_by": "analytics"
     },
     {
       "id": 3,
@@ -24,7 +26,9 @@
       "status": "done",
       "risk": "low",
       "note": "The automated system went live today. Every dashboard — including this one — now updates itself each day at noon. No manual work required.",
-      "proposed_solution": "Keep verifying the daily automated dashboard refresh and extend the runbook when new metrics or pages are added."
+      "proposed_solution": "Keep verifying the daily automated dashboard refresh and extend the runbook when new metrics or pages are added.",
+      "modified_at": "2026-04-01T23:50:30-04:00",
+      "modified_by": "analytics"
     }
   ],
   "risks_p0": [],
@@ -76,7 +80,9 @@
       "risk": "low",
       "note": "Rooms/user/month is only meaningful once we define “finished room” and the product loop. Pre-public-release it will be ~0 (no external users), which is expected; the point is to start clean instrumentation at the first public release.",
       "proposed_solution": "Define and instrument rooms exported per active user per month as the north star starting at the first public release.",
-      "solution": "North-star (outcome): finished rooms per active user per month. Define “finished room” as an explicit export/release marker (e.g., Room Exported v1 OR Room Published) with a stable room_id, project_id, user_id, timestamp; count unique finished room_ids per user per month. Pair with leading indicators tracked from day 1: Activation (% new users reaching first meaningful success: create room → place required entities → first export/playtest), Engagement (weekly active creators + median active days/week), Quality/success proxies (% exports passing validation with no errors, time-to-first-export, % exported rooms re-opened for edits within 7d). Instrument core events: project_created, room_created, room_exported/published, playtest_started, validation_failed (with error codes), room_opened."
+      "solution": "North-star (outcome): finished rooms per active user per month. Define “finished room” as an explicit export/release marker (e.g., Room Exported v1 OR Room Published) with a stable room_id, project_id, user_id, timestamp; count unique finished room_ids per user per month. Pair with leading indicators tracked from day 1: Activation (% new users reaching first meaningful success: create room → place required entities → first export/playtest), Engagement (weekly active creators + median active days/week), Quality/success proxies (% exports passing validation with no errors, time-to-first-export, % exported rooms re-opened for edits within 7d). Instrument core events: project_created, room_created, room_exported/published, playtest_started, validation_failed (with error codes), room_opened.",
+      "modified_at": "2026-04-04T17:29:02-04:00",
+      "modified_by": "analytics"
     },
     {
       "id": "analytics-o4",
@@ -88,7 +94,9 @@
       "status": "paused",
       "risk": "med",
       "note": "We can't track what specific people do until we tell them we're doing it and get their agreement. Legal needs to sign off first. On hold until that conversation happens.",
-      "proposed_solution": "Partner with Legal on consent copy and lawful basis, then enable individual-level tracking only after disclosure is approved."
+      "proposed_solution": "Partner with Legal on consent copy and lawful basis, then enable individual-level tracking only after disclosure is approved.",
+      "modified_at": "2026-04-01T23:50:30-04:00",
+      "modified_by": "analytics"
     },
     {
       "id": "analytics-o5",
@@ -100,7 +108,9 @@
       "status": "paused",
       "risk": "low",
       "note": "Not needed before launch. We'll revisit this when the first external release is close.",
-      "proposed_solution": "Before launch, shortlist a privacy-respecting analytics vendor and fold it into the tracking plan with Legal sign-off."
+      "proposed_solution": "Before launch, shortlist a privacy-respecting analytics vendor and fold it into the tracking plan with Legal sign-off.",
+      "modified_at": "2026-04-01T23:50:30-04:00",
+      "modified_by": "analytics"
     }
   ],
   "analytics_chart": {

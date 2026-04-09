@@ -5,59 +5,86 @@
   "priorities": [
     {
       "id": 1,
-      "os_contexts": ["sprite"],
+      "os_contexts": [
+        "sprite"
+      ],
       "title": "Rebuilding the room editor — cleaner panels and easier entity selection",
       "status": "in-progress",
       "risk": "med",
       "note": "The inspector side panel is being rebuilt from scratch. Entity types (platforms, doors, keys) are getting a proper system so they behave consistently.",
-      "proposed_solution": "Ship the rebuilt inspector with a consistent entity-type model and regression-test selection, editing, and export flows."
+      "proposed_solution": "Ship the rebuilt inspector with a consistent entity-type model and regression-test selection, editing, and export flows.",
+      "modified_at": "2026-04-01T23:50:30-04:00",
+      "modified_by": "engineering"
     },
     {
       "id": 2,
-      "os_contexts": ["sprite", "ashen-hollow"],
+      "os_contexts": [
+        "sprite",
+        "ashen-hollow"
+      ],
       "title": "Adding version numbers to saved room files",
       "status": "needs-review",
       "risk": "high",
       "note": "Right now saved files have no version label. If we change the format later, old files could break silently. This needs fixing before any more format changes.",
-      "proposed_solution": "Add an explicit version field to saved room JSON plus a documented migration path before any further format changes ship."
+      "proposed_solution": "Add an explicit version field to saved room JSON plus a documented migration path before any further format changes ship.",
+      "modified_at": "2026-04-01T23:50:30-04:00",
+      "modified_by": "engineering"
     },
     {
       "id": 3,
-      "os_contexts": ["sprite"],
+      "os_contexts": [
+        "sprite"
+      ],
       "title": "Connecting the AI image generator to the sprite editor",
       "status": "in-progress",
       "risk": "med",
       "note": "The server connection is working. The part where you actually generate sprites in the editor is still being built.",
-      "proposed_solution": "Finish the in-editor UI that triggers image generation and applies results into the sprite workflow on top of the live server."
+      "proposed_solution": "Finish the in-editor UI that triggers image generation and applies results into the sprite workflow on top of the live server.",
+      "modified_at": "2026-04-01T23:50:30-04:00",
+      "modified_by": "engineering"
     },
     {
       "id": 4,
-      "os_contexts": ["business", "sprite"],
+      "os_contexts": [
+        "business",
+        "sprite"
+      ],
       "title": "Room Copilot — time-boxed benchmark of a newer model after the founder sets schedule and switch criteria",
       "status": "paused",
       "risk": "low",
       "note": "Part of the Copilot readiness program with workbench PO and orchestration. Paused until commercial bar and timing are decided.",
-      "proposed_solution": "Run the benchmark once criteria and a window are set; compare against the pinned model using the same fixtures QA and level design use."
+      "proposed_solution": "Run the benchmark once criteria and a window are set; compare against the pinned model using the same fixtures QA and level design use.",
+      "modified_at": "2026-04-01T23:50:30-04:00",
+      "modified_by": "engineering"
     }
   ],
   "opportunities": [
     {
       "id": "eng-o1",
-      "os_contexts": ["sprite"],
+      "os_contexts": [
+        "sprite"
+      ],
       "title": "Performance pass on the room editor canvas after the rebuild is stable",
       "status": "paused",
       "risk": "low",
       "note": "Deferred until the inspector rebuild and interaction paths are stable.",
-      "proposed_solution": "Profile the draw loop after stabilization, then apply dirty rectangles or OffscreenCanvas only where profiling shows need."
+      "proposed_solution": "Profile the draw loop after stabilization, then apply dirty rectangles or OffscreenCanvas only where profiling shows need.",
+      "modified_at": "2026-04-01T23:50:30-04:00",
+      "modified_by": "engineering"
     },
     {
       "id": "eng-o2",
-      "os_contexts": ["business", "sprite"],
-      "title": "Review Business Brand Guide v0.2 — Engineering cells in \u00a71.3 matrix",
+      "os_contexts": [
+        "business",
+        "sprite"
+      ],
+      "title": "Review Business Brand Guide v0.2 — Engineering cells in §1.3 matrix",
       "status": "done",
       "risk": "med",
       "note": "Complete 2026-04-02. Approved: Copilot human-in-loop framing matches product; web/share accurate; do not claim offline-first while SW disabled for iteration. No guide text asserts unshipped export/versioning. Memo: docs/reports/business-brand-guide-v0.2-stakeholder-reviews-2026-04-02.md.",
-      "proposed_solution": "Sign off \u00a71.3 Engineering column; escalate any copy that implies automation or guarantees the codebase cannot support."
+      "proposed_solution": "Sign off §1.3 Engineering column; escalate any copy that implies automation or guarantees the codebase cannot support.",
+      "modified_at": "2026-04-03T07:41:01-04:00",
+      "modified_by": "engineering"
     }
   ],
   "risks_p0": [],

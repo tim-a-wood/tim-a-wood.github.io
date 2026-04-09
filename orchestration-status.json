@@ -1,5 +1,5 @@
 {
-  "_note": "Updated daily at noon by the orchestrator. Synthesised from all agent statuses. Plain language \u2014 no jargon.",
+  "_note": "Updated daily at noon by the orchestrator. Synthesised from all agent statuses. Plain language — no jargon.",
   "updated": "2026-04-06",
   "schema_version": "v1.0",
   "synthesis_sources": [
@@ -17,11 +17,13 @@
         "sprite"
       ],
       "source": "eng+design",
-      "title": "Ship the room editor milestone \u2014 rebuilt inspector, obvious place vs select, keyboard and focus on new panels",
+      "title": "Ship the room editor milestone — rebuilt inspector, obvious place vs select, keyboard and focus on new panels",
       "status": "in-progress",
       "risk": "high",
       "note": "One release slice: engineering rebuilds the inspector and entity model; design makes place vs select unmistakable and finishes keyboard order and visible focus on new panels.",
-      "proposed_solution": "Coordinate a single milestone so structure, mode clarity, and baseline accessibility land together."
+      "proposed_solution": "Coordinate a single milestone so structure, mode clarity, and baseline accessibility land together.",
+      "modified_at": "2026-04-01T23:50:30-04:00",
+      "modified_by": "orchestrator"
     },
     {
       "id": 2,
@@ -30,11 +32,13 @@
         "sprite"
       ],
       "source": "eng+qa",
-      "title": "Room save contract \u2014 version field and migration, then automated save/load round-trip",
+      "title": "Room save contract — version field and migration, then automated save/load round-trip",
       "status": "needs-review",
       "risk": "high",
       "note": "Founder sign-off on versioning before more format churn. QA lands the round-trip test once the on-disk contract is stable.",
-      "proposed_solution": "Approve versioning, ship the field and migration notes, then add the automated save/load test as the production safety net."
+      "proposed_solution": "Approve versioning, ship the field and migration notes, then add the automated save/load test as the production safety net.",
+      "modified_at": "2026-04-01T23:50:30-04:00",
+      "modified_by": "orchestrator"
     },
     {
       "id": 3,
@@ -43,11 +47,13 @@
         "sprite"
       ],
       "source": "eng+ld+qa+cyber",
-      "title": "Copilot readiness program \u2014 bar, prompt and model evaluation, tests, and security gate",
+      "title": "Copilot readiness program — bar, prompt and model evaluation, tests, and security gate",
       "status": "in-progress",
       "risk": "high",
       "note": "Founder and engineering define measurable commercial criteria. Level design owns room quality standards and prompt iteration. Engineering runs a time-boxed newer-model benchmark after the founder sets schedule and switch criteria. QA automates generate, accept, verify. Cybersecurity runs prompt injection before public exposure.",
-      "proposed_solution": "Treat this as one program with one founder decision frame on bar, timing, and what good enough to switch means."
+      "proposed_solution": "Treat this as one program with one founder decision frame on bar, timing, and what good enough to switch means.",
+      "modified_at": "2026-04-01T23:50:30-04:00",
+      "modified_by": "orchestrator"
     },
     {
       "id": 4,
@@ -60,7 +66,9 @@
       "status": "in-progress",
       "risk": "med",
       "note": "Server side is working; in-editor generation and workflow integration are still in progress. Design rules for AI panels support visual consistency.",
-      "proposed_solution": "Complete the in-editor UI and apply path; keep panels aligned with documented animation and AI panel rules."
+      "proposed_solution": "Complete the in-editor UI and apply path; keep panels aligned with documented animation and AI panel rules.",
+      "modified_at": "2026-04-01T23:50:30-04:00",
+      "modified_by": "orchestrator"
     },
     {
       "id": 5,
@@ -73,7 +81,9 @@
       "status": "needs-review",
       "risk": "med",
       "note": "Canonical rules in STYLE_GUIDE.md or a linked spec so new UI does not drift.",
-      "proposed_solution": "Land the doc, route review, and point engineering at the same reference."
+      "proposed_solution": "Land the doc, route review, and point engineering at the same reference.",
+      "modified_at": "2026-04-01T23:50:30-04:00",
+      "modified_by": "orchestrator"
     }
   ],
   "risks_p0": [],
@@ -97,14 +107,14 @@
       "blocking": true
     },
     {
-      "title": "Copilot program \u2014 commercial bar, when to benchmark the newer model, and model switch criteria",
+      "title": "Copilot program — commercial bar, when to benchmark the newer model, and model switch criteria",
       "source": "founder+eng",
       "note": "Answer once so paid tier planning, engineering benchmark, and switch threshold stay aligned."
     },
     {
-      "title": "Business Brand Guide v0.2.1 \u2014 complete Founder column in \u00a71.3 and \u00a710.1 for v0.3 lock",
+      "title": "Business Brand Guide v0.2.1 — complete Founder column in §1.3 and §10.1 for v0.3 lock",
       "source": "marketing+orchestration",
-      "note": "Specialist columns signed 2026-04-02 (report: docs/reports/business-brand-guide-v0.2-stakeholder-reviews-2026-04-02.md; HTML matrix updated). Remaining: Founder checkboxes in section 1.3 plus \u00a710.1 (names, logo, pricing narrative, long-form home) before external PDF is treated as locked v0.3.",
+      "note": "Specialist columns signed 2026-04-02 (report: docs/reports/business-brand-guide-v0.2-stakeholder-reviews-2026-04-02.md; HTML matrix updated). Remaining: Founder checkboxes in section 1.3 plus §10.1 (names, logo, pricing narrative, long-form home) before external PDF is treated as locked v0.3.",
       "blocking": true
     }
   ],
@@ -120,7 +130,7 @@
     {
       "id": "specialist-consult",
       "name": "Specialist Consult",
-      "description": "Progressive specialist invocation (ReAct pattern) \u2014 invoke the most likely resolver first, expand only if unresolved.",
+      "description": "Progressive specialist invocation (ReAct pattern) — invoke the most likely resolver first, expand only if unresolved.",
       "trigger": "Any multi-domain question that can be resolved by one or two specialists",
       "last_run": "2026-03-29",
       "output_location": "artifacts/brainstorm-engine-choice-2026-03-29.md"
@@ -138,7 +148,9 @@
       "status": "in-progress",
       "risk": "med",
       "note": "From the initial business plan (Apr 2026). Keep portfolio experiments small (about two to four at a time) until written goals and kill criteria exist.",
-      "proposed_solution": "Founder writes 90-day outcomes and stop rules for experiments; orchestrator tracks them in the weekly digest."
+      "proposed_solution": "Founder writes 90-day outcomes and stop rules for experiments; orchestrator tracks them in the weekly digest.",
+      "modified_at": "2026-04-01T23:50:30-04:00",
+      "modified_by": "orchestrator"
     }
   ],
   "orch_chart": {

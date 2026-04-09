@@ -1,0 +1,6 @@
+shell-init: error retrieving current directory: getcwd: cannot access parent directories: Operation not permitted
+/bin/bash: /Users/timwood/Desktop/projects/PWA/MV/scripts/daily_product_report.sh: Operation not permitted
+shell-init: error retrieving current directory: getcwd: cannot access parent directories: Operation not permitted
+/bin/bash: /Users/timwood/Desktop/projects/PWA/MV/scripts/daily_product_report.sh: Operation not permitted
+shell-init: error retrieving current directory: getcwd: cannot access parent directories: Operation not permitted
+/bin/bash: /Users/timwood/Desktop/projects/PWA/MV/scripts/daily_product_report.sh: Operation not permitted

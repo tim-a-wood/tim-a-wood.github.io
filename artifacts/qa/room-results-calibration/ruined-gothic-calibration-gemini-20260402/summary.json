@@ -1,0 +1,81 @@
+{
+  "project_id": "ruined-gothic-calibration-gemini-20260402",
+  "generated_at": "2026-04-05T19:10:54.320Z",
+  "rooms": [
+    {
+      "room_id": "RG-R1",
+      "screenshot": "/Users/timwood/Desktop/projects/PWA/MV/artifacts/qa/room-results-calibration/ruined-gothic-calibration-gemini-20260402/RG-R1.png",
+      "details": {
+        "ok": true,
+        "panel_hidden": false,
+        "tab_selected": "true",
+        "build_button_text": "Retry final room assets",
+        "build_button_disabled": false,
+        "stage_labels": [
+          "Preview",
+          "Build summary",
+          "Review stages",
+          "1. Stylepack",
+          "2. Semantics",
+          "3. Kit",
+          "4. Manifest",
+          "5. Validation",
+          "6. Layout overlay",
+          "Built assets"
+        ]
+      },
+      "content_width": 1680,
+      "content_height": 3825
+    },
+    {
+      "room_id": "RG-R2",
+      "screenshot": "/Users/timwood/Desktop/projects/PWA/MV/artifacts/qa/room-results-calibration/ruined-gothic-calibration-gemini-20260402/RG-R2.png",
+      "details": {
+        "ok": true,
+        "panel_hidden": false,
+        "tab_selected": "true",
+        "build_button_text": "Retry final room assets",
+        "build_button_disabled": false,
+        "stage_labels": [
+          "Preview",
+          "Build summary",
+          "Review stages",
+          "1. Stylepack",
+          "2. Semantics",
+          "3. Kit",
+          "4. Manifest",
+          "5. Validation",
+          "6. Layout overlay",
+          "Built assets"
+        ]
+      },
+      "content_width": 1680,
+      "content_height": 4057
+    },
+    {
+      "room_id": "RG-R3",
+      "screenshot": "/Users/timwood/Desktop/projects/PWA/MV/artifacts/qa/room-results-calibration/ruined-gothic-calibration-gemini-20260402/RG-R3.png",
+      "details": {
+        "ok": true,
+        "panel_hidden": false,
+        "tab_selected": "true",
+        "build_button_text": "Retry final room assets",
+        "build_button_disabled": false,
+        "stage_labels": [
+          "Preview",
+          "Build summary",
+          "Review stages",
+          "1. Stylepack",
+          "2. Semantics",
+          "3. Kit",
+          "4. Manifest",
+          "5. Validation",
+          "6. Layout overlay",
+          "Built assets"
+        ]
+      },
+      "content_width": 1680,
+      "content_height": 3981
+    }
+  ]
+}

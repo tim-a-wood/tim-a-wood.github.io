@@ -143,10 +143,36 @@
       "WebFetch(domain:openai.com)",
       "WebFetch(domain:developers.openai.com)",
       "Bash(open \"/Users/timwood/Desktop/projects/PWA/MV/tools/2d-sprite-and-animation/projects-data/ruined-gothic-calibration-gemini-20260402/art_direction_biomes/ruined-gothic-v1/foreground_frame.png\")",
-      "Bash(grep -l \"founder_decisions\" /Users/timwood/Desktop/projects/PWA/MV/*-status.json)"
+      "Bash(grep -l \"founder_decisions\" /Users/timwood/Desktop/projects/PWA/MV/*-status.json)",
+      "Read(//opt/homebrew/lib/node_modules/@anthropic-ai/claude-code/**)",
+      "Bash(ls /Users/timwood/Desktop/projects/PWA/MV/artifacts/daily-report-2026-03-3*.md /Users/timwood/Desktop/projects/PWA/MV/artifacts/daily-report-2026-04-*.md)",
+      "Bash(log show:*)",
+      "Bash(launchctl load:*)",
+      "Bash(launchctl list:*)",
+      "Bash(crontab -)",
+      "Bash(grep -l \"founder_decisions\\\\|needs-review\" /Users/timwood/Desktop/projects/PWA/MV/*-status.json)",
+      "Bash(node --input-type=module)",
+      "Bash(kill 9956)",
+      "Bash(ls *.sh scripts/*.sh)",
+      "Bash(pkill -f \"python.*8765\")",
+      "Bash(bash scripts/start_agent_os_dashboard.sh)",
+      "Bash(ls agents/*/priorities.json agents/*/opportunities.json)",
+      "Bash(ls *-status.json orchestration-status.json)",
+      "Bash(xargs -I{} sh -c 'echo \"=== {} ===\"; python3 -c \"import json,sys; d=json.load\\(open\\(\\\\\"{}\\\\\".strip\\(\\)\\)\\); [print\\(f[\\\\\"title\\\\\"]+\\\\\" | \\\\\"+f.get\\(\\\\\"note\\\\\",\\\\\"\\\\\"\\)[:200]\\) for f in d.get\\(\\\\\"founder_decisions\\\\\",[]\\)+[p for p in d.get\\(\\\\\"priorities\\\\\",[]\\) if p.get\\(\\\\\"status\\\\\"\\)==\\\\\"needs-review\\\\\"]+[o for o in d.get\\(\\\\\"opportunities\\\\\",[]\\) if o.get\\(\\\\\"status\\\\\"\\)==\\\\\"needs-review\\\\\"]]\"')",
+      "Read(//private/var/folders/kb/xp52r2rd1mv2hqnz6d4nz8lc0000gn/T/**)",
+      "Bash(curl -s \"http://127.0.0.1:8769/api/git-log?n=5\")",
+      "Bash(curl -sv \"http://127.0.0.1:8769/api/git-log?n=5\")",
+      "Bash(curl -s \"http://127.0.0.1:8769/api/git-log?n=200\")",
+      "Bash(curl -s http://127.0.0.1:7788/api/ping)",
+      "Bash(curl -s http://127.0.0.1:7789/api/ping)",
+      "Bash(curl -s http://127.0.0.1:7788/)",
+      "Bash(curl -s http://127.0.0.1:8766/)"
     ],
     "additionalDirectories": [
-      "/Users/timwood/.claude/skills"
+      "/Users/timwood/.claude/skills",
+      "/Users/timwood/Library/LaunchAgents",
+      "/tmp",
+      "/Users/timwood/Desktop/projects/PWA/MV/artifacts"
     ]
   }
 }

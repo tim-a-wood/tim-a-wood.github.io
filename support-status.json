@@ -1,5 +1,5 @@
 {
-  "_note": "Updated by the support agent after each task. Plain language \u2014 no jargon.",
+  "_note": "Updated by the support agent after each task. Plain language — no jargon.",
   "updated": "2026-03-31",
   "schema_version": "v1.0",
   "priorities": [
@@ -14,7 +14,9 @@
       "status": "in-progress",
       "risk": "high",
       "note": "We can't help users who get stuck if we haven't defined what a successful first session is. The target: new user opens the tool and exports a room within their first session. Every friction point before that export is a support problem.",
-      "proposed_solution": "Document the intended path from first open to first room export and list support triggers at each friction point."
+      "proposed_solution": "Document the intended path from first open to first room export and list support triggers at each friction point.",
+      "modified_at": "2026-04-01T23:50:30-04:00",
+      "modified_by": "support"
     },
     {
       "id": 2,
@@ -27,7 +29,9 @@
       "status": "in-progress",
       "risk": "med",
       "note": "Without a FAQ, the same questions get answered repeatedly. Getting the top five questions documented saves time and reduces early-adopter frustration.",
-      "proposed_solution": "Publish a short FAQ for the top early-tester questions across itch, GitHub README, and in-tool help."
+      "proposed_solution": "Publish a short FAQ for the top early-tester questions across itch, GitHub README, and in-tool help.",
+      "modified_at": "2026-04-01T23:50:30-04:00",
+      "modified_by": "support"
     }
   ],
   "risks_p0": [],
@@ -37,7 +41,7 @@
     {
       "id": "feedback-synthesis",
       "name": "Feedback Synthesis",
-      "description": "Tagged product intelligence from a batch of user feedback \u2014 issue types by frequency, JTBD failures, top user quote worth seeing.",
+      "description": "Tagged product intelligence from a batch of user feedback — issue types by frequency, JTBD failures, top user quote worth seeing.",
       "trigger": "Given a batch of user feedback, tickets, or community comments",
       "last_run": null,
       "output_location": null
@@ -45,7 +49,7 @@
     {
       "id": "onboarding-audit",
       "name": "Onboarding Audit",
-      "description": "First-session experience map \u2014 where do new users stall before first export? Specific friction points with recommended fixes.",
+      "description": "First-session experience map — where do new users stall before first export? Specific friction points with recommended fixes.",
       "trigger": "Monthly or when activation rate drops",
       "last_run": null,
       "output_location": null
@@ -71,7 +75,9 @@
       "status": "paused",
       "risk": "med",
       "note": "Before external users arrive, we need a defined place for them to report issues and leave feedback. Itch.io comments and a GitHub issue tracker are the most appropriate channels for this community.",
-      "proposed_solution": "Before public users arrive, designate itch and GitHub as official feedback channels with clear templates and response expectations."
+      "proposed_solution": "Before public users arrive, designate itch and GitHub as official feedback channels with clear templates and response expectations.",
+      "modified_at": "2026-04-01T23:50:30-04:00",
+      "modified_by": "support"
     },
     {
       "id": "support-o4",
@@ -83,7 +89,9 @@
       "status": "paused",
       "risk": "low",
       "note": "When users report bugs, there's currently no defined path to get those reports into QA's triage process with enough reproduction detail to be actionable.",
-      "proposed_solution": "Define how user bug reports include repro steps and route into QA triage with owners and severity."
+      "proposed_solution": "Define how user bug reports include repro steps and route into QA triage with owners and severity.",
+      "modified_at": "2026-04-01T23:50:30-04:00",
+      "modified_by": "support"
     }
   ],
   "support_chart": {

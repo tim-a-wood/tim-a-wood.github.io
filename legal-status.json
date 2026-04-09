@@ -1,6 +1,6 @@
 {
-  "_note": "Updated by the legal agent after each task. Plain language \u2014 no jargon. This is risk analysis, not legal advice.",
-  "updated": "2026-04-02",
+  "_note": "Updated by the legal agent after each task. Plain language — no jargon. This is risk analysis, not legal advice.",
+  "updated": "2026-04-07",
   "schema_version": "v1.0",
   "priorities": [
     {
@@ -14,7 +14,9 @@
       "status": "in-progress",
       "risk": "high",
       "note": "By default, Google may use API inputs to train future models. User-authored room descriptions are user content. We need to know if we can opt out and what tier that requires.",
-      "proposed_solution": "Confirm whether the current Gemini plan supports the data processing addendum and training opt-out, and document the answer for the founder."
+      "proposed_solution": "Confirm whether the current Gemini plan supports the data processing addendum and training opt-out, and document the answer for the founder.",
+      "modified_at": "2026-04-01T23:50:30-04:00",
+      "modified_by": "legal"
     },
     {
       "id": 3,
@@ -27,7 +29,9 @@
       "status": "paused",
       "risk": "med",
       "note": "Users need to understand their IP position when using the Copilot. A short, plain-English disclosure covering output ownership and data usage is needed before any public launch.",
-      "proposed_solution": "Draft plain-language user disclosure on AI-generated output and how their data is processed before any public launch."
+      "proposed_solution": "Draft plain-language user disclosure on AI-generated output and how their data is processed before any public launch.",
+      "modified_at": "2026-04-01T23:50:30-04:00",
+      "modified_by": "legal"
     }
   ],
   "risks_p0": [],
@@ -51,7 +55,7 @@
     {
       "id": "ip-review",
       "name": "IP Review",
-      "description": "IP exposure assessment for an AI feature \u2014 user IP status, output ownership, training data risk, recommended disclosures.",
+      "description": "IP exposure assessment for an AI feature — user IP status, output ownership, training data risk, recommended disclosures.",
       "trigger": "Any new AI feature, content generation workflow, or user-generated content surface",
       "last_run": null,
       "output_location": null
@@ -59,7 +63,7 @@
     {
       "id": "tos-check",
       "name": "ToS Check",
-      "description": "Material obligations and restrictions of an API ToS relevant to this product \u2014 plain language summary with citations.",
+      "description": "Material obligations and restrictions of an API ToS relevant to this product — plain language summary with citations.",
       "trigger": "Before any new API integration, or when a provider updates their ToS",
       "last_run": null,
       "output_location": null
@@ -67,7 +71,7 @@
     {
       "id": "privacy-audit",
       "name": "Privacy Audit",
-      "description": "GDPR/CCPA/EU AI Act obligations for a new data flow \u2014 disclosure requirements, consent mechanisms, DPA status.",
+      "description": "GDPR/CCPA/EU AI Act obligations for a new data flow — disclosure requirements, consent mechanisms, DPA status.",
       "trigger": "Any new data flow to external APIs or new user data collection",
       "last_run": null,
       "output_location": null
@@ -75,7 +79,7 @@
     {
       "id": "launch-legal-review",
       "name": "Launch Legal Review",
-      "description": "AI disclosure compliance, output IP status, and data processing obligations \u2014 go/flag/block recommendation.",
+      "description": "AI disclosure compliance, output IP status, and data processing obligations — go/flag/block recommendation.",
       "trigger": "Before any public-facing launch or feature release",
       "last_run": null,
       "output_location": null
@@ -93,7 +97,10 @@
       "status": "paused",
       "risk": "med",
       "note": "Any GPL/AGPL dependency could impose copyleft obligations on the product. Needs a full dependency audit before commercial launch.",
-      "proposed_solution": "Audit dependencies for GPL or AGPL exposure and plan removals or compliance paths before commercial distribution."
+      "proposed_solution": "Audit dependencies for GPL or AGPL exposure and plan removals or compliance paths before commercial distribution.",
+      "modified_at": "2026-04-01T23:50:30-04:00",
+      "modified_by": "legal",
+      "sort_order": 0
     },
     {
       "id": "legal-o5",
@@ -105,7 +112,10 @@
       "status": "in-progress",
       "risk": "high",
       "note": "Next step from the initial business plan (Apr 2026). Before charging or collecting emails at scale: Terms, Privacy, AI disclosure, DPA status, and payment flow reviewed.",
-      "proposed_solution": "Draft one checklist (ToS, Privacy, payments, email capture, AI labels); have counsel review before material launch."
+      "proposed_solution": "Draft one checklist (ToS, Privacy, payments, email capture, AI labels); have counsel review before material launch.",
+      "modified_at": "2026-04-01T23:50:30-04:00",
+      "modified_by": "legal",
+      "sort_order": 1
     }
   ],
   "legal_chart": {

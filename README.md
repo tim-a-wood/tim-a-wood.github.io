@@ -158,6 +158,28 @@ Or double-click **`Agent-OS-Dashboard.command`** in the repo root.
 
 Optional env: `OS_AGENT_OS_PORT` (or legacy `OS_DASHBOARD_SUPERVISOR_PORT`), `OS_DASHBOARD_WORKBENCH_PORT` for the workbench port.
 
+Optional split env: `MV_WORKSPACE_ROOT=/absolute/path/to/the/MV/workspace` lets Agent OS run from a different checkout while still reading and writing this MV workspace. If unset, Agent OS uses the current repo root for backward compatibility.
+Optional external app env: `AGENT_OS_APP_ROOT=/absolute/path/to/the/standalone/agent-os/repo` lets the MV launcher start Agent OS from a separate checkout while keeping this repo as the workspace.
+
+To scaffold that external repo from the approved phase-1 move set:
+
+```bash
+python3 scripts/bootstrap_agent_os_repo.py /path/to/agent-os-repo
+AGENT_OS_APP_ROOT=/path/to/agent-os-repo MV_WORKSPACE_ROOT=/absolute/path/to/this/repo bash scripts/start_agent_os_dashboard.sh
+```
+
+To make the MV launcher default to that external checkout:
+
+```bash
+bash scripts/cutover_agent_os_external.sh /path/to/agent-os-repo
+```
+
+To roll back to the embedded in-repo runtime:
+
+```bash
+bash scripts/rollback_agent_os_embedded.sh
+```
+
 If you open `os-dashboard.html` from the **workbench** (`http://127.0.0.1:8766/...`), Start/Restart/Stop POST to **Agent OS** (default `http://127.0.0.1:8769`). Override with `AGENT_OS_CONTROL_BASE` in the environment if you use another port.
 
 **Founder email (Resend):** The daily dashboard job (`scripts/update_dashboards.sh`) finishes by piping markdown into `scripts/send_weekly_digest.py`, using `RESEND_API_KEY` and `DIGEST_EMAIL_TO` from `.env.local`. On **Tuesdays**, if `artifacts/marketing-weekly-update-YYYY-MM-DD.md` exists for that calendar date, the same script emails it as a second message (subject `[MV Marketing] Tuesday weekly update — …`). If the file is missing, the job logs a skip line in `artifacts/dashboard-update-cron.log` — create the file before the noon run, or run `python3 scripts/send_weekly_digest.py --file artifacts/marketing-weekly-update-YYYY-MM-DD.md --subject "…" --subtitle "Marketing — Tuesday weekly update"` manually. To send the company brand charter PDF the same way, run `./scripts/send_brand_charter_email.sh` from the repo root.

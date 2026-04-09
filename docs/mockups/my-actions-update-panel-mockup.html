@@ -1,0 +1,1289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mockup — My Actions Update Panel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #050709;
+      --surface-1: #0c0f12;
+      --surface-2: #141820;
+      --surface-3: #1c2230;
+      --accent: #00e8c8;
+      --accent-soft: rgba(0,232,200,0.08);
+      --text: #e8eaf0;
+      --muted: #6b7280;
+      --stroke: rgba(255,255,255,0.06);
+      --stroke-strong: rgba(255,255,255,0.12);
+      --good: #22c55e;
+      --good-soft: rgba(34,197,94,0.12);
+      --warning: #d29922;
+      --warning-soft: rgba(210,153,34,0.14);
+      --danger: #e05252;
+      --danger-soft: rgba(224,82,82,0.12);
+      --font-display: 'Bebas Neue', sans-serif;
+      --font-sans: 'Plus Jakarta Sans', -apple-system, sans-serif;
+      --font-mono: 'DM Mono', ui-monospace, monospace;
+      --font-size-xs: 11px;
+      --font-size-sm: 12px;
+      --font-size-base: 14px;
+      --font-size-lg: 18px;
+      --font-size-xl: 24px;
+      --font-size-2xl: 32px;
+      --radius-xs: 4px;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 14px;
+      --radius-card: 18px;
+      --radius-full: 999px;
+    }
+
+    :focus-visible {
+      outline: 2px solid rgba(0,232,200,0.35);
+      outline-offset: 2px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: var(--font-size-base);
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+
+    /* ── MOCKUP CHROME ──────────────────────────────── */
+    body::before {
+      content: '';
+      display: block;
+      height: 3px;
+      background: var(--accent);
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 200;
+    }
+
+    .mock-banner {
+      position: fixed;
+      top: 3px; left: 0; right: 0;
+      z-index: 199;
+      background: var(--warning-soft);
+      border-bottom: 1px solid rgba(210,153,34,0.28);
+      color: var(--warning);
+      font-size: var(--font-size-xs);
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      text-align: center;
+      padding: 8px 16px;
+    }
+
+    .mock-phase-switcher {
+      position: fixed;
+      top: calc(3px + 33px);
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 198;
+      display: flex;
+      gap: 4px;
+      background: var(--surface-2);
+      border: 1px solid var(--stroke-strong);
+      border-radius: var(--radius-full);
+      padding: 4px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+
+    .phase-btn {
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-family: var(--font-sans);
+      font-size: var(--font-size-sm);
+      font-weight: 600;
+      padding: 6px 16px;
+      border-radius: var(--radius-full);
+      cursor: pointer;
+      min-height: 32px;
+      transition: background 200ms ease, color 200ms ease;
+      letter-spacing: 0.02em;
+    }
+
+    .phase-btn:hover {
+      color: var(--text);
+      background: rgba(255,255,255,0.06);
+    }
+
+    .phase-btn.active {
+      background: var(--accent-soft);
+      color: var(--accent);
+      border: 1px solid rgba(0,232,200,0.2);
+    }
+
+    /* ── DASHBOARD SHELL (behind the modal) ──────────── */
+    .page {
+      padding-top: calc(3px + 33px + 52px + 16px);
+      padding-bottom: 48px;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding-left: 24px;
+      padding-right: 24px;
+      opacity: 0.3;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .ma-view-head {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .ma-view-title {
+      font-family: var(--font-display);
+      font-size: var(--font-size-2xl);
+      letter-spacing: 0.08em;
+      color: var(--text);
+      line-height: 1;
+    }
+
+    .ma-view-count {
+      font-family: var(--font-mono);
+      font-size: var(--font-size-lg);
+      color: var(--accent);
+    }
+
+    .ma-view-meta {
+      font-size: var(--font-size-xs);
+      color: var(--muted);
+      margin-left: auto;
+    }
+
+    .ma-filter-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 16px;
+      background: var(--surface-1);
+      border: 1px solid var(--stroke);
+      border-radius: var(--radius-card);
+      margin-bottom: 20px;
+    }
+
+    .filter-label {
+      font-size: var(--font-size-xs);
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .filter-select {
+      min-height: 36px;
+      padding: 0 12px;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--stroke-strong);
+      background: var(--surface-3);
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: var(--font-size-sm);
+    }
+
+    .btn-ghost-sm {
+      min-height: 36px;
+      padding: 0 16px;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--stroke-strong);
+      background: transparent;
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: var(--font-size-sm);
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 200ms ease, border-color 200ms ease, transform 120ms ease;
+    }
+
+    .btn-ghost-sm:hover {
+      background: rgba(255,255,255,0.06);
+      transform: translateY(-1px);
+    }
+
+    .btn-update {
+      min-height: 36px;
+      padding: 0 16px;
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(0,232,200,0.3);
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-family: var(--font-sans);
+      font-size: var(--font-size-sm);
+      font-weight: 600;
+      cursor: pointer;
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 200ms ease, border-color 200ms ease, transform 120ms ease;
+    }
+
+    .btn-update:hover {
+      background: rgba(0,232,200,0.14);
+      border-color: rgba(0,232,200,0.5);
+      transform: translateY(-1px);
+    }
+
+    .btn-update svg {
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+    }
+
+    /* Dummy action rows */
+    .action-rows { display: flex; flex-direction: column; gap: 8px; }
+    .action-row {
+      padding: 14px 16px;
+      background: var(--surface-1);
+      border: 1px solid var(--stroke);
+      border-radius: var(--radius-md);
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    /* ── MODAL SCRIM ────────────────────────────────── */
+    .modal-scrim {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    /* ── MODAL PANEL ────────────────────────────────── */
+    .modal-panel {
+      width: 75vw;
+      max-width: 900px;
+      height: 80vh;
+      background: var(--surface-2);
+      border: 1px solid var(--stroke-strong);
+      border-radius: var(--radius-card);
+      box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── MODAL HEADER ───────────────────────────────── */
+    .modal-header {
+      padding: 24px 28px 20px;
+      border-bottom: 1px solid var(--stroke);
+      flex-shrink: 0;
+    }
+
+    .modal-header-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .modal-title {
+      font-family: var(--font-display);
+      font-size: var(--font-size-xl);
+      letter-spacing: 0.06em;
+      color: var(--text);
+      line-height: 1;
+    }
+
+    .modal-subtitle {
+      font-size: var(--font-size-sm);
+      color: var(--muted);
+      margin-top: 6px;
+      line-height: 1.4;
+    }
+
+    .modal-close {
+      width: 32px;
+      height: 32px;
+      border: 1px solid var(--stroke-strong);
+      border-radius: var(--radius-sm);
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background 200ms ease, color 200ms ease;
+    }
+
+    .modal-close:hover {
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+    }
+
+    /* ── MODAL BODY ─────────────────────────────────── */
+    .modal-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 28px;
+    }
+
+    .modal-body::-webkit-scrollbar { width: 6px; }
+    .modal-body::-webkit-scrollbar-track { background: transparent; }
+    .modal-body::-webkit-scrollbar-thumb { background: var(--stroke-strong); border-radius: 3px; }
+
+    /* ── MODAL FOOTER ───────────────────────────────── */
+    .modal-footer {
+      padding: 16px 28px;
+      border-top: 1px solid var(--stroke);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    .footer-spacer { flex: 1; }
+
+    /* ── BUTTONS ────────────────────────────────────── */
+    .btn-primary {
+      min-height: 36px;
+      padding: 0 20px;
+      border-radius: var(--radius-lg);
+      border: none;
+      background: var(--accent);
+      color: #050709;
+      font-family: var(--font-sans);
+      font-size: var(--font-size-base);
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: filter 200ms ease, transform 120ms ease;
+    }
+
+    .btn-primary:hover {
+      filter: brightness(1.08);
+      transform: translateY(-1px);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none;
+      filter: none;
+    }
+
+    .btn-secondary {
+      min-height: 36px;
+      padding: 0 20px;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--stroke-strong);
+      background: transparent;
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: var(--font-size-base);
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 200ms ease, border-color 200ms ease, transform 120ms ease;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255,255,255,0.06);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-danger {
+      min-height: 36px;
+      padding: 0 20px;
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(224,82,82,0.3);
+      background: var(--danger-soft);
+      color: var(--danger);
+      font-family: var(--font-sans);
+      font-size: var(--font-size-base);
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 200ms ease, border-color 200ms ease, transform 120ms ease;
+    }
+
+    .btn-danger:hover {
+      background: rgba(224,82,82,0.2);
+      border-color: rgba(224,82,82,0.5);
+      transform: translateY(-1px);
+    }
+
+    /* ── PHASE 1 — AGENT SELECTION ──────────────────── */
+    .select-all-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .select-all-label {
+      font-size: var(--font-size-sm);
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    .text-btn {
+      background: none;
+      border: none;
+      color: var(--accent);
+      font-family: var(--font-sans);
+      font-size: var(--font-size-sm);
+      font-weight: 600;
+      cursor: pointer;
+      padding: 0;
+      transition: opacity 200ms ease;
+    }
+
+    .text-btn:hover { opacity: 0.75; }
+
+    .agent-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .agent-check-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--stroke);
+      background: var(--surface-1);
+      cursor: pointer;
+      transition: background 200ms ease, border-color 200ms ease;
+      user-select: none;
+    }
+
+    .agent-check-item:hover {
+      background: var(--surface-3);
+      border-color: var(--stroke-strong);
+    }
+
+    .agent-check-item.checked {
+      background: var(--accent-soft);
+      border-color: rgba(0,232,200,0.2);
+    }
+
+    /* Custom checkbox */
+    .custom-check {
+      width: 16px;
+      height: 16px;
+      border-radius: var(--radius-xs);
+      border: 1.5px solid var(--stroke-strong);
+      background: var(--surface-3);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 200ms ease, border-color 200ms ease;
+    }
+
+    .agent-check-item.checked .custom-check {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .custom-check svg {
+      display: none;
+    }
+
+    .agent-check-item.checked .custom-check svg {
+      display: block;
+    }
+
+    .agent-check-name {
+      font-size: var(--font-size-sm);
+      font-weight: 500;
+      color: var(--text);
+      line-height: 1.2;
+    }
+
+    /* ── PHASE 2 — PROGRESS ─────────────────────────── */
+    .progress-summary {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      background: var(--surface-3);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--stroke-strong);
+      margin-bottom: 20px;
+    }
+
+    .progress-summary-text {
+      font-size: var(--font-size-base);
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .progress-summary-sub {
+      font-size: var(--font-size-sm);
+      color: var(--muted);
+      margin-left: auto;
+    }
+
+    /* Overall progress bar */
+    .overall-bar-track {
+      flex: 1;
+      height: 6px;
+      background: var(--surface-1);
+      border-radius: var(--radius-full);
+      overflow: hidden;
+    }
+
+    .overall-bar-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: var(--radius-full);
+      transition: width 400ms ease;
+    }
+
+    /* Agent progress rows */
+    .progress-agent-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .progress-agent-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 10px 14px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--stroke);
+      background: var(--surface-1);
+    }
+
+    .progress-agent-row.active {
+      background: var(--accent-soft);
+      border-color: rgba(0,232,200,0.2);
+    }
+
+    .progress-agent-row.done {
+      opacity: 0.6;
+    }
+
+    .progress-agent-row.queued {
+      opacity: 0.45;
+    }
+
+    .progress-agent-name {
+      font-size: var(--font-size-sm);
+      font-weight: 600;
+      color: var(--text);
+      width: 120px;
+      flex-shrink: 0;
+    }
+
+    .progress-bar-track {
+      flex: 1;
+      height: 4px;
+      background: var(--surface-3);
+      border-radius: var(--radius-full);
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      border-radius: var(--radius-full);
+      background: var(--accent);
+    }
+
+    .progress-bar-fill.done { background: var(--good); }
+    .progress-bar-fill.active { background: var(--accent); }
+    .progress-bar-fill.queued { background: var(--surface-3); width: 0%; }
+
+    .progress-agent-status {
+      width: 72px;
+      flex-shrink: 0;
+      text-align: right;
+      font-size: var(--font-size-xs);
+      font-family: var(--font-mono);
+    }
+
+    .status-done { color: var(--good); }
+    .status-active { color: var(--accent); }
+    .status-queued { color: var(--muted); }
+
+    /* Spinner */
+    .spinner {
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(0,232,200,0.2);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 700ms linear infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .spinner-placeholder {
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+    }
+
+    /* ── PHASE 3 — RESULTS ──────────────────────────── */
+    .results-summary {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .results-summary-text {
+      font-size: var(--font-size-base);
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .results-summary-sub {
+      font-size: var(--font-size-sm);
+      color: var(--muted);
+    }
+
+    .results-spacer { flex: 1; }
+
+    .results-sel-count {
+      font-size: var(--font-size-sm);
+      color: var(--accent);
+      font-family: var(--font-mono);
+      font-weight: 500;
+    }
+
+    /* Results table */
+    .results-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      border: 1px solid var(--stroke);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+
+    .results-table thead tr {
+      background: var(--surface-3);
+    }
+
+    .results-table th {
+      padding: 10px 14px;
+      font-size: var(--font-size-xs);
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      text-align: left;
+      border-bottom: 1px solid var(--stroke-strong);
+    }
+
+    .results-table th:first-child {
+      width: 40px;
+      text-align: center;
+    }
+
+    .results-table tbody tr {
+      border-bottom: 1px solid var(--stroke);
+      transition: background 200ms ease;
+      cursor: pointer;
+    }
+
+    .results-table tbody tr:last-child {
+      border-bottom: none;
+    }
+
+    .results-table tbody tr:nth-child(even) {
+      background: var(--surface-1);
+    }
+
+    .results-table tbody tr:nth-child(odd) {
+      background: transparent;
+    }
+
+    .results-table tbody tr.row-selected {
+      background: var(--accent-soft);
+    }
+
+    .results-table tbody tr:hover {
+      background: rgba(255,255,255,0.04);
+    }
+
+    .results-table tbody tr.row-selected:hover {
+      background: rgba(0,232,200,0.12);
+    }
+
+    .results-table td {
+      padding: 12px 14px;
+      font-size: var(--font-size-sm);
+      color: var(--text);
+      vertical-align: top;
+    }
+
+    .results-table td:first-child {
+      text-align: center;
+      vertical-align: middle;
+    }
+
+    /* Row checkbox */
+    .row-check {
+      width: 15px;
+      height: 15px;
+      border-radius: var(--radius-xs);
+      border: 1.5px solid var(--stroke-strong);
+      background: var(--surface-3);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .row-selected .row-check {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    /* Type badge */
+    .type-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 8px;
+      border-radius: var(--radius-full);
+      font-size: var(--font-size-xs);
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
+
+    .type-badge.founder-decision {
+      background: var(--danger-soft);
+      color: var(--danger);
+      border: 1px solid rgba(224,82,82,0.22);
+    }
+
+    .type-badge.needs-review {
+      background: var(--warning-soft);
+      color: var(--warning);
+      border: 1px solid rgba(210,153,34,0.22);
+    }
+
+    .type-badge.new-priority {
+      background: var(--accent-soft);
+      color: var(--accent);
+      border: 1px solid rgba(0,232,200,0.2);
+    }
+
+    .result-title {
+      font-weight: 600;
+      color: var(--text);
+      display: block;
+      margin-bottom: 3px;
+    }
+
+    .result-change {
+      font-size: var(--font-size-xs);
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    /* Phase display */
+    .phase-section { display: none; }
+    .phase-section.visible { display: flex; flex-direction: column; height: 100%; }
+
+  </style>
+</head>
+<body>
+
+  <!-- MOCKUP BANNER -->
+  <div class="mock-banner">Design Mockup — Not implemented — 2026-04-07</div>
+
+  <!-- PHASE SWITCHER (review nav) -->
+  <div class="mock-phase-switcher">
+    <button class="phase-btn active" onclick="setPhase(1)">Phase 1 — Select</button>
+    <button class="phase-btn" onclick="setPhase(2)">Phase 2 — Progress</button>
+    <button class="phase-btn" onclick="setPhase(3)">Phase 3 — Results</button>
+  </div>
+
+  <!-- BLURRED DASHBOARD BACKGROUND -->
+  <div class="page">
+    <div class="ma-view-head">
+      <h1 class="ma-view-title">MY ACTIONS</h1>
+      <span class="ma-view-count">14</span>
+      <div class="ma-view-meta">Updated 2026-04-07 at 09:41</div>
+    </div>
+    <div class="ma-filter-bar">
+      <span class="filter-label">Agent</span>
+      <select class="filter-select">
+        <option>All agents</option>
+        <option>Design</option>
+        <option>Finance</option>
+      </select>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#6b7280;cursor:pointer;">
+        <input type="checkbox"> Show completed
+      </label>
+      <button class="btn-ghost-sm">Remove Completed</button>
+      <button class="btn-update" onclick="openModal()">
+        <svg viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M7 1.5A5.5 5.5 0 1 1 1.5 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <path d="M1.5 3.5V7H5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Update
+      </button>
+    </div>
+    <div class="action-rows">
+      <div class="action-row">
+        <div style="width:8px;height:8px;border-radius:50%;background:#e05252;margin-top:4px;flex-shrink:0;"></div>
+        <div>
+          <div style="font-size:12px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#6b7280;margin-bottom:3px;">QA · founder_decision</div>
+          <div style="font-size:14px;font-weight:600;">Approve room environment regression threshold calibration</div>
+          <div style="font-size:12px;color:#6b7280;margin-top:4px;">Shell rim mass threshold needs founder sign-off before QA updates baseline screenshots.</div>
+        </div>
+      </div>
+      <div class="action-row">
+        <div style="width:8px;height:8px;border-radius:50%;background:#d29922;margin-top:4px;flex-shrink:0;"></div>
+        <div>
+          <div style="font-size:12px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#6b7280;margin-bottom:3px;">QA · needs-review</div>
+          <div style="font-size:14px;font-weight:600;">Room environment shell visual regression — 3 screenshots flagged</div>
+          <div style="font-size:12px;color:#6b7280;margin-top:4px;">Rim mass threshold catching some valid outputs; needs calibration decision.</div>
+        </div>
+      </div>
+      <div class="action-row">
+        <div style="width:8px;height:8px;border-radius:50%;background:#00e8c8;margin-top:4px;flex-shrink:0;"></div>
+        <div>
+          <div style="font-size:12px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#6b7280;margin-bottom:3px;">Design · needs-review</div>
+          <div style="font-size:14px;font-weight:600;">Approve My Actions Update Panel mockup before Engineering implements</div>
+          <div style="font-size:12px;color:#6b7280;margin-top:4px;">See docs/mockups/my-actions-update-panel-mockup.html</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ MODAL ═══════════ -->
+  <div class="modal-scrim" id="modal-scrim">
+    <div class="modal-panel" id="modal-panel">
+
+      <!-- PHASE 1 -->
+      <div class="phase-section visible" id="phase-1" style="display:flex;flex-direction:column;height:100%;">
+        <div class="modal-header">
+          <div class="modal-header-row">
+            <div>
+              <div class="modal-title">UPDATE MY ACTIONS</div>
+              <div class="modal-subtitle">Select agents to review their dashboards for new tasks</div>
+            </div>
+            <button class="modal-close" onclick="closeModal()" aria-label="Close">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="modal-body" style="flex:1;">
+          <div class="select-all-row">
+            <span class="select-all-label" id="p1-count">19 of 19 selected</span>
+            <div style="display:flex;gap:12px;">
+              <button class="text-btn" onclick="selectAll()">Select all</button>
+              <button class="text-btn" onclick="selectNone()" style="color:var(--muted);">Clear all</button>
+            </div>
+          </div>
+          <div class="agent-grid" id="agent-grid">
+            <!-- agents injected by JS -->
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+          <div class="footer-spacer"></div>
+          <button class="btn-primary" onclick="setPhase(2)">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M7 1.5A5.5 5.5 0 1 1 1.5 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              <path d="M1.5 3.5V7H5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Run Update
+          </button>
+        </div>
+      </div>
+
+      <!-- PHASE 2 -->
+      <div class="phase-section" id="phase-2" style="display:none;flex-direction:column;height:100%;">
+        <div class="modal-header">
+          <div class="modal-header-row">
+            <div>
+              <div class="modal-title">UPDATING MY ACTIONS</div>
+              <div class="modal-subtitle">Reviewing agent dashboards — please wait</div>
+            </div>
+            <!-- no close during run -->
+            <div style="width:32px;"></div>
+          </div>
+        </div>
+        <div class="modal-body" style="flex:1;">
+          <div class="progress-summary">
+            <div>
+              <div class="progress-summary-text">5 of 12 agents complete</div>
+            </div>
+            <div class="overall-bar-track">
+              <div class="overall-bar-fill" style="width:42%;"></div>
+            </div>
+            <div class="progress-summary-sub">~38s remaining</div>
+          </div>
+
+          <div class="progress-agent-list">
+            <!-- Done rows -->
+            <div class="progress-agent-row done">
+              <div class="spinner-placeholder"></div>
+              <div class="progress-agent-name">Analytics</div>
+              <div class="progress-bar-track"><div class="progress-bar-fill done" style="width:100%;"></div></div>
+              <div class="progress-agent-status status-done">Done</div>
+            </div>
+            <div class="progress-agent-row done">
+              <div class="spinner-placeholder"></div>
+              <div class="progress-agent-name">Animation</div>
+              <div class="progress-bar-track"><div class="progress-bar-fill done" style="width:100%;"></div></div>
+              <div class="progress-agent-status status-done">Done</div>
+            </div>
+            <div class="progress-agent-row done">
+              <div class="spinner-placeholder"></div>
+              <div class="progress-agent-name">Audio</div>
+              <div class="progress-bar-track"><div class="progress-bar-fill done" style="width:100%;"></div></div>
+              <div class="progress-agent-status status-done">Done</div>
+            </div>
+            <div class="progress-agent-row done">
+              <div class="spinner-placeholder"></div>
+              <div class="progress-agent-name">Creative</div>
+              <div class="progress-bar-track"><div class="progress-bar-fill done" style="width:100%;"></div></div>
+              <div class="progress-agent-status status-done">Done</div>
+            </div>
+            <div class="progress-agent-row done">
+              <div class="spinner-placeholder"></div>
+              <div class="progress-agent-name">Cybersecurity</div>
+              <div class="progress-bar-track"><div class="progress-bar-fill done" style="width:100%;"></div></div>
+              <div class="progress-agent-status status-done">Done</div>
+            </div>
+            <!-- Active row -->
+            <div class="progress-agent-row active">
+              <div class="spinner"></div>
+              <div class="progress-agent-name" style="color:var(--accent);">Design</div>
+              <div class="progress-bar-track"><div class="progress-bar-fill active" style="width:60%;"></div></div>
+              <div class="progress-agent-status status-active">Running…</div>
+            </div>
+            <!-- Queued rows -->
+            <div class="progress-agent-row queued">
+              <div class="spinner-placeholder"></div>
+              <div class="progress-agent-name">Legal</div>
+              <div class="progress-bar-track"><div class="progress-bar-fill queued" style="width:0%;"></div></div>
+              <div class="progress-agent-status status-queued">Queued</div>
+            </div>
+            <div class="progress-agent-row queued">
+              <div class="spinner-placeholder"></div>
+              <div class="progress-agent-name">Finance</div>
+              <div class="progress-bar-track"><div class="progress-bar-fill queued" style="width:0%;"></div></div>
+              <div class="progress-agent-status status-queued">Queued</div>
+            </div>
+            <div class="progress-agent-row queued">
+              <div class="spinner-placeholder"></div>
+              <div class="progress-agent-name">Game Director</div>
+              <div class="progress-bar-track"><div class="progress-bar-fill queued" style="width:0%;"></div></div>
+              <div class="progress-agent-status status-queued">Queued</div>
+            </div>
+            <div class="progress-agent-row queued">
+              <div class="spinner-placeholder"></div>
+              <div class="progress-agent-name">Game Systems</div>
+              <div class="progress-bar-track"><div class="progress-bar-fill queued" style="width:0%;"></div></div>
+              <div class="progress-agent-status status-queued">Queued</div>
+            </div>
+            <div class="progress-agent-row queued">
+              <div class="spinner-placeholder"></div>
+              <div class="progress-agent-name">Legal</div>
+              <div class="progress-bar-track"><div class="progress-bar-fill queued" style="width:0%;"></div></div>
+              <div class="progress-agent-status status-queued">Queued</div>
+            </div>
+            <div class="progress-agent-row queued">
+              <div class="spinner-placeholder"></div>
+              <div class="progress-agent-name">Level Design</div>
+              <div class="progress-bar-track"><div class="progress-bar-fill queued" style="width:0%;"></div></div>
+              <div class="progress-agent-status status-queued">Queued</div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" disabled>Cancel</button>
+          <div class="footer-spacer"></div>
+          <span style="font-size:12px;color:var(--muted);font-style:italic;">Cannot cancel mid-run</span>
+        </div>
+      </div>
+
+      <!-- PHASE 3 -->
+      <div class="phase-section" id="phase-3" style="display:none;flex-direction:column;height:100%;">
+        <div class="modal-header">
+          <div class="modal-header-row">
+            <div>
+              <div class="modal-title">UPDATE COMPLETE</div>
+              <div class="modal-subtitle">Review proposed changes and accept or reject them</div>
+            </div>
+            <button class="modal-close" onclick="closeModal()" aria-label="Close">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="modal-body" style="flex:1;">
+          <div class="results-summary">
+            <div>
+              <div class="results-summary-text">7 proposed updates</div>
+              <div class="results-summary-sub">from 5 agents</div>
+            </div>
+            <div class="results-spacer"></div>
+            <div class="results-sel-count" id="sel-count">7 selected</div>
+          </div>
+
+          <table class="results-table" id="results-table">
+            <thead>
+              <tr>
+                <th>
+                  <div class="custom-check" id="select-all-check" style="margin:0 auto;" onclick="toggleSelectAll()">
+                    <svg width="9" height="7" viewBox="0 0 9 7" fill="none">
+                      <path d="M1 3.5L3.5 6L8 1" stroke="#050709" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </div>
+                </th>
+                <th>Agent</th>
+                <th>Type</th>
+                <th>Title &amp; Change</th>
+              </tr>
+            </thead>
+            <tbody id="results-tbody">
+              <!-- rows injected by JS -->
+            </tbody>
+          </table>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+          <div class="footer-spacer"></div>
+          <button class="btn-danger">Reject All</button>
+          <button class="btn-primary" id="accept-btn">Accept Selected (7)</button>
+        </div>
+      </div>
+
+    </div><!-- /modal-panel -->
+  </div><!-- /modal-scrim -->
+
+  <script>
+    // ── Data ──────────────────────────────────────────
+    const AGENTS = [
+      'Analytics','Animation','Audio','Creative','Cybersecurity',
+      'Design','Finance','Game Director','Game Systems',
+      'Legal','Level Design','Marketing','Narrative','Orchestration',
+      'QA','Research','Strategy','Support'
+    ];
+
+    const RESULTS = [
+      {
+        agent: 'QA',
+        type: 'founder-decision',
+        typeLabel: 'founder_decision',
+        title: 'Approve room environment regression threshold calibration',
+        change: 'Shell rim mass threshold needs founder sign-off before QA updates baseline screenshots.'
+      },
+      {
+        agent: 'QA',
+        type: 'needs-review',
+        typeLabel: 'needs-review',
+        title: 'Room environment visual regression — 3 screenshots flagged',
+        change: 'Shell rim mass threshold catching valid outputs. Calibration required before next build.'
+      },
+      {
+        agent: 'Design',
+        type: 'needs-review',
+        typeLabel: 'needs-review',
+        title: 'Approve My Actions Update Panel mockup',
+        change: 'High-fidelity mockup complete at docs/mockups/my-actions-update-panel-mockup.html — implemented in os-dashboard.html.'
+      },
+      {
+        agent: 'Analytics',
+        type: 'new-priority',
+        typeLabel: 'new priority',
+        title: 'Add session replay hooks to room editor',
+        change: 'Priority escalated from paused → queued. Blocking deeper analytics on editor usage patterns.'
+      },
+      {
+        agent: 'Research',
+        type: 'needs-review',
+        typeLabel: 'needs-review',
+        title: 'XSS risk in room editor innerHTML interpolation still unpatched',
+        change: 'Flagged in codebase scan — escapeHtml() not applied at lines 4513–4543. Founder should confirm priority before next release.'
+      },
+      {
+        agent: 'Narrative',
+        type: 'new-priority',
+        typeLabel: 'new priority',
+        title: 'Ashen Hollow lore log v0.3 — draft complete',
+        change: 'New priority added: founder review of lore entries before world builder integration.'
+      },
+      {
+        agent: 'Strategy',
+        type: 'founder-decision',
+        typeLabel: 'founder_decision',
+        title: 'Milestone sequencing — room env vs. sprite animation sprint order',
+        change: 'Two competing sprint proposals. Founder decision required to unblock both tracks.'
+      }
+    ];
+
+    // ── State ─────────────────────────────────────────
+    let checkedAgents = new Set(AGENTS);
+    let checkedRows = new Set(RESULTS.map((_, i) => i));
+
+    // ── Render agent grid ─────────────────────────────
+    function renderAgentGrid() {
+      const grid = document.getElementById('agent-grid');
+      grid.innerHTML = AGENTS.map(agent => `
+        <label class="agent-check-item ${checkedAgents.has(agent) ? 'checked' : ''}" onclick="toggleAgent('${agent}', this)">
+          <div class="custom-check">
+            <svg width="9" height="7" viewBox="0 0 9 7" fill="none">
+              <path d="M1 3.5L3.5 6L8 1" stroke="#050709" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <span class="agent-check-name">${agent}</span>
+        </label>
+      `).join('');
+      updateP1Count();
+    }
+
+    function toggleAgent(name, el) {
+      if (checkedAgents.has(name)) {
+        checkedAgents.delete(name);
+        el.classList.remove('checked');
+      } else {
+        checkedAgents.add(name);
+        el.classList.add('checked');
+      }
+      updateP1Count();
+    }
+
+    function selectAll() {
+      checkedAgents = new Set(AGENTS);
+      renderAgentGrid();
+    }
+
+    function selectNone() {
+      checkedAgents.clear();
+      renderAgentGrid();
+    }
+
+    function updateP1Count() {
+      document.getElementById('p1-count').textContent =
+        `${checkedAgents.size} of ${AGENTS.length} selected`;
+    }
+
+    // ── Render results table ──────────────────────────
+    function renderResults() {
+      const tbody = document.getElementById('results-tbody');
+      tbody.innerHTML = RESULTS.map((r, i) => `
+        <tr class="${checkedRows.has(i) ? 'row-selected' : ''}" onclick="toggleRow(${i})">
+          <td>
+            <div class="row-check">
+              ${checkedRows.has(i) ? `<svg width="9" height="7" viewBox="0 0 9 7" fill="none"><path d="M1 3.5L3.5 6L8 1" stroke="#050709" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>` : ''}
+            </div>
+          </td>
+          <td style="white-space:nowrap;font-weight:600;">${r.agent}</td>
+          <td style="white-space:nowrap;">
+            <span class="type-badge ${r.type}">${r.typeLabel}</span>
+          </td>
+          <td>
+            <span class="result-title">${r.title}</span>
+            <span class="result-change">${r.change}</span>
+          </td>
+        </tr>
+      `).join('');
+      updateSelCount();
+    }
+
+    function toggleRow(i) {
+      if (checkedRows.has(i)) {
+        checkedRows.delete(i);
+      } else {
+        checkedRows.add(i);
+      }
+      renderResults();
+    }
+
+    function toggleSelectAll() {
+      if (checkedRows.size === RESULTS.length) {
+        checkedRows.clear();
+        document.getElementById('select-all-check').classList.remove('checked');
+      } else {
+        checkedRows = new Set(RESULTS.map((_, i) => i));
+        document.getElementById('select-all-check').classList.add('checked');
+      }
+      renderResults();
+    }
+
+    function updateSelCount() {
+      const n = checkedRows.size;
+      document.getElementById('sel-count').textContent = `${n} selected`;
+      document.getElementById('accept-btn').textContent = `Accept Selected (${n})`;
+      document.getElementById('accept-btn').disabled = n === 0;
+    }
+
+    // ── Phase switching ───────────────────────────────
+    let currentPhase = 1;
+
+    function setPhase(n) {
+      currentPhase = n;
+      // Update phase switcher buttons
+      document.querySelectorAll('.phase-btn').forEach((btn, i) => {
+        btn.classList.toggle('active', i + 1 === n);
+      });
+      // Show/hide phase sections
+      [1, 2, 3].forEach(p => {
+        const el = document.getElementById(`phase-${p}`);
+        if (p === n) {
+          el.style.display = 'flex';
+        } else {
+          el.style.display = 'none';
+        }
+      });
+      // Make sure modal is visible
+      document.getElementById('modal-scrim').style.display = 'flex';
+    }
+
+    function openModal() {
+      document.getElementById('modal-scrim').style.display = 'flex';
+      setPhase(1);
+    }
+
+    function closeModal() {
+      document.getElementById('modal-scrim').style.display = 'none';
+    }
+
+    // ── Init ──────────────────────────────────────────
+    renderAgentGrid();
+    renderResults();
+    // Phase 3 select-all starts checked
+    document.getElementById('select-all-check').classList.add('checked');
+    // Open on load showing phase 1
+    setPhase(1);
+  </script>
+</body>
+</html>

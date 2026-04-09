@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HI-FI Mockup - Room Environment Subwizard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #050709; --panel: rgba(4,6,10,0.96); --panel-2: #07090c; --panel-soft: #07090c;
+      --accent: #00e8c8; --accent-soft: rgba(0,232,200,0.08);
+      --text: #cce8e0; --muted: #5d7870;
+      --line: rgba(0,232,200,0.10); --line-strong: rgba(0,232,200,0.18);
+      --good: #4ade80; --warning: #d29922; --error: #f85149;
+      --font-sans: "Plus Jakarta Sans", -apple-system, sans-serif;
+      --font-display: "Bebas Neue", sans-serif;
+      --font-mono: "DM Mono", ui-monospace, monospace;
+      --font-size-xs: 11px; --font-size-sm: 13px; --font-size-base: 14px; --font-size-lg: 18px; --font-size-xl: 22px;
+      --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-5: 24px; --space-6: 32px;
+      --radius-tight: 14px; --radius-card: 18px; --radius-lg: 20px; --radius-full: 999px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: linear-gradient(180deg, #040608, #050709 52%, #060b0e);
+      color: var(--text);
+      font-family: var(--font-sans);
+    }
+    .shell {
+      display: grid;
+      grid-template-columns: 280px minmax(0, 1fr);
+      gap: var(--space-5);
+      padding: var(--space-5);
+    }
+    .projects,
+    .wizard {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      background: rgba(4,6,10,0.9);
+    }
+    .projects {
+      padding: var(--space-4);
+      display: grid;
+      gap: var(--space-3);
+      align-content: start;
+    }
+    .wizard {
+      padding: var(--space-5);
+      display: grid;
+      gap: var(--space-4);
+      align-content: start;
+    }
+    .eyebrow {
+      margin: 0;
+      color: var(--muted);
+      font-size: var(--font-size-xs);
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+    h1,h2,h3,p { margin: 0; }
+    h2 {
+      font-family: var(--font-display);
+      font-size: 32px;
+      font-weight: 400;
+      letter-spacing: 0.05em;
+    }
+    .copy { color: var(--muted); font-size: var(--font-size-base); line-height: 1.45; }
+    .step-rail {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: var(--space-2);
+    }
+    .step {
+      min-height: 60px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-tight);
+      background: rgba(255,255,255,0.03);
+      display: grid;
+      gap: 4px;
+      align-content: center;
+    }
+    .step.active {
+      border-color: rgba(0,232,200,0.22);
+      background: rgba(0,232,200,0.1);
+    }
+    .step strong { font-size: var(--font-size-sm); }
+    .step span { color: var(--muted); font-size: var(--font-size-xs); }
+    .card {
+      display: grid;
+      gap: var(--space-3);
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-card);
+      background: rgba(255,255,255,0.025);
+    }
+    .field, .textarea {
+      width: 100%;
+      min-height: 44px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-tight);
+      background: rgba(255,255,255,0.03);
+      color: var(--text);
+      font: inherit;
+    }
+    .textarea { min-height: 96px; resize: none; }
+    .label {
+      display: block;
+      margin-bottom: var(--space-2);
+      color: var(--text);
+      font-size: var(--font-size-xs);
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    .grid { display: grid; gap: var(--space-3); grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .wide { grid-column: 1 / -1; }
+    .actions, .footer {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+      justify-content: space-between;
+      align-items: center;
+    }
+    .btn {
+      min-height: 44px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-tight);
+      background: rgba(255,255,255,0.03);
+      display: inline-flex;
+      align-items: center;
+      font-size: var(--font-size-sm);
+      font-weight: 600;
+    }
+    .btn.primary {
+      border-color: rgba(0,232,200,0.24);
+      background: rgba(0,232,200,0.1);
+    }
+    .summary-chip {
+      min-height: 28px;
+      padding: 4px 10px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-full);
+      color: var(--muted);
+      font-size: var(--font-size-xs);
+      font-weight: 700;
+    }
+    details {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-tight);
+      background: rgba(255,255,255,0.03);
+      padding: 12px;
+    }
+    summary {
+      cursor: pointer;
+      font-weight: 700;
+      font-size: var(--font-size-sm);
+    }
+    .preview {
+      min-height: 260px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-card);
+      background: linear-gradient(180deg, rgba(10,18,24,0.96), rgba(5,7,9,0.98));
+    }
+    @media (max-width: 1100px) {
+      .shell { grid-template-columns: 1fr; }
+      .step-rail, .grid { grid-template-columns: 1fr; }
+      .wide { grid-column: auto; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <aside class="projects">
+      <p class="eyebrow">Projects rail</p>
+      <h3>Still visible</h3>
+      <p class="copy">The workbench project list stays at left, but the Environment step no longer competes with an extra Active Room side panel.</p>
+    </aside>
+    <section class="wizard">
+      <div>
+        <p class="eyebrow">Phase 2 · Environment</p>
+        <h2>Environment subwizard</h2>
+        <p class="copy">One step at a time: describe, add room-specific context only where needed, then review and build in a quieter final step.</p>
+      </div>
+      <div class="step-rail">
+        <div class="step active"><strong>1. Room look</strong><span>Idea + generate</span></div>
+        <div class="step"><strong>2. Room details</strong><span>Title + seed + notes</span></div>
+        <div class="step"><strong>3. References</strong><span>Uploads + lock</span></div>
+        <div class="step"><strong>4. Room parts</strong><span>Optional detail</span></div>
+        <div class="step"><strong>5. Preview &amp; build</strong><span>Review + assets</span></div>
+      </div>
+      <section class="card">
+        <p class="eyebrow">Current step</p>
+        <h3>Room look</h3>
+        <p class="copy">Start short. The extra context stays out of the way until later steps.</p>
+        <label class="wide">
+          <span class="label">Room idea</span>
+          <textarea class="textarea">Flooded ruined-gothic hall with heavy side walls, a clear center lane, and faint green light.</textarea>
+        </label>
+        <div class="actions">
+          <div class="btn">Rewrite idea</div>
+          <div class="btn primary">Build room look</div>
+        </div>
+        <div class="footer">
+          <span class="summary-chip">No overlap with side panel</span>
+          <div class="btn">Next: Room details</div>
+        </div>
+      </section>
+      <section class="card">
+        <p class="eyebrow">Final step</p>
+        <h3>Preview &amp; build</h3>
+        <div class="preview"></div>
+        <details open>
+          <summary>Build summary</summary>
+          <p class="copy">Always visible first. Short scan: current status, approved preview, build state.</p>
+        </details>
+        <details>
+          <summary>Review stages</summary>
+          <p class="copy">Stylepack, Semantics, Kit, Manifest, and Validation stay available but collapsed until needed.</p>
+        </details>
+        <details>
+          <summary>Layout overlay</summary>
+          <p class="copy">Debug controls live here instead of competing with the main preview.</p>
+        </details>
+        <details>
+          <summary>Built assets</summary>
+          <p class="copy">Runtime screenshot and asset gallery stay compact and secondary.</p>
+        </details>
+      </section>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,7 +1,7 @@
 {
   "schema_version": "v1.0",
   "_note": "Updated daily at noon by the design agent. Plain language — no jargon.",
-  "updated": "2026-04-04",
+  "updated": "2026-04-07",
   "priorities": [
     {
       "id": 1,
@@ -11,8 +11,10 @@
       "title": "Room editor UX — complete overhaul for clarity, accessibility, and usability",
       "status": "in-progress",
       "risk": "high",
-      "note": "Redesign the entire room editor interface for improved clarity, accessibility, and user experience. Address layout, mode switching, keyboard navigation, focus indicators, and overall usability to meet WCAG 2.2 AA standards.",
-      "proposed_solution": "Redesign the room editor interface from scratch or refactor existing components to ensure clear mode distinctions, intuitive navigation, persistent focus indicators, and accessibility compliance. Implement a cohesive visual and interaction language across all panels and tools."
+      "note": "Environment phase subwizard shipped on 2026-04-05: one-step-at-a-time Environment flow, room-scoped details moved into dedicated steps, review evidence collapsed behind Preview and build, and the overlap-causing full-bleed dock width removed. Broader room editor accessibility and interaction work remains in progress.",
+      "proposed_solution": "Continue the room editor overhaul in slices: keep reducing mode confusion, tighten keyboard and focus behavior, and apply the same step-by-step disclosure model to other dense room-editor surfaces where side panels still compete for space.",
+      "modified_at": "2026-04-04T17:29:02-04:00",
+      "modified_by": "design"
     },
     {
       "id": 2,
@@ -20,7 +22,9 @@
       "status": "queued",
       "risk": "med",
       "note": "Address comprehensive usability, visual clarity, and user flow for the room editor to improve overall user experience.",
-      "proposed_solution": "Conduct user testing, gather feedback, and implement iterative design improvements focusing on intuitiveness and accessibility."
+      "proposed_solution": "Conduct user testing, gather feedback, and implement iterative design improvements focusing on intuitiveness and accessibility.",
+      "modified_at": "2026-04-04T17:29:02-04:00",
+      "modified_by": "design"
     },
     {
       "id": 3,
@@ -31,7 +35,9 @@
       "status": "queued",
       "risk": "med",
       "note": "Improve visual clarity and consistency in the room editor interface to aid user comprehension and reduce errors.",
-      "proposed_solution": "Refine color schemes, iconography, and layout to create a more intuitive and visually accessible environment."
+      "proposed_solution": "Refine color schemes, iconography, and layout to create a more intuitive and visually accessible environment.",
+      "modified_at": "2026-04-04T17:29:02-04:00",
+      "modified_by": "design"
     },
     {
       "id": 4,
@@ -42,7 +48,9 @@
       "status": "done",
       "risk": "low",
       "note": "Approve with conditions: enforce §6.1 (toolchain vs in-game UI); HUD must pair color with non-color cues; optional STYLE_GUIDE cross-link. Memo saved.",
-      "proposed_solution": "Engineering treats AH-* as game-only; chrome stays STYLE_GUIDE. See docs/reports/design-review-ashen-hollow-art-bible-v0.2.md."
+      "proposed_solution": "Engineering treats AH-* as game-only; chrome stays STYLE_GUIDE. See docs/reports/design-review-ashen-hollow-art-bible-v0.2.md.",
+      "modified_at": "2026-04-02T17:46:50-04:00",
+      "modified_by": "design"
     }
   ],
   "risks_p0": [],
@@ -84,8 +92,8 @@
       "name": "IA Review",
       "description": "Information architecture assessment of a new feature against cognitive load and mode-error principles.",
       "trigger": "New tool feature or significant workflow change",
-      "last_run": null,
-      "output_location": null
+      "last_run": "2026-04-07",
+      "output_location": "docs/mockups/my-actions-update-panel-mockup.html"
     }
   ],
   "design_chart": {
@@ -164,7 +172,9 @@
       "status": "paused",
       "risk": "low",
       "note": "Replaces the separate inconsistency sweep — same outcome as a scheduled token audit when we run it.",
-      "proposed_solution": "Run the token audit across CSS, file tickets for fixes, and align with STYLE_GUIDE.md."
+      "proposed_solution": "Run the token audit across CSS, file tickets for fixes, and align with STYLE_GUIDE.md.",
+      "modified_at": "2026-04-01T23:50:30-04:00",
+      "modified_by": "design"
     },
     {
       "id": "design-o2",
@@ -175,7 +185,9 @@
       "status": "paused",
       "risk": "low",
       "note": "Single priority spanning screenshot or visual checks; QA leads tooling once the editor is stable; design defines what counts as a regression.",
-      "proposed_solution": "After the room editor stabilizes, pair with QA on a minimal visual regression or screenshot gate."
+      "proposed_solution": "After the room editor stabilizes, pair with QA on a minimal visual regression or screenshot gate.",
+      "modified_at": "2026-04-01T23:50:30-04:00",
+      "modified_by": "design"
     },
     {
       "id": "design-o3",
@@ -188,7 +200,9 @@
       "status": "done",
       "risk": "med",
       "note": "Complete 2026-04-02. Approved: tokens, typography, motion, entity colors, game vs UI boundary. Hex in pamphlet OK for print; tools stay CSS vars. Follow-up: research-status still tracks product-shell marketing CSS token debt—implementation, not guide text. Memo: docs/reports/business-brand-guide-v0.2-stakeholder-reviews-2026-04-02.md.",
-      "proposed_solution": "Complete §1.3 Design checkboxes; flag conflicts with STYLE_GUIDE.md so Marketing can issue v0.3."
+      "proposed_solution": "Complete §1.3 Design checkboxes; flag conflicts with STYLE_GUIDE.md so Marketing can issue v0.3.",
+      "modified_at": "2026-04-03T07:41:01-04:00",
+      "modified_by": "design"
     }
   ]
 }

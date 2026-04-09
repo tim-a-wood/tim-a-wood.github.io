@@ -17,7 +17,9 @@
       "solution": "Wrap all interpolated values in escapeHtml() at affected lines",
       "proposed_solution": "Audit all innerHTML assignments in room-layout-editor.html and produce a flagged report listing every unsafe interpolation site. Hand the report to Cybersecurity and Development with exact line references so they can wrap each value in the existing escapeHtml() helper.",
       "status": "in-progress",
-      "risk": "high"
+      "risk": "high",
+      "modified_at": "2026-04-04T17:29:02-04:00",
+      "modified_by": "research"
     },
     {
       "id": "research-p2",
@@ -32,7 +34,9 @@
       "solution": "Define --text-dim in :root token block or replace with var(--muted)",
       "proposed_solution": "Scan the full CSS token block in product-shell.css for undefined variables and document each instance. Deliver a short findings note to Development recommending either adding --text-dim to the :root block or replacing its uses with var(--muted), whichever aligns with Design intent.",
       "status": "queued",
-      "risk": "med"
+      "risk": "med",
+      "modified_at": "2026-04-04T17:29:02-04:00",
+      "modified_by": "research"
     },
     {
       "id": "research-p3",
@@ -47,7 +51,9 @@
       "solution": "Add :focus-visible { outline: 2px solid rgba(0,232,200,0.35); outline-offset: 2px; } to room-layout-editor.html",
       "proposed_solution": "Verify the absence of a :focus-visible rule across the room editor CSS and confirm no per-element workaround fills the gap. Write a one-line findings note for Development with the exact CSS rule to add, per the CLAUDE.md checklist requirement.",
       "status": "queued",
-      "risk": "med"
+      "risk": "med",
+      "modified_at": "2026-04-04T17:29:02-04:00",
+      "modified_by": "research"
     }
   ],
   "opportunities": [
@@ -61,11 +67,13 @@
       "stakeholders": "Orchestration, Finance, Marketing",
       "title": "Passive income market scan delivered — pick first revenue experiment",
       "summary": "Library report covers itch.io asset economics, AI and education products, and platform fees",
-      "note": "Executive summary emailed to founder. Full findings in research library. Finance should model net revenue at a few price points; founder chooses one first SKU (small pack vs. short guide).",
+      "note": "Full findings at research/library/findings/passive-income-market-scan-2026-04-01.md. Finance should model net revenue at a few price points; founder chooses one first SKU (small pack vs. short guide).",
       "solution": "Orchestrator runs decision mode; founder approves first experiment and time budget",
       "status": "needs-review",
       "risk": "low",
-      "sort_order": 5
+      "sort_order": 5,
+      "modified_at": "2026-04-04T17:29:02-04:00",
+      "modified_by": "research"
     },
     {
       "id": "res-o-1775275227162",
@@ -74,7 +82,9 @@
       "risk": "low",
       "sort_order": 6,
       "note": "Research applicable MCP tools for our projects, and research use of deterministic tooling. brainstorm initiatives to make use of deterministic tooling in our AI workflows i.e., to reduce token use and to increase overall determinism and effectiveness of agents by reducing their workload.",
-      "solution": ""
+      "solution": "",
+      "modified_at": "2026-04-04T17:29:02-04:00",
+      "modified_by": "research"
     }
   ],
   "actions": [

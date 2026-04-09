@@ -1,5 +1,5 @@
 {
-  "_note": "Updated by the game director after each task. Plain language \u2014 no jargon.",
+  "_note": "Updated by the game director after each task. Plain language — no jargon.",
   "updated": "2026-04-02",
   "schema_version": "v1.0",
   "priorities": [
@@ -9,7 +9,9 @@
       "status": "in-progress",
       "risk": "high",
       "note": "Without defined pillars, creative decisions accumulate inconsistently. Every room, mechanic, and story beat needs to pass the same three to five questions. Getting these locked is the highest-value creative task right now.",
-      "proposed_solution": "Publish three to five written design pillars every creative decision must pass before more content is approved."
+      "proposed_solution": "Publish three to five written design pillars every creative decision must pass before more content is approved.",
+      "modified_at": "2026-03-31T20:16:08-04:00",
+      "modified_by": "design"
     },
     {
       "id": 2,
@@ -17,15 +19,19 @@
       "status": "in-progress",
       "risk": "high",
       "note": "The macro arc determines how abilities, rooms, and story beats are sequenced. Without it, individual design decisions can't be assessed for pacing.",
-      "proposed_solution": "Document the player\u2019s emotional arc from first room to final boss to sequence abilities, beats, and pacing checks."
+      "proposed_solution": "Document the player’s emotional arc from first room to final boss to sequence abilities, beats, and pacing checks.",
+      "modified_at": "2026-03-31T20:16:08-04:00",
+      "modified_by": "design"
     },
     {
       "id": 3,
-      "title": "Agree on what v1.0 of Ashen Hollow contains \u2014 and what it doesn't",
+      "title": "Agree on what v1.0 of Ashen Hollow contains — and what it doesn't",
       "status": "paused",
       "risk": "high",
       "note": "Scope ceiling needs a founder decision. An unfinished game breaks the argument that the tools work. This is a joint decision with the founder.",
-      "proposed_solution": "Secure founder sign-off on a hard Ashen Hollow v1.0 scope ceiling and record it in the design decision log."
+      "proposed_solution": "Secure founder sign-off on a hard Ashen Hollow v1.0 scope ceiling and record it in the design decision log.",
+      "modified_at": "2026-03-31T20:16:08-04:00",
+      "modified_by": "design"
     }
   ],
   "risks_p0": [],
@@ -37,7 +43,7 @@
   ],
   "founder_decisions": [
     {
-      "title": "What is in Ashen Hollow v1.0 \u2014 and what isn't?",
+      "title": "What is in Ashen Hollow v1.0 — and what isn't?",
       "note": "How many biomes, rooms, and mechanics make a shippable first version? This needs a hard ceiling, not a roadmap."
     }
   ],
@@ -45,7 +51,7 @@
     {
       "id": "pillar-review",
       "name": "Pillar Review",
-      "description": "Assess a proposed feature, room, mechanic, or content element against each design pillar \u2014 passes / conflicts / requires revision.",
+      "description": "Assess a proposed feature, room, mechanic, or content element against each design pillar — passes / conflicts / requires revision.",
       "trigger": "Any proposed element before it enters development",
       "last_run": null,
       "output_location": null
@@ -53,7 +59,7 @@
     {
       "id": "player-arc-review",
       "name": "Player Arc Review",
-      "description": "Pacing assessment \u2014 does this milestone or decision serve the designed emotional arc from opening to final boss?",
+      "description": "Pacing assessment — does this milestone or decision serve the designed emotional arc from opening to final boss?",
       "trigger": "Any macro-design milestone or pacing decision",
       "last_run": null,
       "output_location": null
@@ -76,20 +82,28 @@
         "sprite",
         "other-income"
       ],
-      "title": "Establish genre positioning \u2014 what Ashen Hollow inherits from the metroidvania tradition and where it departs",
+      "title": "Establish genre positioning — what Ashen Hollow inherits from the metroidvania tradition and where it departs",
       "status": "paused",
       "risk": "med",
       "note": "Needed before marketing can communicate differentiation and before level design can establish room design conventions.",
-      "proposed_solution": "Write genre positioning\u2014what you inherit from metroidvanias and where you diverge\u2014for marketing and level design to cite."
+      "proposed_solution": "Write genre positioning—what you inherit from metroidvanias and where you diverge—for marketing and level design to cite.",
+      "modified_at": "2026-04-01T23:50:30-04:00",
+      "modified_by": "game-director"
     },
     {
       "id": "gd-o2",
-      "os_contexts": ["business", "sprite", "ashen-hollow"],
-      "title": "Review Business Brand Guide v0.2 — Game / LD cells in \u00a71.3 matrix",
+      "os_contexts": [
+        "business",
+        "sprite",
+        "ashen-hollow"
+      ],
+      "title": "Review Business Brand Guide v0.2 — Game / LD cells in §1.3 matrix",
       "status": "done",
       "risk": "med",
-      "note": "Complete 2026-04-02. Approved: game/tool boundary and Ashen Hollow naming. Proof-by-production wording is directional—public posts stay honest (\u201cin development\u201d) per voice rules. Memo: docs/reports/business-brand-guide-v0.2-stakeholder-reviews-2026-04-02.md.",
-      "proposed_solution": "Complete \u00a71.3 Game/LD checkboxes; align with Game Director narrative and scope so public story matches what v1.0 can prove."
+      "note": "Complete 2026-04-02. Approved: game/tool boundary and Ashen Hollow naming. Proof-by-production wording is directional—public posts stay honest (“in development”) per voice rules. Memo: docs/reports/business-brand-guide-v0.2-stakeholder-reviews-2026-04-02.md.",
+      "proposed_solution": "Complete §1.3 Game/LD checkboxes; align with Game Director narrative and scope so public story matches what v1.0 can prove.",
+      "modified_at": "2026-04-03T07:41:01-04:00",
+      "modified_by": "game-director"
     }
   ],
   "game_director_chart": {

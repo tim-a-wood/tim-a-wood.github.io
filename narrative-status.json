@@ -1,15 +1,17 @@
 {
-  "_note": "Updated by the narrative director after each task. Plain language \u2014 no jargon.",
+  "_note": "Updated by the narrative director after each task. Plain language — no jargon.",
   "updated": "2026-03-31",
   "schema_version": "v1.0",
   "priorities": [
     {
       "id": 1,
-      "title": "Write the world bible foundation \u2014 history, factions, geography, and the central conflict",
+      "title": "Write the world bible foundation — history, factions, geography, and the central conflict",
       "status": "in-progress",
       "risk": "high",
-      "note": "Without a world bible, every new room, character, or item risks contradicting established lore. The foundation document doesn't need to be complete \u2014 it needs to be authoritative on the parts that already exist.",
-      "proposed_solution": "Author the world bible sections on history, factions, geography, and central conflict as the single canon source."
+      "note": "Without a world bible, every new room, character, or item risks contradicting established lore. The foundation document doesn't need to be complete — it needs to be authoritative on the parts that already exist.",
+      "proposed_solution": "Author the world bible sections on history, factions, geography, and central conflict as the single canon source.",
+      "modified_at": "2026-03-31T20:16:08-04:00",
+      "modified_by": "design"
     },
     {
       "id": 2,
@@ -17,7 +19,9 @@
       "status": "paused",
       "risk": "med",
       "note": "Blocked on the first biome being confirmed by game director and Creative. Once the setting is locked, environmental story elements can be specified for level design.",
-      "proposed_solution": "Once the first biome is confirmed, write environmental storytelling guidance level design can place in rooms."
+      "proposed_solution": "Once the first biome is confirmed, write environmental storytelling guidance level design can place in rooms.",
+      "modified_at": "2026-03-31T20:16:08-04:00",
+      "modified_by": "design"
     }
   ],
   "risks_p0": [],
@@ -27,7 +31,7 @@
     {
       "id": "lore-consistency-check",
       "name": "Lore Consistency Check",
-      "description": "Canon compliance assessment for a new room, character, item, or mechanic \u2014 passes / conflicts / requires resolution.",
+      "description": "Canon compliance assessment for a new room, character, item, or mechanic — passes / conflicts / requires resolution.",
       "trigger": "Any new named element submitted for the game world",
       "last_run": null,
       "output_location": null
@@ -43,7 +47,7 @@
     {
       "id": "environmental-story-brief",
       "name": "Environmental Story Brief",
-      "description": "Storytelling brief for a room or biome \u2014 readable elements, foreshadowing opportunities, contrast points, lore fragments.",
+      "description": "Storytelling brief for a room or biome — readable elements, foreshadowing opportunities, contrast points, lore fragments.",
       "trigger": "A room type or biome is entering level design production",
       "last_run": null,
       "output_location": null
@@ -52,19 +56,23 @@
   "opportunities": [
     {
       "id": "narr-o3",
-      "title": "Establish lore naming conventions \u2014 places, factions, items, and abilities",
+      "title": "Establish lore naming conventions — places, factions, items, and abilities",
       "status": "in-progress",
       "risk": "med",
       "note": "Naming conventions prevent the world from feeling incoherent as it grows. A simple set of rules (phonemic palette, etymology direction, forbidden patterns) is enough to keep things consistent.",
-      "proposed_solution": "Publish naming conventions for places, factions, items, and abilities so new content stays linguistically coherent."
+      "proposed_solution": "Publish naming conventions for places, factions, items, and abilities so new content stays linguistically coherent.",
+      "modified_at": "2026-04-01T22:23:57-04:00",
+      "modified_by": "narrative"
     },
     {
       "id": "narr-o4",
-      "title": "Draft the opening sequence narrative \u2014 what the player learns about the world in the first five minutes",
+      "title": "Draft the opening sequence narrative — what the player learns about the world in the first five minutes",
       "status": "paused",
       "risk": "low",
       "note": "Deferred until game director locks the player arc and the first biome is confirmed. The opening sequence must serve the macro emotional arc, not establish it independently.",
-      "proposed_solution": "After player arc and biome lock, script what the player learns in the first five minutes without front-loading exposition."
+      "proposed_solution": "After player arc and biome lock, script what the player learns in the first five minutes without front-loading exposition.",
+      "modified_at": "2026-04-01T22:23:57-04:00",
+      "modified_by": "narrative"
     }
   ],
   "narrative_chart": {

@@ -1,96 +1,175 @@
 {
   "editor_url": "http://127.0.0.1:8766/room-layout-editor.html",
-  "generated_at": "2026-04-05T14:39:54.969Z",
+  "generated_at": "2026-04-05T23:07:22.873Z",
   "variants": [
     {
       "variant": "empty",
       "screenshot": "/Users/timwood/Desktop/projects/PWA/MV/artifacts/qa/room-results-states/empty.png",
       "details": {
-        "panel_hidden": true,
-        "tab_selected": "false",
-        "build_button_text": "Build Production Assets",
-        "build_button_disabled": false,
-        "stage_labels": [],
+        "ok": true,
+        "panel_hidden": false,
+        "tab_selected": "true",
+        "build_button_text": "Build final room assets",
+        "build_button_disabled": true,
+        "stage_labels": [
+          "Current room mood",
+          "Build summary",
+          "Review stages",
+          "1. Stylepack",
+          "2. Semantics",
+          "3. Kit",
+          "4. Manifest",
+          "5. Validation",
+          "6. Layout overlay"
+        ],
         "scroll_width": 1680,
-        "scroll_height": 3319
+        "scroll_height": 4490
       }
     },
     {
       "variant": "draft",
       "screenshot": "/Users/timwood/Desktop/projects/PWA/MV/artifacts/qa/room-results-states/draft.png",
       "details": {
-        "panel_hidden": true,
-        "tab_selected": "false",
-        "build_button_text": "Build Production Assets",
-        "build_button_disabled": false,
-        "stage_labels": [],
+        "ok": true,
+        "panel_hidden": false,
+        "tab_selected": "true",
+        "build_button_text": "Build final room assets",
+        "build_button_disabled": true,
+        "stage_labels": [
+          "Preview",
+          "Build summary",
+          "Review stages",
+          "1. Stylepack",
+          "2. Semantics",
+          "3. Kit",
+          "4. Manifest",
+          "5. Validation",
+          "6. Layout overlay"
+        ],
         "scroll_width": 1680,
-        "scroll_height": 3319
+        "scroll_height": 4718
       }
     },
     {
       "variant": "locked",
       "screenshot": "/Users/timwood/Desktop/projects/PWA/MV/artifacts/qa/room-results-states/locked.png",
       "details": {
-        "panel_hidden": true,
-        "tab_selected": "false",
-        "build_button_text": "Build Production Assets",
-        "build_button_disabled": false,
-        "stage_labels": [],
+        "ok": true,
+        "panel_hidden": false,
+        "tab_selected": "true",
+        "build_button_text": "Build final room assets",
+        "build_button_disabled": true,
+        "stage_labels": [
+          "Preview",
+          "Build summary",
+          "Review stages",
+          "1. Stylepack",
+          "2. Semantics",
+          "3. Kit",
+          "4. Manifest",
+          "5. Validation",
+          "6. Layout overlay"
+        ],
         "scroll_width": 1680,
-        "scroll_height": 3319
+        "scroll_height": 4718
       }
     },
     {
       "variant": "generating",
       "screenshot": "/Users/timwood/Desktop/projects/PWA/MV/artifacts/qa/room-results-states/generating.png",
       "details": {
-        "panel_hidden": true,
-        "tab_selected": "false",
-        "build_button_text": "Build Production Assets",
+        "ok": true,
+        "panel_hidden": false,
+        "tab_selected": "true",
+        "build_button_text": "Build final room assets",
         "build_button_disabled": false,
-        "stage_labels": [],
+        "stage_labels": [
+          "Preview",
+          "Build summary",
+          "Review stages",
+          "1. Stylepack",
+          "2. Semantics",
+          "3. Kit",
+          "4. Manifest",
+          "5. Validation",
+          "6. Layout overlay"
+        ],
         "scroll_width": 1680,
-        "scroll_height": 3319
+        "scroll_height": 4737
       }
     },
     {
       "variant": "partial",
       "screenshot": "/Users/timwood/Desktop/projects/PWA/MV/artifacts/qa/room-results-states/partial.png",
       "details": {
-        "panel_hidden": true,
-        "tab_selected": "false",
-        "build_button_text": "Build Production Assets",
+        "ok": true,
+        "panel_hidden": false,
+        "tab_selected": "true",
+        "build_button_text": "Retry final room assets",
         "build_button_disabled": false,
-        "stage_labels": [],
+        "stage_labels": [
+          "Preview",
+          "Build summary",
+          "Review stages",
+          "1. Stylepack",
+          "2. Semantics",
+          "3. Kit",
+          "4. Manifest",
+          "5. Validation",
+          "6. Layout overlay"
+        ],
         "scroll_width": 1680,
-        "scroll_height": 3319
+        "scroll_height": 4791
       }
     },
     {
       "variant": "ready",
       "screenshot": "/Users/timwood/Desktop/projects/PWA/MV/artifacts/qa/room-results-states/ready.png",
       "details": {
-        "panel_hidden": true,
-        "tab_selected": "false",
-        "build_button_text": "Build Production Assets",
+        "ok": true,
+        "panel_hidden": false,
+        "tab_selected": "true",
+        "build_button_text": "Rebuild final room assets",
         "build_button_disabled": false,
-        "stage_labels": [],
+        "stage_labels": [
+          "Preview",
+          "Build summary",
+          "Review stages",
+          "1. Stylepack",
+          "2. Semantics",
+          "3. Kit",
+          "4. Manifest",
+          "5. Validation",
+          "6. Layout overlay",
+          "Built assets"
+        ],
         "scroll_width": 1680,
-        "scroll_height": 3319
+        "scroll_height": 4822
       }
     },
     {
       "variant": "blocked",
       "screenshot": "/Users/timwood/Desktop/projects/PWA/MV/artifacts/qa/room-results-states/blocked.png",
       "details": {
-        "panel_hidden": true,
-        "tab_selected": "false",
-        "build_button_text": "Build Production Assets",
+        "ok": true,
+        "panel_hidden": false,
+        "tab_selected": "true",
+        "build_button_text": "Rebuild final room assets",
         "build_button_disabled": false,
-        "stage_labels": [],
+        "stage_labels": [
+          "Preview",
+          "Build summary",
+          "Review stages",
+          "1. Stylepack",
+          "2. Semantics",
+          "3. Kit",
+          "4. Manifest",
+          "5. Validation",
+          "6. Layout overlay",
+          "Built assets"
+        ],
         "scroll_width": 1680,
-        "scroll_height": 3319
+        "scroll_height": 4932
       }
     }
   ]

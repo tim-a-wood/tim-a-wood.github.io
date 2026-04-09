@@ -1,5 +1,5 @@
 {
-  "_note": "Updated by the cybersecurity agent after each task. Plain language \u2014 no jargon.",
+  "_note": "Updated by the cybersecurity agent after each task. Plain language — no jargon.",
   "updated": "2026-03-31",
   "schema_version": "v1.0",
   "priorities": [
@@ -9,11 +9,13 @@
         "business",
         "sprite"
       ],
-      "title": "Audit every place the tools write user input to the DOM \u2014 XSS risk",
+      "title": "Audit every place the tools write user input to the DOM — XSS risk",
       "status": "in-progress",
       "risk": "high",
       "note": "Entity names, room names, and any user-created string written via innerHTML is a potential XSS vector. All DOM write operations in the room editor and sprite workbench must be audited before any external user exposure. This is a P0 if found after public launch.",
-      "proposed_solution": "Finish the DOM write audit and eliminate unsafe patterns by using textContent, sanitization, or safe templates everywhere user strings render."
+      "proposed_solution": "Finish the DOM write audit and eliminate unsafe patterns by using textContent, sanitization, or safe templates everywhere user strings render.",
+      "modified_at": "2026-04-01T23:50:30-04:00",
+      "modified_by": "cybersecurity"
     },
     {
       "id": 2,
@@ -25,7 +27,9 @@
       "status": "in-progress",
       "risk": "high",
       "note": "Without a CSP, any XSS vulnerability is trivially exploitable. Adding a strict CSP (no unsafe-inline) is the most impactful security improvement we can make before launch.",
-      "proposed_solution": "Roll out a strict Content Security Policy on every HTML surface and refactor inline scripts so the policy can stay off unsafe-inline."
+      "proposed_solution": "Roll out a strict Content Security Policy on every HTML surface and refactor inline scripts so the policy can stay off unsafe-inline.",
+      "modified_at": "2026-04-01T23:50:30-04:00",
+      "modified_by": "cybersecurity"
     },
     {
       "id": 3,
@@ -37,7 +41,9 @@
       "status": "paused",
       "risk": "high",
       "note": "Part of the orchestration Copilot readiness program. Copilot forwards user-authored room text to the Gemini API; adversarial cases must pass before public exposure.",
-      "proposed_solution": "Run adversarial prompt-injection cases against Copilot before public release and tighten schema validation from the results; align timing with QA apply-path automation and PO commercial bar."
+      "proposed_solution": "Run adversarial prompt-injection cases against Copilot before public release and tighten schema validation from the results; align timing with QA apply-path automation and PO commercial bar.",
+      "modified_at": "2026-04-01T23:50:30-04:00",
+      "modified_by": "cybersecurity"
     },
     {
       "id": 4,
@@ -50,7 +56,9 @@
       "status": "needs-review",
       "risk": "high",
       "note": "An exposed API key can generate a large bill overnight. Full scan of client code and git history required before any public repository access.",
-      "proposed_solution": "Complete scans of client bundles and git history for secrets, rotate anything found, and add guardrails so keys cannot reappear."
+      "proposed_solution": "Complete scans of client bundles and git history for secrets, rotate anything found, and add guardrails so keys cannot reappear.",
+      "modified_at": "2026-04-01T23:50:30-04:00",
+      "modified_by": "cybersecurity"
     }
   ],
   "risks_p0": [],
@@ -77,7 +85,7 @@
     {
       "id": "security-review",
       "name": "Security Review",
-      "description": "XSS vectors, credential exposure, CORS/CSP gaps, input validation \u2014 explicit pass/flag/block call.",
+      "description": "XSS vectors, credential exposure, CORS/CSP gaps, input validation — explicit pass/flag/block call.",
       "trigger": "Any PR touching API integration, DOM writes, authentication, or input handling",
       "last_run": "2026-03-28",
       "output_location": "artifacts/security-audit-2026-03-28.md"
@@ -85,7 +93,7 @@
     {
       "id": "credential-audit",
       "name": "Credential Audit",
-      "description": "Full scan for API keys in client code, git history, and log output \u2014 findings with remediation steps.",
+      "description": "Full scan for API keys in client code, git history, and log output — findings with remediation steps.",
       "trigger": "Quarterly or after any contributor change",
       "last_run": "2026-03-28",
       "output_location": "artifacts/security-audit-2026-03-28.md"
@@ -93,7 +101,7 @@
     {
       "id": "prompt-injection-test",
       "name": "Prompt Injection Test",
-      "description": "Adversarial input test results \u2014 jailbreaks, adversarial descriptions, entity name injection \u2014 pass/fail per category.",
+      "description": "Adversarial input test results — jailbreaks, adversarial descriptions, entity name injection — pass/fail per category.",
       "trigger": "Before any Copilot prompt change or new user input surface touching external AI APIs",
       "last_run": null,
       "output_location": null

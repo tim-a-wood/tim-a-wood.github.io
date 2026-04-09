@@ -13,7 +13,9 @@
       "risk": "high",
       "note": "Blocked on game systems locking the movement and combat parameters. The animation state machine must match the game's mechanical state — states that don't exist in the game are wasted animation work.",
       "proposed_solution": "After movement and combat numbers lock, specify the full player animation state machine so frames match real game states.",
-      "sort_order": 0
+      "sort_order": 0,
+      "modified_at": "2026-04-02T18:07:09-04:00",
+      "modified_by": "animation"
     },
     {
       "id": 1,
@@ -26,7 +28,9 @@
       "risk": "high",
       "note": "The game runtime will consume the spritesheet export format. Any format change after the runtime starts consuming it is a breaking change. This needs to be stable before engine integration starts.",
       "proposed_solution": "Finalize the spritesheet JSON export contract with Development, version it, and freeze it before runtime starts consuming it.",
-      "sort_order": 1
+      "sort_order": 1,
+      "modified_at": "2026-04-02T18:07:09-04:00",
+      "modified_by": "animation"
     },
     {
       "id": 3,
@@ -39,7 +43,9 @@
       "risk": "low",
       "note": "Production gate published at `docs/pixel-art-quality-standards.md`: palette (AH-* + craft rules), silhouette (bible §3–6 + animation bar), anti-aliasing (opaque-or-transparent, lossless, pixelated preview). §5 checklist aligns with charter `spritesheet-audit`. Future work: optional linter/export warnings in the workbench — not blocking this milestone.",
       "proposed_solution": "Treat the doc as canonical for reviews; run `spritesheet-audit` against §5 for each submission. Revise the doc when art bible v0.3 locks new tokens or biome rules.",
-      "sort_order": 2
+      "sort_order": 2,
+      "modified_at": "2026-04-03T22:53:39-04:00",
+      "modified_by": "animation"
     }
   ],
   "risks_p0": [],
@@ -86,7 +92,9 @@
       "status": "in-progress",
       "risk": "low",
       "note": "Pixel art quality standards are published (`docs/pixel-art-quality-standards.md`). Evaluation can proceed against §5 checklist and art bible gates.",
-      "proposed_solution": "Evaluate EbSynth, AnimateDiff, or alternatives against the published bars; recommend a production workflow and validation steps for Human-in-the-loop cleanup."
+      "proposed_solution": "Evaluate EbSynth, AnimateDiff, or alternatives against the published bars; recommend a production workflow and validation steps for Human-in-the-loop cleanup.",
+      "modified_at": "2026-04-03T22:53:39-04:00",
+      "modified_by": "animation"
     }
   ]
 }

@@ -14,6 +14,15 @@ function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function formatExceptionDetails(details) {
+  if (!details) return 'unknown browser exception';
+  const description = details.exception?.description || details.text || 'unknown browser exception';
+  const location = details.lineNumber != null
+    ? ` (line ${Number(details.lineNumber) + 1}, column ${Number(details.columnNumber || 0) + 1})`
+    : '';
+  return `${description}${location}`;
+}
+
 async function fetchJson(url, retries = 30) {
   let lastError;
   for (let attempt = 0; attempt < retries; attempt += 1) {
@@ -618,66 +627,10 @@ function makeInjectionSource(variantName) {
     return env;
   }
 
-  const liveRoom = typeof currentRoom === 'function'
-    ? currentRoom()
-    : null;
-  if (!liveRoom && (!state.data || !Array.isArray(state.data.rooms) || !state.data.rooms.length)) {
-    state.data = {
-      meta: { project_id: 'qa-results-project', project_name: 'QA Results Project' },
-      rooms: [clone(baseRoom)],
-    };
-    state.currentRoomId = 'QA-R1';
+  if (!window.__ROOM_WIZARD_QA__ || typeof window.__ROOM_WIZARD_QA__.applyResultsEnvironment !== 'function') {
+    throw new Error('window.__ROOM_WIZARD_QA__.applyResultsEnvironment is not available');
   }
-  const targetRoom = liveRoom || (state.data.rooms && state.data.rooms[0]) || clone(baseRoom);
-  if (!liveRoom && (!state.data || !Array.isArray(state.data.rooms) || !state.data.rooms.length)) {
-    state.data.rooms = [targetRoom];
-  }
-  state.currentRoomId = targetRoom.id;
-  openRoomWizard(targetRoom.id);
-  setRoomWizardPhase('environment');
-
-  const room = getRoomWizardRoom() || targetRoom;
-  room.environment = makeEnvironment(variant);
-  if (globalThis.RoomWizardEnvironment) {
-    globalThis.RoomWizardEnvironment.ensureRoomEnvironment(room);
-  }
-  ensureRoomWizardEnvironmentAuthoringFields(room.environment);
-  syncRoomWizardEnvironmentFromRoom();
-  renderRoomWizardEnvironmentOutputSummary(room.environment);
-  renderRoomWizardPreviewGallery(room.environment.preview || {});
-  renderRoomWizardEnvironmentPreview(room.environment);
-  setRoomWizardEnvTab('results');
-  const envPanel = document.getElementById('roomWizardPanelEnvironment');
-  const setupPanel = document.getElementById('rwEnvPanelSetup');
-  const componentsPanel = document.getElementById('rwEnvPanelComponents');
-  const resultsPanel = document.getElementById('rwEnvPanelResults');
-  const resultsTab = document.getElementById('rwEnvTabResults');
-  const setupTab = document.getElementById('rwEnvTabSetup');
-  const componentsTab = document.getElementById('rwEnvTabComponents');
-  if (envPanel) envPanel.hidden = false;
-  if (setupPanel) setupPanel.hidden = true;
-  if (componentsPanel) componentsPanel.hidden = true;
-  if (resultsPanel) resultsPanel.hidden = false;
-  if (setupTab) {
-    setupTab.setAttribute('aria-selected', 'false');
-    setupTab.tabIndex = -1;
-  }
-  if (componentsTab) {
-    componentsTab.setAttribute('aria-selected', 'false');
-    componentsTab.tabIndex = -1;
-  }
-  if (resultsTab) {
-    resultsTab.setAttribute('aria-selected', 'true');
-    resultsTab.tabIndex = 0;
-    resultsTab.classList.add('rw-env-tab--active');
-  }
-  document.getElementById('rwEnvPanelResults')?.scrollIntoView({ block: 'start' });
-  return {
-    variant,
-    buildButtonText: document.getElementById('roomWizardBuildEnvironmentAssets')?.textContent?.trim() || '',
-    buildButtonDisabled: !!document.getElementById('roomWizardBuildEnvironmentAssets')?.disabled,
-    validationHeading: document.querySelector('#rwEnvPanelResults .rw-environment-stage-card--wide strong')?.textContent?.trim() || '',
-  };
+  return window.__ROOM_WIZARD_QA__.applyResultsEnvironment(makeEnvironment(variant));
 })();
 `;
 }
@@ -705,6 +658,9 @@ async function captureState(cdp, variant) {
     awaitPromise: true,
     returnByValue: true,
   });
+  if (evalResult.exceptionDetails) {
+    throw new Error(`Injection failed for ${variant}: ${formatExceptionDetails(evalResult.exceptionDetails)}`);
+  }
   await delay(400);
   const layoutResult = await cdp.send('Runtime.evaluate', {
     expression: `(() => {
@@ -726,6 +682,9 @@ async function captureState(cdp, variant) {
     })()`,
     returnByValue: true,
   });
+  if (layoutResult.exceptionDetails) {
+    throw new Error(`Layout probe failed for ${variant}: ${formatExceptionDetails(layoutResult.exceptionDetails)}`);
+  }
   const layout = layoutResult.result.value || {};
   await cdp.send('Emulation.setDeviceMetricsOverride', {
     width: Math.max(1680, Number(layout.scroll_width || 1680)),
