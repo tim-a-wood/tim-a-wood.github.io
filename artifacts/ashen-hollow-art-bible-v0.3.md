@@ -2,12 +2,14 @@
 
 [^title]: *"Ashen Hollow" is a confirmed AI-generated placeholder. A dedicated naming session with Narrative and Game Director is required before any public-facing material is produced.*
 
-Version: v0.3  
-Date: 2026-04-09  
+Version: v0.3.1  
+Date: 2026-04-10  
 Owner: Creative Agent (with Game Director alignment on progression crosswalks)  
 Intent: Single visual contract for production art — **every color rule, diagram, and biome note is paired with an on-page sample** (swatch, figure, or concept plate).
 
 **Supersedes:** v0.2 (`artifacts/ashen-hollow-art-bible-v0.2.md`). v0.3 supersedes v0.2. Biomes, knight identity, world lore, and palette have all changed materially.
+
+**Revision v0.3.1:** Per-biome **wall / platform / border** texture concepts (SVG concept plates); **material response** reorganized — global table is shared vocabulary only; **authoritative environment surfacing** is under each biome in §5. Legacy single material board superseded.
 
 ---
 
@@ -237,7 +239,9 @@ The game's light temperature and intensity follow the vertical world axis:
 
 ![Value hierarchy diagram](art-bible/figures/value-hierarchy.svg)
 
-### 4.3 Material response rules
+### 4.3 Shared material vocabulary (global)
+
+These **material families** describe how light behaves on surfaces. They are **not** biome-exclusive — any biome may use a family when the story reads true. **Which families dominate walls, platforms, and borders** — and how tile art is built — is **defined per biome in §5** (Wall & platform texture concept). Environment artists should **not** rely on this table alone for tileable texture direction; **always pair** with the biome’s §5 plate and mood concept.
 
 | Material | Highlight behavior | Shadow behavior | Texture rule |
 |---|---|---|---|
@@ -248,9 +252,8 @@ The game's light temperature and intensity follow the vertical world axis:
 | Bone/chitin | Waxy mids, clipped highlight tip | Purple-gray core shadows | Segment lines must aid form read |
 | Corruption growth | Pulsed emissive nodes | Subsurface dark pockets | Edge glow only on active state |
 
-**Sample — material board (painterly reference under global key light):**
-
-![Material response reference board](art-bible/concepts/ashen-hollow-material-response-board.png)
+**Legacy reference (single combined board):**  
+`art-bible/concepts/ashen-hollow-material-response-board.png` — **superseded** for production layout by **per-biome** wall/platform plates in §5.
 
 ### 4.4 Emissive and FX rules
 
@@ -283,6 +286,14 @@ The game's light temperature and intensity follow the vertical world axis:
 - **Hazard language:** Water depth unknown, cell bars blocking path, chain obstacles.
 - **Readability mandate:** The lantern must be the visual anchor of every room. Knight silhouette reads against the lantern glow.
 
+**Wall & platform texture concept**
+
+![Flooded Prison walls and platforms](art-bible/concepts/biome-01-walls-platforms.svg)
+
+- **Wall:** Wet ash masonry (`AH-INK` → `AH-ASH` ramps); vertical water-stain read; moss `AH-TOXIC-10` only as low-opacity organic film — not hazard green.
+- **Platform / traversable:** Dark cap stone with **wet edge** (thin highlight line + deeper contact shadow); tileable horizontal repeat; no specular “pool shine” on walkable center.
+- **Border / trim:** Rusted iron cell bars and frames — `AH-RUST-7` grime, `AH-EMBER-6` only on active heat; vertical rhythm for **border** vs **platform** silhouette separation.
+
 ---
 
 #### Biome 2 — Bone Warrens *(low-mid)*
@@ -298,6 +309,14 @@ The game's light temperature and intensity follow the vertical world axis:
 - **Environmental storytelling:** The Order's burial warrens. Their dead are here. The arcane rune glyphs are Order funerary markings, not enemy markings. The Deep's influence is present but the Order's identity is still legible.
 - **Rune/glyph rule:** Arcane glyphs are geometric symbols only — no legible text or letters. `AH-ARCANE` glow, never `AH-ROYAL-11`.
 - **Hazard language:** Bone-collapse platforms, confined cave passages, ceiling stalactite drops.
+
+**Wall & platform texture concept**
+
+![Bone Warrens walls and platforms](art-bible/concepts/biome-02-walls-platforms.svg)
+
+- **Wall:** Carved cave stone with **burial niche** rhythm; subtle bone-chip / void noise; funerary `AH-ARCANE` geometry **etched** into stone, never painted UI-green.
+- **Platform / traversable:** Burial slab / rough floor tile — cooler than torch walls; cracks read as **readability** not decoration clutter.
+- **Border / trim:** Niche arch and passage **border** uses `AH-ARCANE` line weight at low opacity; torch warmth `AH-EMBER-6` on **edge** only.
 
 ---
 
@@ -315,6 +334,14 @@ The game's light temperature and intensity follow the vertical world axis:
 - **Boss arena note:** The cathedral nave at the end of this biome is a designed boss encounter space. The golden-white light and sun wheel altar are the visual frame for that encounter.
 - **Readability mandate:** Boss must remain readable against the complex stained glass backdrop. Enemy silhouette value must contrast the lit floor plane.
 
+**Wall & platform texture concept**
+
+![Castle Nave walls and platforms](art-bible/concepts/biome-03-walls-platforms.svg)
+
+- **Wall:** Dressed Gothic ash — **vertical rib** read; lighter than Flooded Prison; ivy `AH-TOXIC-10` reads as **life** (higher saturation than biome 1 moss).
+- **Platform / traversable:** Large nave flagstone — **sun shaft pool** on floor plane (warm lift on `AH-BONE-4` / `AH-ASH-3`); borders stay in palette (no jewel tones on floor).
+- **Border / trim:** Moulding / shelf / lead-line **border** only; structural stone stays on `AH-*` neutrals — no stained glass on walls or platforms.
+
 ---
 
 #### Biome 4 — Ruined Belfry *(high-mid / first outdoor)*
@@ -329,6 +356,14 @@ The game's light temperature and intensity follow the vertical world axis:
 - **Environmental storytelling:** The Order's belfry — its towers were the highest point of the complex. The catastrophic break shattered the tops and opened them to the sky. The sun wheel carvings on the towers are the Order's identity made architectural. One intact, one shattered = the state of the Order itself.
 - **Knight state:** The knight's tabard should be in State 2 (Emerging) by this biome — the sun emblem partially visible. The visual echo between the knight's emerging iconography and the carved sun wheels on the towers is intentional.
 - **Hazard language:** Exposed high platforms, wind-pushed traversal, falling debris from broken stonework.
+
+**Wall & platform texture concept**
+
+![Ruined Belfry walls and platforms](art-bible/concepts/biome-04-walls-platforms.svg)
+
+- **Wall:** Sun-bleached tower ash — **stronger value lift** than underground; `AH-SOLAR` warm wash on planes facing sky; `AH-SKY` reserved for **atmospheric** band, not wall base.
+- **Platform / traversable:** Outdoor ledge / capstone — **horizontal** grain; ivy life read on outer edges; border must not read as interior dungeon tile.
+- **Border / trim:** Broken parapet / shattered rose-window **frame** — stone + `AH-SOLAR` accent; **no** `AH-ARCANE` (outdoor / solar order).
 
 ---
 
@@ -345,6 +380,14 @@ The game's light temperature and intensity follow the vertical world axis:
 - **Knight state:** The knight's tabard must be in State 3 (Revealed) here — the sun emblem blazing. The knight is visually completing the same arc as the world.
 - **No enemies in concept art:** The Solarium concept plate shows no enemies deliberately. Enemy design for this biome will be specified separately.
 - **Boss note:** The final boss encounter with the being behind The Deep **[PLACEHOLDER]** occurs here. Their design must be specified separately and must earn the tragedy established in the world lore. See §9 open decisions.
+
+**Wall & platform texture concept**
+
+![The Solarium walls and platforms](art-bible/concepts/biome-05-walls-platforms.svg)
+
+- **Wall:** Column ring **monotone** — `AH-SOLAR` + neutrals only; smooth, ceremonial; **no** moss, arcane blue, or toxic green.
+- **Platform / traversable:** Floor under **oculus** — brightest pool in the game; radial falloff from center; **no** competing accent tiles.
+- **Border / trim:** Sun wheel **frieze** / altar border — `AH-SOLAR` line work; edges fade to `AH-INK` shadow at dome perimeter.
 
 ---
 
@@ -477,6 +520,7 @@ Failure on any single check = reject for revision.
 - Castle Nave stained glass spectrum — define the permitted jewel tone range explicitly.
 - Room graph crosswalk — map biomes to room layout editor once level design locks.
 - Biome names confirmed for public use pending game title lock.
+- **Optional:** Replace SVG biome wall/platform plates (`biome-0N-walls-platforms.svg`) with **raster texture** tiles (hand or AI + human review) at production resolution — SVGs are structural concepts only.
 
 ---
 

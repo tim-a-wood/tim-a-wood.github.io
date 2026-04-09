@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 280" role="img" aria-label="The Solarium wall and platform texture concept">
+  <defs>
+    <radialGradient id="sol-glow" cx="50%" cy="40%" r="65%">
+      <stop offset="0%" stop-color="#C4962A" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#07090B" stop-opacity="0.9"/>
+    </radialGradient>
+    <radialGradient id="sol-floor" cx="50%" cy="0%" r="80%">
+      <stop offset="0%" stop-color="#4B5A63"/>
+      <stop offset="100%" stop-color="#1A2127"/>
+    </radialGradient>
+    <pattern id="sol-col" patternUnits="userSpaceOnUse" width="40" height="200">
+      <rect width="40" height="200" fill="#1A2127"/>
+      <rect x="16" y="0" width="8" height="200" fill="#2B343B" opacity="0.5"/>
+    </pattern>
+  </defs>
+  <rect width="960" height="280" fill="#07090B"/>
+  <rect width="960" height="280" fill="url(#sol-glow)"/>
+  <text x="16" y="28" fill="#C4962A" font-family="system-ui,sans-serif" font-size="11" font-weight="700" letter-spacing="0.08em">THE SOLARIUM  WALL / PLATFORM / BORDER (CONCEPT)</text>
+  <rect x="16" y="48" width="280" height="200" fill="url(#sol-col)" stroke="#C4962A" stroke-width="1" opacity="0.6"/>
+  <text x="24" y="72" fill="#5d7870" font-family="system-ui,sans-serif" font-size="10">COLUMN RING</text>
+  <text x="24" y="220" fill="#C4962A" font-family="system-ui,sans-serif" font-size="9" opacity="0.9">monotone solar · AH-SOLAR only</text>
+  <ellipse cx="470" cy="200" rx="150" ry="40" fill="url(#sol-floor)" stroke="#C4962A" stroke-width="1.5" opacity="0.95"/>
+  <text x="380" y="118" fill="#5d7870" font-family="system-ui,sans-serif" font-size="10">OCULUS LIGHT POOL</text>
+  <text x="380" y="248" fill="#C4962A" font-family="system-ui,sans-serif" font-size="9">altar zone · warmest</text>
+  <rect x="660" y="48" width="280" height="200" fill="#0D1115" stroke="#C4962A" stroke-width="1.5" opacity="0.85"/>
+  <circle cx="800" cy="120" r="36" fill="none" stroke="#C4962A" stroke-width="2" opacity="0.7"/>
+  <line x1="800" y1="84" x2="800" y2="156" stroke="#C4962A" stroke-width="1.5" opacity="0.7"/>
+  <line x1="764" y1="120" x2="836" y2="120" stroke="#C4962A" stroke-width="1.5" opacity="0.7"/>
+  <text x="668" y="28" fill="#5d7870" font-family="system-ui,sans-serif" font-size="10">SUN WHEEL FRIEZE</text>
+  <text x="668" y="264" fill="#5d7870" font-family="system-ui,sans-serif" font-size="9">no secondary accent</text>
+</svg>

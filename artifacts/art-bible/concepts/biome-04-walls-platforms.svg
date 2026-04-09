@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 280" role="img" aria-label="Ruined Belfry wall and platform texture concept">
+  <defs>
+    <pattern id="rb-wall" patternUnits="userSpaceOnUse" width="12" height="20">
+      <rect width="12" height="20" fill="#2B343B"/>
+      <line x1="0" y1="10" x2="12" y2="10" stroke="#4B5A63" stroke-width="0.5" opacity="0.5"/>
+    </pattern>
+    <linearGradient id="rb-sun" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#7E8E95"/>
+      <stop offset="100%" stop-color="#2B343B"/>
+    </linearGradient>
+    <linearGradient id="rb-sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7EB8D4" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#2B343B"/>
+    </linearGradient>
+  </defs>
+  <rect width="960" height="280" fill="#1A2127"/>
+  <rect x="0" y="0" width="960" height="80" fill="url(#rb-sky)"/>
+  <text x="16" y="28" fill="#5d7870" font-family="system-ui,sans-serif" font-size="11" font-weight="700" letter-spacing="0.08em">RUINED BELFRY  WALL / PLATFORM / BORDER (CONCEPT)</text>
+  <rect x="16" y="48" width="280" height="200" fill="url(#rb-wall)" stroke="#4B5A63" stroke-width="2"/>
+  <text x="24" y="72" fill="#5d7870" font-family="system-ui,sans-serif" font-size="10">WEATHERED TOWER ASH</text>
+  <text x="24" y="220" fill="#C4962A" font-family="system-ui,sans-serif" font-size="9" opacity="0.85">sun wash · AH-SOLAR</text>
+  <rect x="320" y="150" width="300" height="48" fill="url(#rb-sun)" stroke="#4B5A63" stroke-width="2"/>
+  <rect x="320" y="150" width="300" height="10" fill="#C4962A" opacity="0.15"/>
+  <text x="328" y="138" fill="#5d7870" font-family="system-ui,sans-serif" font-size="10">OUTDOOR LEDGE</text>
+  <text x="328" y="212" fill="#6E8F2E" font-family="system-ui,sans-serif" font-size="9">ivy · AH-TOXIC-10 life</text>
+  <rect x="660" y="48" width="280" height="200" fill="#2B343B" stroke="#C4962A" stroke-width="1.5" opacity="0.9"/>
+  <path d="M660 200 L700 160 L760 200 L820 150 L880 200 L940 180" fill="none" stroke="#4B5A63" stroke-width="0.75" opacity="0.4"/>
+  <text x="668" y="28" fill="#5d7870" font-family="system-ui,sans-serif" font-size="10">BROKEN PARAPET / EDGE</text>
+  <text x="668" y="264" fill="#7EB8D4" font-family="system-ui,sans-serif" font-size="9">sky read · AH-SKY</text>
+</svg>

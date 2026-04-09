@@ -1,6 +1,6 @@
 {
   "_note": "Updated by Creative after each task. Plain language — no jargon.",
-  "updated": "2026-04-09",
+  "updated": "2026-04-10",
   "schema_version": "v1.0",
   "priorities": [
     {
@@ -8,7 +8,7 @@
       "title": "Write the Ashen Hollow art bible foundation — palette, silhouette rules, visual identity",
       "status": "done",
       "risk": "med",
-      "note": "Canonical art bible is v0.3 at artifacts/ashen-hollow-art-bible-v0.3.md with embedded swatches, SVG figures, and concept plates under artifacts/art-bible/. v0.2 is superseded; v0.1 is a stub pointer.",
+      "note": "Canonical art bible v0.3.1 at artifacts/ashen-hollow-art-bible-v0.3.md: per-biome wall/platform SVG concepts (biome-0N-walls-platforms.svg), §4.3 global material table + §5 authoritative surfacing; legacy single material board superseded.",
       "proposed_solution": "Use v0.3 as the quality gate; regenerate swatches with scripts/generate_art_bible_swatches.py when palette tokens change.",
       "modified_at": "2026-04-02T16:51:30-04:00",
       "modified_by": "creative"

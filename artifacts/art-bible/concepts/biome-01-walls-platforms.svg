@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 280" role="img" aria-label="Flooded Prison wall and platform texture concept">
+  <defs>
+    <pattern id="fp-wall" patternUnits="userSpaceOnUse" width="12" height="12">
+      <rect width="12" height="12" fill="#0D1115"/>
+      <rect x="0" y="0" width="6" height="6" fill="#1A2127" opacity="0.85"/>
+      <rect x="6" y="6" width="6" height="6" fill="#1A2127" opacity="0.85"/>
+    </pattern>
+    <pattern id="fp-wet" patternUnits="userSpaceOnUse" width="8" height="4">
+      <rect width="8" height="4" fill="#07090B"/>
+      <line x1="0" y1="2" x2="8" y2="2" stroke="#2B343B" stroke-width="0.5" opacity="0.6"/>
+    </pattern>
+    <linearGradient id="fp-plat" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1A2127"/>
+      <stop offset="100%" stop-color="#0D1115"/>
+    </linearGradient>
+  </defs>
+  <rect width="960" height="280" fill="#07090B"/>
+  <text x="16" y="28" fill="#5d7870" font-family="system-ui,sans-serif" font-size="11" font-weight="700" letter-spacing="0.08em">FLOODED PRISON  WALL / PLATFORM / BORDER (CONCEPT)</text>
+  <!-- Wall strip -->
+  <rect x="16" y="48" width="280" height="200" fill="url(#fp-wall)" stroke="#1A2127" stroke-width="2"/>
+  <rect x="16" y="48" width="280" height="48" fill="url(#fp-wet)" opacity="0.35"/>
+  <text x="24" y="72" fill="#5d7870" font-family="system-ui,sans-serif" font-size="10">WALL</text>
+  <text x="24" y="220" fill="#6E8F2E" font-family="system-ui,sans-serif" font-size="9" opacity="0.7">moss · waterline</text>
+  <!-- Platform -->
+  <rect x="320" y="140" width="300" height="56" rx="4" fill="url(#fp-plat)" stroke="#2B343B" stroke-width="2"/>
+  <rect x="320" y="140" width="300" height="8" fill="#2B343B" opacity="0.5"/>
+  <text x="328" y="128" fill="#5d7870" font-family="system-ui,sans-serif" font-size="10">PLATFORM TOP</text>
+  <text x="328" y="212" fill="#5d7870" font-family="system-ui,sans-serif" font-size="9">wet edge · AH-ASH ramp</text>
+  <!-- Border / iron -->
+  <rect x="660" y="48" width="280" height="200" fill="#07090B" stroke="#7C3D2B" stroke-width="3"/>
+  <line x1="680" y1="48" x2="680" y2="248" stroke="#1A2127" stroke-width="4" opacity="0.9"/>
+  <line x1="700" y1="48" x2="700" y2="248" stroke="#1A2127" stroke-width="4" opacity="0.9"/>
+  <line x1="720" y1="48" x2="720" y2="248" stroke="#1A2127" stroke-width="4" opacity="0.85"/>
+  <text x="668" y="28" fill="#5d7870" font-family="system-ui,sans-serif" font-size="10">BORDER / CELL BARS</text>
+  <text x="668" y="264" fill="#7C3D2B" font-family="system-ui,sans-serif" font-size="9">rust · iron · AH-RUST-7</text>
+</svg>
