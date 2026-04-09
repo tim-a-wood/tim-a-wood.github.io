@@ -3063,7 +3063,7 @@ class AshenHollow extends Phaser.Scene {
         return bespokeWallSpritesPlaced > 0 || flankingMassPlaced > 0;
     }
 
-    addRoomBespokePrimaryFloorFaceDecor(roomId, band = null) {
+    addRoomBespokePrimaryFloorFaceDecor(roomId, band = null, depthOverride = null) {
         const asset = getRoomEnvironmentBespokeAsset(roomId, 'main_floor_face');
         if (!asset?.url) return false;
         const placement = asset.placement || {};
@@ -3079,7 +3079,10 @@ class AshenHollow extends Phaser.Scene {
                 origin_y: 0
             }
         } : asset;
-        this.addPlacedBespokeAsset(roomId, assetWithPlacement, RUNTIME_REVIEW_CAPTURE_MODE ? 0.03 : -0.03, RUNTIME_REVIEW_CAPTURE_MODE ? 1 : 0.98);
+        const faceDepth = depthOverride != null
+            ? depthOverride
+            : (RUNTIME_REVIEW_CAPTURE_MODE ? 0.03 : -0.03);
+        this.addPlacedBespokeAsset(roomId, assetWithPlacement, faceDepth, RUNTIME_REVIEW_CAPTURE_MODE ? 1 : 0.98);
         return true;
     }
 
@@ -3142,8 +3145,9 @@ class AshenHollow extends Phaser.Scene {
         return placed > 0;
     }
 
-    addRoomFloorCapDecor(roomId, x, y, width, height = 24, mergeFaceSpan = 0) {
+    addRoomFloorCapDecor(roomId, x, y, width, height = 24, mergeFaceSpan = 0, depthOverride = null) {
         /* `y` is floor physics tile center (same as createRoomSurfaceTile). Top of walk surface = y − 16. */
+        const capDepth = depthOverride != null ? depthOverride : 0.08;
         const walkTop = y - 16;
         const bespoke = getRoomEnvironmentBespokePrimaryFloorAsset(roomId);
         if (bespoke?.url && this.textures.exists(`env-bespoke-${bespoke.slot_id}`)) {
@@ -3153,7 +3157,7 @@ class AshenHollow extends Phaser.Scene {
             const sprite = this.add.image(x + (width / 2), walkTop, `env-bespoke-${bespoke.slot_id}`)
                 .setOrigin(0.5, 0)
                 .setDisplaySize(width, totalH)
-                .setDepth(0.08)
+                .setDepth(capDepth)
                 .setAlpha(0.98);
             this.environmentDecor.push(sprite);
             return sprite;
@@ -3162,18 +3166,19 @@ class AshenHollow extends Phaser.Scene {
         if (!textureKey || width < 24) return null;
         const sprite = this.add.tileSprite(x + (width / 2), walkTop, width, height, textureKey)
             .setOrigin(0.5, 0)
-            .setDepth(0.08)
+            .setDepth(capDepth)
             .setAlpha(0.96);
         applyEnvironmentStripTileScale(sprite, width, height, 512, 96);
         this.environmentDecor.push(sprite);
         return sprite;
     }
 
-    addRoomFloorBandDecor(roomId, x, y, width, height, alpha = 0.9) {
+    addRoomFloorBandDecor(roomId, x, y, width, height, alpha = 0.9, depthOverride = null) {
         const textureKey = resolveRoomFloorTexture(this, roomId);
         if (!textureKey || width < 24 || height < 24) return null;
+        const bandDepth = depthOverride != null ? depthOverride : -0.04;
         const sprite = this.add.tileSprite(x + (width / 2), y + (height / 2), width, height, textureKey)
-            .setDepth(-0.04)
+            .setDepth(bandDepth)
             .setAlpha(alpha);
         applyEnvironmentStripTileScale(sprite, width, height, 32, 32);
         this.environmentDecor.push(sprite);
@@ -3594,7 +3599,15 @@ class AshenHollow extends Phaser.Scene {
                         this.createRoomSurfaceTile(roomBounds.start + centerX, floorRowCenterY, roomId, floorTextureKey, 'floor');
                     }
                 }
-                this.addRoomFloorCapDecor(roomId, roomBounds.start, floorRowCenterY, roomWidth, 22);
+                this.addRoomFloorCapDecor(
+                    roomId,
+                    roomBounds.start,
+                    floorRowCenterY,
+                    roomWidth,
+                    22,
+                    0,
+                    roomHasBespokeUnifiedShellForeground(roomId) ? 0.14 : 0.08
+                );
             }
             const platforms = Array.isArray(room?.platforms) ? room.platforms : [];
             if (primaryFloorPlatform) {
@@ -3620,6 +3633,11 @@ class AshenHollow extends Phaser.Scene {
                     && bespokePrimaryCap?.url
                     && this.textures.exists(`env-bespoke-${bespokePrimaryCap.slot_id}`)
                 );
+                /* Unified shell draws at ~0.12; default floor cap is 0.08 — the shell fully covers rebuilt main_floor_top. */
+                const hasUnifiedShell = roomHasBespokeUnifiedShellForeground(roomId);
+                const primaryFloorCapDepth = hasUnifiedShell ? 0.14 : 0.08;
+                const primaryFloorFaceDepth = hasUnifiedShell ? 0.135 : null;
+                const primaryFloorBandDepth = hasUnifiedShell ? 0.125 : null;
                 floorSpans.forEach((span) => {
                     const primaryFloorWidth = Math.max(1, span.localRight - span.localLeft);
                     const primaryFloorX = roomBounds.start + span.localLeft;
@@ -3634,10 +3652,10 @@ class AshenHollow extends Phaser.Scene {
                             y: lowerFloorTop,
                             width: supportWidth,
                             height: lowerFloorHeight
-                        })) {
-                            this.addRoomFloorBandDecor(roomId, primaryFloorX, lowerFloorTop, supportWidth, lowerFloorHeight);
+                        }, primaryFloorFaceDepth)) {
+                            this.addRoomFloorBandDecor(roomId, primaryFloorX, lowerFloorTop, supportWidth, lowerFloorHeight, 0.9, primaryFloorBandDepth);
                         } else {
-                            this.addRoomFloorBandDecor(roomId, primaryFloorX, lowerFloorTop, supportWidth, lowerFloorHeight, RUNTIME_REVIEW_CAPTURE_MODE ? 0.72 : 0.6);
+                            this.addRoomFloorBandDecor(roomId, primaryFloorX, lowerFloorTop, supportWidth, lowerFloorHeight, RUNTIME_REVIEW_CAPTURE_MODE ? 0.72 : 0.6, primaryFloorBandDepth);
                         }
                     }
                     const faceMergeSpan = mergeBespokeFloor ? Math.max(0, primaryFloorY - lowerFloorTop) : 0;
@@ -3647,7 +3665,8 @@ class AshenHollow extends Phaser.Scene {
                         primaryFloorY,
                         primaryFloorWidth,
                         24,
-                        faceMergeSpan
+                        faceMergeSpan,
+                        primaryFloorCapDepth
                     );
                 });
             }
