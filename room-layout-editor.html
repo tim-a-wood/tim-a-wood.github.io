@@ -8040,10 +8040,14 @@
           : '';
         const reviewBlockedSlots = Array.isArray(runtimeReview?.fail_reasons) && runtimeReview.fail_reasons.includes('slot_generation_failed');
         const slotGenFailed = reviewBlockedSlots;
+        const browserCaptureReviewTip =
+          Array.isArray(runtimeReview?.fail_reasons) && runtimeReview.fail_reasons.includes('browser_capture_required')
+            ? ' Tip: headless Chrome/Chromium must be available (see ROOM_ENVIRONMENT_REVIEW_BROWSER) and the game URL must load at ROOM_ENVIRONMENT_REVIEW_BASE_URL (default matches the workbench server, e.g. port 8766); otherwise the pipeline uses a static composite PNG and marks this reason.'
+            : '';
         const reviewText = runtimeReview?.status
           ? (slotGenFailed
               ? `Build blocked: one or more bespoke slots failed image generation (runtime screenshot review was not run).${Array.isArray(runtimeReview.fail_reasons) && runtimeReview.fail_reasons.length ? ` Reasons: ${runtimeReview.fail_reasons.map((item) => humanizeRoomWizardLabel(item)).join(', ')}.` : ''}${validationErrs.length ? ` Details: ${validationErrs.slice(0, 8).map((item) => humanizeRoomWizardLabel(item)).join('; ')}.` : ''}`
-              : `Runtime review: ${describeRoomWizardRuntimeReviewStatus(runtimeReview.status || 'pending')}${Array.isArray(runtimeReview.fail_reasons) && runtimeReview.fail_reasons.length ? ` · ${runtimeReview.fail_reasons.map((item) => humanizeRoomWizardLabel(item)).join(', ')}` : ''}${reviewBlockedSlots && validationErrs.length ? ` · ${validationErrs.slice(0, 5).map((item) => humanizeRoomWizardLabel(item)).join('; ')}` : ''}`)
+              : `Runtime review: ${describeRoomWizardRuntimeReviewStatus(runtimeReview.status || 'pending')}${Array.isArray(runtimeReview.fail_reasons) && runtimeReview.fail_reasons.length ? ` · ${runtimeReview.fail_reasons.map((item) => humanizeRoomWizardLabel(item)).join(', ')}` : ''}${reviewBlockedSlots && validationErrs.length ? ` · ${validationErrs.slice(0, 5).map((item) => humanizeRoomWizardLabel(item)).join('; ')}` : ''}${browserCaptureReviewTip}`)
           : 'Runtime review: not run yet';
         const assetThumbs = ['ready', 'failed'].includes(bespokeManifest.status)
           ? Object.values(bespokeManifest.assets || {}).map((item) => {
