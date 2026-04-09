@@ -17,6 +17,7 @@ map-birdseye-*.png
 
 # Generated art bible PDFs from scripts/send_markdown_pdf_email.py (large; do not commit)
 artifacts/ashen-hollow-art-bible-v0.2-*.pdf
+artifacts/ashen-hollow-art-bible-v0.3-*.pdf
 
 # Python caches
 __pycache__/

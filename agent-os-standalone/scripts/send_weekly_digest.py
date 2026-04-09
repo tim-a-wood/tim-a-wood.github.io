@@ -19,7 +19,7 @@ import argparse
 import subprocess
 import tempfile
 from datetime import date
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 RESEND_API_URL = "https://api.resend.com/emails"
 
@@ -38,10 +38,71 @@ EMAIL_RULE = "#c5d6d0"
 EMAIL_TABLE_HEADER_BG = "#dceae6"
 EMAIL_TABLE_STRIPE = "#f4f8f7"
 
+# STYLE_GUIDE.md §13 — dark PDF / toolchain-faithful exports (Design-owned tokens).
+STYLEGUIDE_BG_PAGE = "#050709"
+STYLEGUIDE_BG_CARD = "#07090c"
+STYLEGUIDE_TEXT = "#cce8e0"
+STYLEGUIDE_MUTED = "#5d7870"
+STYLEGUIDE_HEADING = "#cce8e0"
+STYLEGUIDE_ACCENT = "#00e8c8"
+STYLEGUIDE_CODE_BG = "rgba(255,255,255,0.045)"
+STYLEGUIDE_CODE_BORDER = "rgba(0,232,200,0.14)"
+STYLEGUIDE_RULE = "rgba(0,232,200,0.10)"
+STYLEGUIDE_TABLE_HEADER = "#0d1115"
+STYLEGUIDE_TABLE_STRIPE = "#07090c"
+STYLEGUIDE_TABLE_STRIPE_ALT = "#0a1210"
+STYLEGUIDE_GOOD = "#4ade80"
+
+
+def _theme_map(theme: str) -> Dict[str, str]:
+    """Inline HTML colors for markdown + email shell. theme: email | styleguide."""
+    if theme == "styleguide":
+        return {
+            "bg_page": STYLEGUIDE_BG_PAGE,
+            "bg_card": STYLEGUIDE_BG_CARD,
+            "text": STYLEGUIDE_TEXT,
+            "text_secondary": STYLEGUIDE_MUTED,
+            "heading": STYLEGUIDE_HEADING,
+            "link": STYLEGUIDE_ACCENT,
+            "code_bg": STYLEGUIDE_CODE_BG,
+            "code_border": STYLEGUIDE_CODE_BORDER,
+            "rule": STYLEGUIDE_RULE,
+            "table_header_bg": STYLEGUIDE_TABLE_HEADER,
+            "table_stripe": STYLEGUIDE_TABLE_STRIPE,
+            "table_stripe_alt": STYLEGUIDE_TABLE_STRIPE_ALT,
+            "chip_bg": "#0d1115",
+            "good": STYLEGUIDE_GOOD,
+        }
+    if theme != "email":
+        raise ValueError(f"unknown theme: {theme!r} (use 'email' or 'styleguide')")
+    return {
+        "bg_page": EMAIL_BG_PAGE,
+        "bg_card": EMAIL_BG_CARD,
+        "text": EMAIL_TEXT,
+        "text_secondary": EMAIL_TEXT_SECONDARY,
+        "heading": EMAIL_HEADING,
+        "link": EMAIL_LINK,
+        "code_bg": EMAIL_CODE_BG,
+        "code_border": EMAIL_CODE_BORDER,
+        "rule": EMAIL_RULE,
+        "table_header_bg": EMAIL_TABLE_HEADER_BG,
+        "table_stripe": EMAIL_TABLE_STRIPE,
+        "table_stripe_alt": EMAIL_BG_CARD,
+        "chip_bg": EMAIL_TABLE_HEADER_BG,
+        "good": "#1d6b3a",
+    }
+
+
 # ── Markdown → HTML ──────────────────────────────────────────────────────────
 
-def md_to_html(md: str) -> str:
-    """Convert the digest markdown to clean HTML with inline styles."""
+def md_to_html(md: str, theme: str = "email") -> str:
+    """Convert the digest markdown to clean HTML with inline styles.
+
+    theme:
+      email — light surfaces (max compatibility in mail clients)
+      styleguide — STYLE_GUIDE.md dark tokens (PDF exports, Design-aligned artifacts)
+    """
+    C = _theme_map(theme)
     lines = md.split("\n")
     html_lines = []
     i = 0
@@ -50,14 +111,14 @@ def md_to_html(md: str) -> str:
         """Convert inline markdown: bold, italic, code, links."""
         text = re.sub(
             r"`([^`]+)`",
-            rf'<code style="font-family:\'DM Mono\',monospace;background:{EMAIL_CODE_BG};color:{EMAIL_TEXT};padding:2px 8px;border-radius:4px;font-size:12px;border:1px solid {EMAIL_CODE_BORDER}">\1</code>',
+            rf'<code style="font-family:\'DM Mono\',ui-monospace,monospace;background:{C["code_bg"]};color:{C["text"]};padding:2px 8px;border-radius:8px;font-size:13px;border:1px solid {C["code_border"]}">\1</code>',
             text,
         )
-        text = re.sub(r"\*\*([^*]+)\*\*", rf'<strong style="color:{EMAIL_TEXT}">\1</strong>', text)
-        text = re.sub(r"\*([^*]+)\*", fr'<em style="color:{EMAIL_TEXT_SECONDARY}">\1</em>', text)
+        text = re.sub(r"\*\*([^*]+)\*\*", rf'<strong style="color:{C["text"]}">\1</strong>', text)
+        text = re.sub(r"\*([^*]+)\*", fr'<em style="color:{C["text_secondary"]}">\1</em>', text)
         text = re.sub(
             r"\[([^\]]+)\]\(([^)]+)\)",
-            rf'<a href="\2" style="color:{EMAIL_LINK};text-decoration:underline;text-underline-offset:2px;font-weight:600">\1</a>',
+            rf'<a href="\2" style="color:{C["link"]};text-decoration:underline;text-underline-offset:2px;font-weight:600">\1</a>',
             text,
         )
         text = text.replace("→", "→")
@@ -74,14 +135,14 @@ def md_to_html(md: str) -> str:
 
         # HR
         if re.match(r"^-{3,}$", line.strip()):
-            html_lines.append(f'<hr style="border:none;border-top:1px solid {EMAIL_RULE};margin:24px 0">')
+            html_lines.append(f'<hr style="border:none;border-top:1px solid {C["rule"]};margin:24px 0">')
             i += 1
             continue
 
-        # H1
+        # H1 — STYLE_GUIDE: display font, ~22–28px scale
         if line.startswith("# "):
             html_lines.append(
-                f'<h1 style="font-family:\'Bebas Neue\',sans-serif;font-size:28px;font-weight:400;letter-spacing:0.06em;color:{EMAIL_HEADING};margin:0 0 4px 0;line-height:1.1">{inline(line[2:])}</h1>'
+                f'<h1 style="font-family:\'Bebas Neue\',sans-serif;font-size:22px;font-weight:400;letter-spacing:0.06em;color:{C["heading"]};margin:0 0 8px 0;line-height:1.15">{inline(line[2:])}</h1>'
             )
             i += 1
             continue
@@ -89,15 +150,15 @@ def md_to_html(md: str) -> str:
         # H2
         if line.startswith("## "):
             html_lines.append(
-                f'<h2 style="font-family:\'Bebas Neue\',sans-serif;font-size:18px;font-weight:400;letter-spacing:0.08em;color:{EMAIL_HEADING};margin:28px 0 10px 0;text-transform:uppercase;border-bottom:1px solid {EMAIL_RULE};padding-bottom:8px">{inline(line[3:])}</h2>'
+                f'<h2 style="font-family:\'Bebas Neue\',sans-serif;font-size:18px;font-weight:400;letter-spacing:0.08em;color:{C["heading"]};margin:28px 0 12px 0;text-transform:uppercase;border-bottom:1px solid {C["rule"]};padding-bottom:8px">{inline(line[3:])}</h2>'
             )
             i += 1
             continue
 
-        # H3
+        # H3 — font-size-sm + uppercase label pattern
         if line.startswith("### "):
             html_lines.append(
-                f'<h3 style="font-size:13px;font-weight:700;color:{EMAIL_HEADING};margin:20px 0 6px 0;text-transform:uppercase;letter-spacing:0.06em">{inline(line[4:])}</h3>'
+                f'<h3 style="font-family:\'Plus Jakarta Sans\',-apple-system,sans-serif;font-size:13px;font-weight:700;color:{C["text_secondary"]};margin:20px 0 8px 0;text-transform:uppercase;letter-spacing:0.12em">{inline(line[4:])}</h3>'
             )
             i += 1
             continue
@@ -115,17 +176,17 @@ def md_to_html(md: str) -> str:
                 cells = [c.strip() for c in row.strip().strip("|").split("|")]
                 tag = "th" if ri == 0 else "td"
                 if ri == 0:
-                    style_row = f'bgcolor="{EMAIL_TABLE_HEADER_BG.replace("#", "")}" style="background:{EMAIL_TABLE_HEADER_BG}"'
+                    th = C["table_header_bg"].replace("#", "")
+                    style_row = f'bgcolor="{th}" style="background:{C["table_header_bg"]}"'
                 else:
-                    bg = EMAIL_TABLE_STRIPE if ri % 2 == 0 else EMAIL_BG_CARD
-                    hex_attr = bg.replace("#", "")
-                    style_row = f'bgcolor="{hex_attr}" style="background:{bg}"'
+                    bg = C["table_stripe"] if ri % 2 == 0 else C["table_stripe_alt"]
+                    style_row = f'bgcolor="{bg.replace("#", "")}" style="background:{bg}"'
                 table_html.append(f"<tr {style_row}>")
                 for cell in cells:
                     if tag == "th":
-                        cell_style = f'style="padding:8px 12px;border:1px solid {EMAIL_RULE};color:{EMAIL_TEXT};text-align:left;font-weight:700"'
+                        cell_style = f'style="padding:8px 12px;border:1px solid {C["rule"]};color:{C["text"]};text-align:left;font-weight:700"'
                     else:
-                        cell_style = f'style="padding:8px 12px;border:1px solid {EMAIL_RULE};color:{EMAIL_TEXT_SECONDARY};text-align:left"'
+                        cell_style = f'style="padding:8px 12px;border:1px solid {C["rule"]};color:{C["text_secondary"]};text-align:left"'
                     table_html.append(f'<{tag} {cell_style}>{inline(cell)}</{tag}>')
                 table_html.append("</tr>")
             table_html.append("</table>")
@@ -141,7 +202,7 @@ def md_to_html(md: str) -> str:
             list_html = ['<ul style="margin:8px 0 12px 0;padding-left:20px">']
             for item in items:
                 list_html.append(
-                    f'<li style="color:{EMAIL_TEXT_SECONDARY};margin:4px 0;line-height:1.6">{inline(item)}</li>'
+                    f'<li style="color:{C["text_secondary"]};margin:4px 0;line-height:1.45">{inline(item)}</li>'
                 )
             list_html.append("</ul>")
             html_lines.append("\n".join(list_html))
@@ -158,17 +219,16 @@ def md_to_html(md: str) -> str:
             list_html = ['<ul style="margin:8px 0 12px 0;padding-left:4px;list-style:none">']
             for checked, text in items:
                 icon = "✅" if checked else "☐"
-                color = "#1d6b3a" if checked else EMAIL_TEXT_SECONDARY
-                list_html.append(f'<li style="color:{color};margin:4px 0;line-height:1.6">{icon} {inline(text)}</li>')
+                color = C["good"] if checked else C["text_secondary"]
+                list_html.append(f'<li style="color:{color};margin:4px 0;line-height:1.45">{icon} {inline(text)}</li>')
             list_html.append("</ul>")
             html_lines.append("\n".join(list_html))
             continue
 
-        # Bold-prefixed line used as a labelled paragraph (e.g. "**Status: Green**")
         # Blockquote-style note (lines starting with *)
         if line.startswith("*") and not line.startswith("**") and line.endswith("*"):
             html_lines.append(
-                f'<p style="color:{EMAIL_TEXT_SECONDARY};font-style:italic;font-size:13px;margin:4px 0 12px 0">{inline(line.strip("*"))}</p>'
+                f'<p style="color:{C["text_secondary"]};font-style:italic;font-size:13px;margin:4px 0 12px 0">{inline(line.strip("*"))}</p>'
             )
             i += 1
             continue
@@ -176,66 +236,71 @@ def md_to_html(md: str) -> str:
         # Indented item (→ lines)
         if line.strip().startswith("→"):
             html_lines.append(
-                f'<p style="color:{EMAIL_TEXT_SECONDARY};font-size:13px;margin:2px 0 8px 16px">{inline(line.strip())}</p>'
+                f'<p style="color:{C["text_secondary"]};font-size:13px;margin:2px 0 8px 16px">{inline(line.strip())}</p>'
             )
             i += 1
             continue
 
-        # Plain paragraph
+        # Plain paragraph — font-size-base 14px
         html_lines.append(
-            f'<p style="color:{EMAIL_TEXT};font-size:14px;line-height:1.7;margin:0 0 12px 0">{inline(line)}</p>'
+            f'<p style="color:{C["text"]};font-size:14px;line-height:1.45;margin:0 0 12px 0;font-family:\'Plus Jakarta Sans\',-apple-system,sans-serif">{inline(line)}</p>'
         )
         i += 1
 
     return "\n".join(html_lines)
 
 
-def wrap_html(body_html: str, week_of: str, subtitle: str = "Metroidvania Toolchain — Weekly Founder Digest") -> str:
-    page_bg = EMAIL_BG_PAGE.replace("#", "")
-    card_bg = EMAIL_BG_CARD.replace("#", "")
+def wrap_html(
+    body_html: str,
+    week_of: str,
+    subtitle: str = "Metroidvania Toolchain — Weekly Founder Digest",
+    theme: str = "email",
+) -> str:
+    """HTML shell for outbound mail. theme styleguide uses STYLE_GUIDE dark surfaces."""
+    C = _theme_map(theme)
+    page_bg = C["bg_page"].replace("#", "")
+    card_bg = C["bg_card"].replace("#", "")
+    color_scheme = "dark light" if theme == "styleguide" else "light"
+    border_outer = C["rule"] if theme == "styleguide" else C["rule"]
+
     return f"""<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="color-scheme" content="light">
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=DM+Mono&display=swap" rel="stylesheet">
+<meta name="color-scheme" content="{color_scheme}">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 </head>
-<body bgcolor="{page_bg}" style="margin:0;padding:0;background:{EMAIL_BG_PAGE};color:{EMAIL_TEXT};font-family:'Plus Jakarta Sans',-apple-system,sans-serif">
+<body bgcolor="{page_bg}" style="margin:0;padding:0;background:{C["bg_page"]};color:{C["text"]};font-family:'Plus Jakarta Sans',-apple-system,sans-serif">
 
-  <!-- brand accent (thin strip only — avoids large cyan text on unpredictable backgrounds) -->
   <div style="height:4px;background:#00e8c8;width:100%"></div>
 
-  <!-- outer wrapper: bgcolor helps Outlook / clients that ignore body background -->
-  <table width="100%" cellpadding="0" cellspacing="0" bgcolor="{page_bg}" style="background:{EMAIL_BG_PAGE};padding:32px 16px">
+  <table width="100%" cellpadding="0" cellspacing="0" bgcolor="{page_bg}" style="background:{C["bg_page"]};padding:32px 16px">
     <tr><td align="center">
-      <table width="600" cellpadding="0" cellspacing="0" bgcolor="{card_bg}" style="max-width:600px;width:100%;background:{EMAIL_BG_CARD};border-radius:18px;border:1px solid {EMAIL_RULE};overflow:hidden">
+      <table width="600" cellpadding="0" cellspacing="0" bgcolor="{card_bg}" style="max-width:600px;width:100%;background:{C["bg_card"]};border-radius:18px;border:1px solid {border_outer};overflow:hidden;box-shadow:0 6px 20px rgba(0,0,0,0.26)">
 
-        <!-- header -->
-        <tr><td style="padding:24px 28px 0 28px;background:{EMAIL_BG_CARD}">
+        <tr><td style="padding:24px 28px 0 28px;background:{C["bg_card"]}">
           <table width="100%" cellpadding="0" cellspacing="0">
             <tr>
               <td>
-                <div style="font-family:'Bebas Neue',sans-serif;font-size:32px;font-weight:400;letter-spacing:0.08em;color:{EMAIL_HEADING};line-height:1">AGENT OS</div>
-                <div style="font-size:12px;color:{EMAIL_TEXT_SECONDARY};letter-spacing:0.06em;text-transform:uppercase;margin-top:4px">{subtitle}</div>
+                <div style="font-family:'Bebas Neue',sans-serif;font-size:32px;font-weight:400;letter-spacing:0.08em;color:{C["heading"]};line-height:1">AGENT OS</div>
+                <div style="font-size:12px;color:{C["text_secondary"]};letter-spacing:0.06em;text-transform:uppercase;margin-top:4px;font-weight:700">{subtitle}</div>
               </td>
               <td align="right" style="vertical-align:top">
-                <span style="display:inline-block;background:{EMAIL_TABLE_HEADER_BG};border:1px solid {EMAIL_CODE_BORDER};color:{EMAIL_HEADING};font-size:11px;font-family:'DM Mono',monospace;padding:4px 12px;border-radius:999px">● {week_of}</span>
+                <span style="display:inline-block;background:{C["chip_bg"]};border:1px solid {C["code_border"]};color:{C["heading"]};font-size:11px;font-family:'DM Mono',monospace;padding:4px 12px;border-radius:999px">● {week_of}</span>
               </td>
             </tr>
           </table>
-          <div style="height:1px;background:{EMAIL_RULE};margin-top:16px"></div>
+          <div style="height:1px;background:{C["rule"]};margin-top:16px"></div>
         </td></tr>
 
-        <!-- body -->
-        <tr><td style="background:{EMAIL_BG_CARD};padding:8px 28px 28px 28px">
+        <tr><td style="background:{C["bg_card"]};padding:8px 28px 28px 28px">
           {body_html}
         </td></tr>
 
-        <!-- footer -->
-        <tr><td style="padding:0 24px 24px 24px;background:{EMAIL_BG_CARD};text-align:center">
-          <div style="font-size:11px;color:{EMAIL_TEXT_SECONDARY};font-family:'DM Mono',monospace">
-            MV Toolchain · Agent OS · Generated by Orchestrator
+        <tr><td style="padding:0 24px 24px 24px;background:{C["bg_card"]};text-align:center">
+          <div style="font-size:11px;color:{C["text_secondary"]};font-family:'DM Mono',monospace">
+            MV Toolchain · Design system (STYLE_GUIDE.md) · Agent OS
           </div>
         </td></tr>
 

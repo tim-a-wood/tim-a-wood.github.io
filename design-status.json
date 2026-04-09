@@ -1,7 +1,7 @@
 {
   "schema_version": "v1.0",
   "_note": "Updated daily at noon by the design agent. Plain language — no jargon.",
-  "updated": "2026-04-07",
+  "updated": "2026-04-09",
   "priorities": [
     {
       "id": 1,
@@ -51,6 +51,19 @@
       "proposed_solution": "Engineering treats AH-* as game-only; chrome stays STYLE_GUIDE. See docs/reports/design-review-ashen-hollow-art-bible-v0.2.md.",
       "modified_at": "2026-04-02T17:46:50-04:00",
       "modified_by": "design"
+    },
+    {
+      "id": 5,
+      "os_contexts": [
+        "ashen-hollow"
+      ],
+      "title": "Art bible PDF / markdown email — STYLE_GUIDE dark export",
+      "status": "done",
+      "risk": "low",
+      "note": "Revised send_markdown_pdf_email + send_weekly_digest md_to_html(theme=styleguide) to use STYLE_GUIDE.md tokens (#050709 bg, #cce8e0 text, #00e8c8 accent/links, DM Mono meta, 4px strip). Weekly digest default email theme stays light for client compatibility. Founder resent art bible v0.3 PDF after this change.",
+      "proposed_solution": "Use styleguide theme for all PDF attachments from scripts/send_markdown_pdf_email.py ; keep theme=email for weekly digest unless founder opts into dark",
+      "modified_at": "2026-04-09T12:00:00-04:00",
+      "modified_by": "design"
     }
   ],
   "risks_p0": [],
@@ -59,7 +72,7 @@
     "token_violations_open": "—",
     "a11y_critical_open": "—",
     "copilot_ux_charter": "Review on change",
-    "style_guide_last_touch": "2026-03-27",
+    "style_guide_last_touch": "2026-04-09",
     "next_audit": "Next quarter"
   },
   "actions": [

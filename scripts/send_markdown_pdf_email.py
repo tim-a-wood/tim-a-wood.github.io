@@ -2,6 +2,7 @@
 """
 Build a PDF from markdown (same HTML pipeline as send_weekly_digest.py) and email it via Resend.
 
+PDF and notification HTML use the **styleguide** theme: `STYLE_GUIDE.md` dark tokens (Design).
 Uses Chrome/Chromium headless for PDF — no pandoc or WeasyPrint required.
 
 Usage (from repo root, after sourcing .env.local):
@@ -141,24 +142,57 @@ def main() -> None:
     raw_md = md_path.read_text(encoding="utf-8")
     body_md = strip_yaml_frontmatter(raw_md)
     body_md = resolve_markdown_images(body_md, md_path.parent)
-    body_html = digest.md_to_html(body_md)
+    # Design: PDF body uses STYLE_GUIDE.md tokens via send_weekly_digest.theme=styleguide
+    body_html = digest.md_to_html(body_md, theme="styleguide")
 
     today = date.today().strftime("%Y-%m-%d")
     subject = args.subject or f"[MV Agent OS] Report PDF — {md_path.stem} — {today}"
 
-    # Full HTML document for PDF (print-friendly: drop outer email table chrome, use simple page)
+    # Full HTML for Chrome PDF — dark theme per STYLE_GUIDE.md (Design-owned); preserves colors in print
+    BG = digest.STYLEGUIDE_BG_PAGE
+    TX = digest.STYLEGUIDE_TEXT
+    MU = digest.STYLEGUIDE_MUTED
     pdf_wrap = f"""<!DOCTYPE html>
 <html><head><meta charset="UTF-8">
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=DM+Mono&display=swap" rel="stylesheet">
+<meta name="color-scheme" content="dark">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   @page {{ margin: 16mm; }}
-  body {{ margin: 0; padding: 24px; background: #fff; color: #141d1b;
-    font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; font-size: 11pt; line-height: 1.5; }}
-  h1 {{ font-family: 'Bebas Neue', sans-serif; font-size: 22pt; letter-spacing: 0.06em; color: #0a2e28; margin-top: 0; }}
-  h2 {{ font-family: 'Bebas Neue', sans-serif; font-size: 13pt; letter-spacing: 0.08em; color: #0a2e28;
-    border-bottom: 1px solid #c5d6d0; padding-bottom: 6px; margin-top: 1.2em; text-transform: uppercase; }}
+  html, body {{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }}
+  body {{
+    margin: 0;
+    padding: 24px;
+    background: {BG};
+    color: {TX};
+    font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+    font-size: 14px;
+    line-height: 1.45;
+  }}
+  img {{
+    max-width: 100%;
+    height: auto;
+    image-rendering: pixelated;
+    vertical-align: middle;
+  }}
+  .pdf-doc-bar {{
+    height: 4px;
+    background: #00e8c8;
+    width: 100%;
+    margin: 0 0 24px 0;
+  }}
+  .pdf-meta {{
+    font-family: 'DM Mono', ui-monospace, monospace;
+    font-size: 11px;
+    font-weight: 500;
+    color: {MU};
+    margin: 0 0 16px 0;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }}
+  a {{ color: #00e8c8; }}
 </style></head><body>
-<p style="font-size:10pt;color:#3d4f4a;margin:0 0 16px 0">{md_path.name} · {today}</p>
+<div class="pdf-doc-bar"></div>
+<p class="pdf-meta">{md_path.name} · {today} · STYLE_GUIDE.md export</p>
 {body_html}
 </body></html>"""
 
@@ -181,7 +215,12 @@ def main() -> None:
     rel = str(md_path.relative_to(REPO))
     email_md = intro + f"PDF attached: **{pdf_name}**\n\n_Source markdown:_ `{rel}`\n"
     plain = intro + f"PDF attached: {pdf_name}\n\nSource markdown: {rel}\n"
-    email_html = digest.wrap_html(digest.md_to_html(email_md), today, args.subtitle)
+    email_html = digest.wrap_html(
+        digest.md_to_html(email_md, theme="styleguide"),
+        today,
+        args.subtitle,
+        theme="styleguide",
+    )
 
     print(f"Sending to {to_addr} with attachment {final_pdf.name} ({final_pdf.stat().st_size} bytes)...")
     digest.send(

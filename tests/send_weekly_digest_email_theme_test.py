@@ -30,6 +30,15 @@ def main():
     assert "height:4px;background:#00e8c8" in full
     assert 'meta name="color-scheme" content="light"' in full
 
+    # STYLE_GUIDE dark export (PDF / Design-aligned)
+    dark_body = m.md_to_html("# Title\n\n[link](https://example.org)\n", theme="styleguide")
+    assert m.STYLEGUIDE_BG_PAGE not in dark_body  # body fragment only
+    assert m.STYLEGUIDE_TEXT in dark_body or "cce8e0" in dark_body
+    assert "color:#00e8c8" in dark_body, "styleguide links use accent"
+    dark_full = m.wrap_html(dark_body, "2099-01-01", "Design — PDF mail", theme="styleguide")
+    assert m.STYLEGUIDE_BG_PAGE in dark_full
+    assert 'meta name="color-scheme" content="dark light"' in dark_full
+
     print("send_weekly_digest_email_theme_test: ok")
     return 0
 
