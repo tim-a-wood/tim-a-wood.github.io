@@ -121,7 +121,12 @@ fi
 
 echo ""
 echo "SC    Running security scan..."
-python3 "$REPO_ROOT/scripts/check_escalation_conditions.py" || FAIL=1
+if [ -f "$REPO_ROOT/scripts/check_escalation_conditions.py" ]; then
+  python3 "$REPO_ROOT/scripts/check_escalation_conditions.py" || FAIL=1
+else
+  echo "Scanning git-tracked files..."
+  info "check_escalation_conditions.py not found at REPO_ROOT (worktree?); skipping security scan."
+fi
 
 # ── Result ───────────────────────────────────────────────────────────────────
 

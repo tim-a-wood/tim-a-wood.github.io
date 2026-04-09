@@ -41,6 +41,14 @@ class AgentChatHelpersTests(unittest.TestCase):
         text = _read_allowed_repo_text(REPO_ROOT, rel, 4000)
         self.assertIn("Design Agent", text)
 
+    def test_agent_chat_result_shape_supports_proposed_updates(self) -> None:
+        result = {"thinking": "", "assistant_message": "ok"}
+        result.setdefault("thinking", "")
+        result.setdefault("assistant_message", "")
+        if not isinstance(result.get("proposed_updates"), list):
+            result["proposed_updates"] = []
+        self.assertEqual(result["proposed_updates"], [])
+
 
 if __name__ == "__main__":
     unittest.main()

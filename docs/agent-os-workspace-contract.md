@@ -34,6 +34,11 @@ The Agent OS app root owns:
 - status validation tooling
 - Agent OS-specific tests
 - Agent OS digest/update scripts
+- Agent OS dashboard standards and directives under:
+  - `agents/design/dashboard-standard.md`
+  - `agents/directives/dashboard-standard.md`
+  - `agents/directives/plain-language-dashboards.md`
+  - `agents/directives/task-completion-update.md`
 
 ## Workspace Root Responsibilities
 
@@ -86,6 +91,13 @@ The MV workspace root remains the phase-1 source of truth for:
 - `AGENTS.md`
 - likely `README.md`
 - likely `CLAUDE.md`
+
+### Agent OS-owned standards that move with the standalone repo
+
+- `agents/design/dashboard-standard.md`
+- `agents/directives/dashboard-standard.md`
+- `agents/directives/plain-language-dashboards.md`
+- `agents/directives/task-completion-update.md`
 
 ## QA Baseline
 

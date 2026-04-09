@@ -1398,6 +1398,17 @@ def make_handler(
                     "Respond with a single JSON object ONLY, keys:\n"
                     '- "thinking": string, step-by-step reasoning.\n'
                     '- "assistant_message": string, concise reply to the user (markdown allowed in the string).\n'
+                    '- "proposed_updates": optional array of objects, each: '
+                    '{"kind":"priority|opportunity|founder_decision",'
+                    '"action":"add|update|remove",'
+                    '"id": "<existing item id when updating/removing>",'
+                    '"title":"<item title>",'
+                    '"fields": { ... partial fields ... },'
+                    '"note":"<short reason>",'
+                    '"proposed_solution":"<optional next step>"}.\n'
+                    "Use [] when no structured updates are appropriate. "
+                    "For priorities/opportunities, status must stay within the dashboard-supported values "
+                    "(in-progress, needs-review, queued, paused, done) and risk within (high, med, low).\n"
                     "Do not claim to have edited files, sent email, or run tools unless the user explicitly did so. "
                     "Prefer actionable guidance grounded in the charter."
                 )
@@ -1425,10 +1436,12 @@ def make_handler(
                         {"error": "chat_failed", "message": str(exc)},
                     )
                 if not isinstance(result, dict):
-                    result = {"thinking": "", "assistant_message": str(result)}
+                    result = {"thinking": "", "assistant_message": str(result), "proposed_updates": []}
                 else:
                     result.setdefault("thinking", "")
                     result.setdefault("assistant_message", "")
+                    if not isinstance(result.get("proposed_updates"), list):
+                        result["proposed_updates"] = []
                 return self._send_json(HTTPStatus.OK, {"ok": True, "result": result})
 
             # ── Find New Opportunities (structured JSON output, no wrapper) ──

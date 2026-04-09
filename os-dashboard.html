@@ -7717,6 +7717,7 @@ h3.os-chart-card-title {
             </select>
           </div>
           <input type="text" class="av-search" id="ot-search" placeholder="Search within filtered in-progress items…" autocomplete="off" spellcheck="false" aria-label="Search in-progress items in the filtered list">
+          <button type="button" class="av-btn" id="ot-update-btn" title="Ask specialist agents for updates to active tasks">Update</button>
           <button type="button" class="av-btn av-btn--accent av-add-btn" id="ot-add-work-btn">+ Add in-progress work</button>
           <span class="av-count" id="ot-count"></span>
         </div>
@@ -7861,6 +7862,7 @@ h3.os-chart-card-title {
             </select>
           </div>
           <input type="text" class="av-search" id="av-search" placeholder="Search within filtered issues…" autocomplete="off" spellcheck="false" aria-label="Search issues in the filtered list">
+          <button type="button" class="av-btn" id="av-update-btn" title="Ask specialist agents for issue updates">Update</button>
           <button type="button" class="av-btn av-btn--accent av-add-btn" id="av-add-btn">+ Add Issue</button>
           <span class="av-count" id="av-count"></span>
         </div>
@@ -17772,8 +17774,51 @@ const MU_AGENTS = AV_STATUS_FILES
 var muSelectedAgents = new Set(MU_AGENTS.map(function(a) { return a.id; }));
 var muResults = [];       // [{ agent, agentLabel, file, kind, action, id, title, changeDesc, fields, note, proposed_solution, selected }]
 var muRunning = false;
+var muMode = 'my-actions';
+
+function muModeConfig(mode) {
+  if (mode === 'issues') {
+    return {
+      title: 'Issue updates',
+      phase1: 'Select agents to review for issue updates, blockers, new issues, and stale rows.',
+      phase2: 'Running issue reviews — please wait…',
+      phase3: 'Review proposed issue changes and accept or reject each one.',
+      empty: 'No proposed issue updates — the agent issue lists look current.',
+      taskContext: 'Issue review: check priorities for status changes, blockers, new issues, and stale rows',
+      applyToast: 'Issues updated',
+      focusKinds: ['priority']
+    };
+  }
+  if (mode === 'ongoing') {
+    return {
+      title: 'Open task updates',
+      phase1: 'Select agents to review for active-task updates, blockers, new work, and redundant tasks.',
+      phase2: 'Running active-task reviews — please wait…',
+      phase3: 'Review proposed open-task changes and accept or reject each one.',
+      empty: 'No proposed open-task updates — the active work lists look current.',
+      taskContext: 'Open task review: check in-progress priorities and opportunities for status changes, blockers, new work, and redundant tasks',
+      applyToast: 'Open tasks updated',
+      focusKinds: ['priority', 'opportunity']
+    };
+  }
+  return {
+    title: 'My Actions update',
+    phase1: 'Select agents to review for new tasks, decisions, and priorities.',
+    phase2: 'Running agent reviews — please wait…',
+    phase3: 'Review proposed updates and accept or reject each one.',
+    empty: 'No proposed updates — all agent dashboards look current.',
+    taskContext: 'Status review: check priorities and opportunities for needed updates',
+    applyToast: 'My Actions updated',
+    focusKinds: ['priority', 'opportunity', 'founder_decision']
+  };
+}
 
 function muOpen() {
+  muOpenForMode('my-actions');
+}
+
+function muOpenForMode(mode) {
+  muMode = mode || 'my-actions';
   var scrim = document.getElementById('mu-scrim');
   if (!scrim) return;
   muSetPhase(1);
@@ -17790,17 +17835,20 @@ function muClose() {
 }
 
 function muSetPhase(n) {
+  var cfg = muModeConfig(muMode);
   [1, 2, 3].forEach(function(i) {
     var el = document.getElementById('mu-phase-' + i);
     if (el) el.classList.toggle('mu-phase--active', i === n);
   });
+  var titleEl = document.getElementById('mu-title');
+  if (titleEl) titleEl.textContent = cfg.title;
   var subtitle = document.getElementById('mu-subtitle');
   if (subtitle) {
     subtitle.textContent = n === 1
-      ? 'Select agents to review for new tasks, decisions, and priorities.'
+      ? cfg.phase1
       : n === 2
-      ? 'Running agent reviews — please wait…'
-      : 'Review proposed updates and accept or reject each one.';
+      ? cfg.phase2
+      : cfg.phase3;
   }
 }
 
@@ -17883,8 +17931,13 @@ function muUpdateOverall(done, total) {
 
 function muParseProposedUpdates(raw) {
   if (!raw || typeof raw !== 'string') return [];
+  var stripped = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+  try {
+    var direct = JSON.parse(stripped);
+    if (Array.isArray(direct.proposed_updates)) return direct.proposed_updates;
+  } catch (e) { /* fall through */ }
   // try to extract JSON object from response text
-  var match = raw.match(/\{[\s\S]*"proposed_updates"[\s\S]*\}/);
+  var match = stripped.match(/\{[\s\S]*"proposed_updates"[\s\S]*\}/);
   if (!match) return [];
   try {
     var obj = JSON.parse(match[0]);
@@ -17892,18 +17945,24 @@ function muParseProposedUpdates(raw) {
   } catch (e) { return []; }
 }
 
-function muBuildItemSnapshot(data) {
+function muBuildItemSnapshot(data, mode) {
   var lines = [];
   var priorities = Array.isArray(data && data.priorities) ? data.priorities : [];
   var opportunities = Array.isArray(data && data.opportunities) ? data.opportunities : [];
-  if (priorities.length) {
+  var includePriorities = true;
+  var includeOpportunities = mode !== 'issues';
+  if (mode === 'ongoing') {
+    priorities = priorities.filter(function(p) { return (p.status || '') === 'in-progress'; });
+    opportunities = opportunities.filter(function(o) { return (o.status || '') === 'in-progress'; });
+  }
+  if (includePriorities && priorities.length) {
     lines.push('PRIORITIES (issues):');
     priorities.forEach(function(p) {
       lines.push('  id=' + p.id + ' status=' + (p.status || '?') + ' risk=' + (p.risk || '?') + ' | ' + (p.title || '').slice(0, 80));
       if (p.note) lines.push('    note: ' + String(p.note).slice(0, 120));
     });
   }
-  if (opportunities.length) {
+  if (includeOpportunities && opportunities.length) {
     lines.push('OPPORTUNITIES:');
     opportunities.forEach(function(o) {
       lines.push('  id=' + o.id + ' status=' + (o.status || '?') + ' risk=' + (o.risk || '?') + ' | ' + (o.title || '').slice(0, 80));
@@ -17925,6 +17984,7 @@ function muDescribeChange(u) {
 }
 
 async function muRunUpdate() {
+  var cfg = muModeConfig(muMode);
   var selected = MU_AGENTS.filter(function(a) { return muSelectedAgents.has(a.id); });
   if (!selected.length) return;
   muRunning = true;
@@ -17972,10 +18032,50 @@ async function muRunUpdate() {
         fileData = fr.ok ? await fr.json() : null;
       } catch (e) { fileData = avCache[agent.file] || null; }
 
-      var snapshot = muBuildItemSnapshot(fileData);
+      var snapshot = muBuildItemSnapshot(fileData, muMode);
       var gitContext = muAgentCommits(agent.label);
 
-      var prompt = 'You are ' + agent.label + '. Review your current tasks against recent project activity and propose updates.\n\n'
+      var prompt;
+      if (muMode === 'issues') {
+        prompt = 'You are ' + agent.label + '. Review your current issue list against recent project activity and propose updates.\n\n'
+        + '=== YOUR CURRENT ISSUES (status file: ' + agent.file + ') ===\n'
+        + snapshot + '\n\n'
+        + '=== RECENT GIT COMMITS (ground truth of what has actually happened) ===\n'
+        + (gitContext || '(no recent commits)') + '\n\n'
+        + 'Focus only on issue/priorities rows. For each issue decide:\n'
+        + '- Does current work change the status, urgency, blocker state, or notes?\n'
+        + '- Is there a new issue that should be tracked?\n'
+        + '- Is an issue redundant, stale, or resolved and ready to remove?\n\n'
+        + 'Return ONLY a raw JSON object, no markdown, no code fences:\n'
+        + '{"proposed_updates":[\n'
+        + '  {"kind":"priority","id":<exact id>,"action":"update","title":"<item title>","fields":{"status":"blocked","note":"Blocked because ...","proposed_solution":"Next step ..."}},\n'
+        + '  {"kind":"priority","action":"add","title":"New issue","risk":"high","status":"queued","note":"...","proposed_solution":"..."},\n'
+        + '  {"kind":"priority","id":<exact id>,"action":"remove","title":"<item title>","note":"why redundant or obsolete"}\n'
+        + ']}\n'
+        + 'Use exact ids from the snapshot. Cite specific commits or concrete evidence in notes when possible. If nothing needs changing return {"proposed_updates":[]}.';
+      } else if (muMode === 'ongoing') {
+        prompt = 'You are ' + agent.label + '. Review your active work against recent project activity and propose updates.\n\n'
+        + '=== YOUR CURRENT IN-PROGRESS TASKS (status file: ' + agent.file + ') ===\n'
+        + snapshot + '\n\n'
+        + '=== RECENT GIT COMMITS (ground truth of what has actually happened) ===\n'
+        + (gitContext || '(no recent commits)') + '\n\n'
+        + 'Focus on active/open tasks only. Consider both priorities (issues) and opportunities when they represent ongoing work.\n'
+        + 'For each task decide:\n'
+        + '- Is it still in-progress, blocked, paused, or done?\n'
+        + '- Should details or next steps be updated?\n'
+        + '- Did new work start that should be added as an in-progress issue or opportunity?\n'
+        + '- Is a task redundant or no longer worth tracking here?\n\n'
+        + 'Return ONLY a raw JSON object, no markdown, no code fences:\n'
+        + '{"proposed_updates":[\n'
+        + '  {"kind":"priority","id":<exact id>,"action":"update","title":"<item title>","fields":{"status":"in-progress","note":"Latest status ...","proposed_solution":"Next step ..."}},\n'
+        + '  {"kind":"opportunity","id":"<exact id>","action":"update","title":"<item title>","fields":{"status":"blocked","note":"Blocked because ...","solution":"Next step ..."}},\n'
+        + '  {"kind":"priority","action":"add","title":"New active issue","risk":"med","status":"in-progress","note":"...","proposed_solution":"..."},\n'
+        + '  {"kind":"opportunity","action":"add","title":"New active opportunity","risk":"med","status":"in-progress","note":"...","proposed_solution":"..."},\n'
+        + '  {"kind":"priority","id":<exact id>,"action":"remove","title":"<item title>","note":"why redundant or obsolete"}\n'
+        + ']}\n'
+        + 'Use exact ids from the snapshot. Cite specific commits or concrete evidence in notes when possible. If nothing needs changing return {"proposed_updates":[]}.';
+      } else {
+        prompt = 'You are ' + agent.label + '. Review your current tasks against recent project activity and propose updates.\n\n'
         + '=== YOUR CURRENT ITEMS (status file: ' + agent.file + ') ===\n'
         + snapshot + '\n\n'
         + '=== RECENT GIT COMMITS (ground truth of what has actually happened) ===\n'
@@ -17993,6 +18093,7 @@ async function muRunUpdate() {
         + '  {"kind":"priority","id":<id>,"action":"remove","title":"<item title>","note":"reason"}\n'
         + ']}\n'
         + 'Use exact ids from the snapshot. Cite specific commits in notes. If nothing needs changing return {"proposed_updates":[]}.';
+      }
 
       var resp = await fetch(agentOsApiUrl('/api/agent-chat'), {
         method: 'POST',
@@ -18001,14 +18102,16 @@ async function muRunUpdate() {
           agentId: agent.id,
           agentLabel: agent.label,
           messages: [{ role: 'user', content: prompt }],
-          taskContext: 'Status review: check priorities and opportunities for needed updates',
+          taskContext: cfg.taskContext,
           productContext: osProductContext || 'all'
         })
       });
       var j = await resp.json().catch(function() { return {}; });
-      var msg = (j.result && j.result.assistant_message) ? j.result.assistant_message : '';
-      var updates = muParseProposedUpdates(msg);
+      var result = j && j.result && typeof j.result === 'object' ? j.result : {};
+      var msg = typeof result.assistant_message === 'string' ? result.assistant_message : '';
+      var updates = Array.isArray(result.proposed_updates) ? result.proposed_updates : muParseProposedUpdates(msg);
       updates.forEach(function(u) {
+        if (cfg.focusKinds.indexOf(u.kind || 'priority') === -1) return;
         muResults.push({
           agent: agent.id,
           agentLabel: agent.label,
@@ -18046,7 +18149,7 @@ function muRenderResults() {
   }
   if (!tbody) return;
   if (!muResults.length) {
-    tbody.innerHTML = '<tr><td colspan="5"><div class="mu-results-empty">No proposed updates — all agent dashboards look current.</div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5"><div class="mu-results-empty">' + muEscape(muModeConfig(muMode).empty) + '</div></td></tr>';
     muUpdateAcceptCount();
     return;
   }
@@ -18110,6 +18213,7 @@ function muEscape(s) {
 }
 
 async function muApplySelected() {
+  var cfg = muModeConfig(muMode);
   var toApply = muResults.filter(function(r) { return r.selected; });
   if (!toApply.length) return;
   var errEl = document.getElementById('mu-apply-error');
@@ -18146,7 +18250,7 @@ async function muApplySelected() {
         var newItem = Object.assign({ title: r.title, note: r.note, modified_at: now, modified_by: r.agent }, r.fields || {});
         if (r.kind === 'priority' || r.kind === 'opportunity') {
           newItem.id = r.kind === 'priority' ? ('mu-' + Date.now() + '-' + Math.floor(Math.random() * 1000)) : (r.agent + '-mu-' + Date.now());
-          if (!newItem.status) newItem.status = 'queued';
+          if (!newItem.status) newItem.status = muMode === 'ongoing' ? 'in-progress' : 'queued';
           if (!newItem.risk) newItem.risk = 'med';
           if (r.proposed_solution) newItem.proposed_solution = r.proposed_solution;
         }
@@ -18198,14 +18302,24 @@ async function muApplySelected() {
     // remove applied rows from results
     muResults = muResults.filter(function(r) { return !r.selected; });
     // refresh board
-    void ensureStatusCachesLoaded().then(function() { maRenderBoard(); maUpdateNavBadge(); });
-    avShowToast('My Actions updated — ' + toApply.length + ' change' + (toApply.length !== 1 ? 's' : '') + ' applied', true);
+    void ensureStatusCachesLoaded().then(function() {
+      maRenderBoard();
+      maUpdateNavBadge();
+      avApplyFilters();
+      aoApplyFilters();
+      refreshOngoingIfActive();
+    });
+    avShowToast(cfg.applyToast + ' — ' + toApply.length + ' change' + (toApply.length !== 1 ? 's' : '') + ' applied', true);
   }
 }
 
 function muWireOnce() {
   var openBtn = document.getElementById('mu-open-btn');
   if (openBtn) openBtn.addEventListener('click', muOpen);
+  var issuesBtn = document.getElementById('av-update-btn');
+  if (issuesBtn) issuesBtn.addEventListener('click', function() { muOpenForMode('issues'); });
+  var ongoingBtn = document.getElementById('ot-update-btn');
+  if (ongoingBtn) ongoingBtn.addEventListener('click', function() { muOpenForMode('ongoing'); });
   var closeBtn = document.getElementById('mu-close');
   if (closeBtn) closeBtn.addEventListener('click', muClose);
   var scrim = document.getElementById('mu-scrim');

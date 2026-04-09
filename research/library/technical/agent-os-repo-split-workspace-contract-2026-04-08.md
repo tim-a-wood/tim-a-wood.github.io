@@ -33,6 +33,11 @@ The codebase now supports an explicit `MV_WORKSPACE_ROOT` compatibility mode for
 - Agent OS launchers
 - Agent OS digest/update scripts
 - Agent OS-specific tests
+- Agent OS dashboard standards and directives:
+  - `agents/design/dashboard-standard.md`
+  - `agents/directives/dashboard-standard.md`
+  - `agents/directives/plain-language-dashboards.md`
+  - `agents/directives/task-completion-update.md`
 
 ### Stay
 
