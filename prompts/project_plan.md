@@ -56,6 +56,8 @@ This section captures the locked high-level activities and expands each into ato
 
 ### Execution standard — expert subagents, training, research, and evidence
 
+**Handover copy:** `docs/handover-map-mvp-subagent-research-evidence.md` (keep in sync with this subsection).
+
 **Owners:** **Development (Engineering)** (`agents/engineering/charter.md`, `engineering-status.json`) implements and refactors runtime and tests; **QA** (`agents/qa/charter.md`, `qa-status.json`) owns release readiness, test strategy, regression evidence, and severity triage for Activities 5–10 especially. Orchestration may delegate work to **subagents** (e.g. Cursor Task tool: `explore`, `shell`, `generalPurpose`, `Research`). The rules below apply to every Map MVP activity so work is not done by a default generalist when a specialist fit exists.
 
 #### 1. Choose subagents by expertise (not convenience)
