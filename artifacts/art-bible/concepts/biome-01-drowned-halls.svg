@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500">
+  <defs>
+    <radialGradient id="bg1" cx="50%" cy="40%" r="65%">
+      <stop offset="0%" stop-color="#0D1115"/>
+      <stop offset="100%" stop-color="#07090B"/>
+    </radialGradient>
+    <radialGradient id="sunGlow1" cx="50%" cy="55%" r="40%">
+      <stop offset="0%" stop-color="#A85B32" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#A85B32" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="verdGlow1" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#2D6662" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#2D6662" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="vig1" cx="50%" cy="50%" r="70%">
+      <stop offset="0%" stop-color="#07090B" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#07090B" stop-opacity="0.85"/>
+    </radialGradient>
+    <filter id="blur4"><feGaussianBlur stdDeviation="4"/></filter>
+    <filter id="blur12"><feGaussianBlur stdDeviation="12"/></filter>
+    <linearGradient id="waterFade1" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0D1115" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#07090B" stop-opacity="1"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Base -->
+  <rect width="800" height="500" fill="url(#bg1)"/>
+
+  <!-- Far arch - distant, barely there -->
+  <path d="M 280 500 L 280 200 Q 400 80 520 200 L 520 500" fill="#07090B" stroke="#0D1115" stroke-width="5" opacity="0.9"/>
+
+  <!-- Left wall mass -->
+  <rect x="0" y="0" width="110" height="500" fill="#07090B"/>
+  <rect x="90" y="0" width="20" height="500" fill="#0D1115" opacity="0.8"/>
+
+  <!-- Right wall mass -->
+  <rect x="690" y="0" width="110" height="500" fill="#07090B"/>
+  <rect x="690" y="0" width="20" height="500" fill="#0D1115" opacity="0.8"/>
+
+  <!-- Mid arch -->
+  <path d="M 140 500 L 140 210 Q 400 30 660 210 L 660 500" fill="none" stroke="#1A2127" stroke-width="7" opacity="0.8"/>
+
+  <!-- Inner arch -->
+  <path d="M 190 500 L 190 240 Q 400 90 610 240 L 610 500" fill="none" stroke="#1A2127" stroke-width="4" opacity="0.5"/>
+
+  <!-- Broken pillar stumps -->
+  <rect x="140" y="380" width="30" height="120" fill="#0D1115"/>
+  <rect x="630" y="360" width="30" height="140" fill="#0D1115"/>
+
+  <!-- Hanging chains L -->
+  <line x1="210" y1="0" x2="205" y2="230" stroke="#1A2127" stroke-width="3" opacity="0.9"/>
+  <ellipse cx="210" cy="40" rx="4" ry="7" fill="none" stroke="#1A2127" stroke-width="2" opacity="0.8"/>
+  <ellipse cx="210" cy="58" rx="4" ry="7" fill="none" stroke="#1A2127" stroke-width="2" opacity="0.8"/>
+  <ellipse cx="210" cy="76" rx="4" ry="7" fill="none" stroke="#1A2127" stroke-width="2" opacity="0.7"/>
+  <ellipse cx="210" cy="94" rx="4" ry="7" fill="none" stroke="#1A2127" stroke-width="2" opacity="0.6"/>
+
+  <!-- Hanging chains R -->
+  <line x1="590" y1="0" x2="595" y2="200" stroke="#1A2127" stroke-width="3" opacity="0.9"/>
+  <ellipse cx="590" cy="45" rx="4" ry="7" fill="none" stroke="#1A2127" stroke-width="2" opacity="0.8"/>
+  <ellipse cx="590" cy="63" rx="4" ry="7" fill="none" stroke="#1A2127" stroke-width="2" opacity="0.8"/>
+  <ellipse cx="590" cy="81" rx="4" ry="7" fill="none" stroke="#1A2127" stroke-width="2" opacity="0.7"/>
+
+  <!-- Thin chain mid-left -->
+  <line x1="320" y1="0" x2="316" y2="160" stroke="#1A2127" stroke-width="1.5" opacity="0.5"/>
+
+  <!-- Broken sun wheel — submerged, barely visible through water -->
+  <g opacity="0.2" filter="url(#blur4)">
+    <circle cx="400" cy="270" r="75" fill="none" stroke="#A85B32" stroke-width="5"/>
+    <circle cx="400" cy="270" r="52" fill="none" stroke="#7C3D2B" stroke-width="2"/>
+    <line x1="400" y1="192" x2="400" y2="348" stroke="#A85B32" stroke-width="3"/>
+    <line x1="322" y1="270" x2="478" y2="270" stroke="#A85B32" stroke-width="3"/>
+    <line x1="345" y1="215" x2="455" y2="325" stroke="#A85B32" stroke-width="2"/>
+    <line x1="455" y1="215" x2="345" y2="325" stroke="#A85B32" stroke-width="2"/>
+    <!-- Broken section — missing top-right quadrant -->
+    <path d="M 400 192 A 78 78 0 0 0 322 270" fill="none" stroke="#07090B" stroke-width="8"/>
+  </g>
+
+  <!-- Sun glow deep behind water -->
+  <ellipse cx="400" cy="290" rx="130" ry="90" fill="url(#sunGlow1)" filter="url(#blur12)"/>
+
+  <!-- Water surface -->
+  <rect x="0" y="318" width="800" height="182" fill="url(#waterFade1)"/>
+  <!-- Waterline shimmer -->
+  <path d="M 0 320 Q 200 315 400 322 Q 600 329 800 319" fill="none" stroke="#2B343B" stroke-width="1.5" opacity="0.6"/>
+  <path d="M 0 334 Q 180 328 360 336 Q 540 344 800 332" fill="none" stroke="#1A2127" stroke-width="1" opacity="0.35"/>
+
+  <!-- Verdigris traces on left pillar base -->
+  <ellipse cx="170" cy="360" rx="45" ry="30" fill="url(#verdGlow1)" filter="url(#blur4)"/>
+  <ellipse cx="640" cy="340" rx="35" ry="25" fill="url(#verdGlow1)" filter="url(#blur4)"/>
+
+  <!-- Rubble floor -->
+  <path d="M 0 450 Q 80 440 160 452 Q 260 462 340 446 Q 440 432 520 450 Q 620 466 700 448 Q 760 438 800 450 L 800 500 L 0 500 Z" fill="#0D1115"/>
+
+  <!-- Vignette -->
+  <rect width="800" height="500" fill="url(#vig1)"/>
+</svg>

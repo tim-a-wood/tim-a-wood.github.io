@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "generated": "2026-04-04T02:59:16Z",
+  "generated": "2026-04-09T19:24:04Z",
   "repo_root_note": "Paths are relative to repository root.",
   "categories": [
     {
@@ -11,10 +11,17 @@
       "items": [
         {
           "id": "artifacts-ashen-hollow-art-bible-v0-2-md",
-          "title": "Art bible — Ashen Hollow v0.2 (authoritative text)",
+          "title": "Art bible — v0.2 (superseded)",
           "path": "artifacts/ashen-hollow-art-bible-v0.2.md",
           "format": "markdown",
           "date_modified": "2026-04-02"
+        },
+        {
+          "id": "artifacts-ashen-hollow-art-bible-v0-3-md",
+          "title": "Art bible — v0.3 (authoritative text; working title TBD)",
+          "path": "artifacts/ashen-hollow-art-bible-v0.3.md",
+          "format": "markdown",
+          "date_modified": "2026-04-09"
         },
         {
           "id": "docs-mv-business-brand-guide-pamphlet-html",
@@ -85,7 +92,7 @@
           "title": "Frontend design",
           "path": ".cursor/rules/frontend-design.mdc",
           "format": "markdown",
-          "date_modified": "2026-03-28"
+          "date_modified": "2026-04-04"
         },
         {
           "id": "cursor-rules-read-project-overview-mdc",
@@ -106,14 +113,14 @@
           "title": "Repository governance — agent operating system rules",
           "path": "AGENTS.md",
           "format": "markdown",
-          "date_modified": "2026-04-03"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "claude-md",
           "title": "Repository governance — Claude Code rules",
           "path": "CLAUDE.md",
           "format": "markdown",
-          "date_modified": "2026-03-28"
+          "date_modified": "2026-04-04"
         },
         {
           "id": "cursor-rules-review-acceptance-tests-on-change-mdc",
@@ -142,7 +149,7 @@
           "title": "Operating charter — Animation",
           "path": "agents/animation/charter.md",
           "format": "markdown",
-          "date_modified": "2026-04-02"
+          "date_modified": "2026-04-04"
         },
         {
           "id": "agents-audio-charter-md",
@@ -156,7 +163,7 @@
           "title": "Operating charter — Creative",
           "path": "agents/creative/charter.md",
           "format": "markdown",
-          "date_modified": "2026-04-02"
+          "date_modified": "2026-04-04"
         },
         {
           "id": "agents-cybersecurity-charter-md",
@@ -170,28 +177,28 @@
           "title": "Operating charter — Design",
           "path": "agents/design/charter.md",
           "format": "markdown",
-          "date_modified": "2026-04-03"
+          "date_modified": "2026-04-04"
         },
         {
           "id": "agents-engineering-charter-md",
           "title": "Operating charter — Engineering",
           "path": "agents/engineering/charter.md",
           "format": "markdown",
-          "date_modified": "2026-04-02"
+          "date_modified": "2026-04-04"
         },
         {
           "id": "agents-finance-charter-md",
           "title": "Operating charter — Finance",
           "path": "agents/finance/charter.md",
           "format": "markdown",
-          "date_modified": "2026-04-02"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "agents-game-director-charter-md",
           "title": "Operating charter — Game Director",
           "path": "agents/game-director/charter.md",
           "format": "markdown",
-          "date_modified": "2026-04-02"
+          "date_modified": "2026-04-07"
         },
         {
           "id": "agents-game-systems-charter-md",
@@ -212,7 +219,7 @@
           "title": "Operating charter — Level Design",
           "path": "agents/level-design/charter.md",
           "format": "markdown",
-          "date_modified": "2026-04-02"
+          "date_modified": "2026-04-04"
         },
         {
           "id": "agents-marketing-charter-md",
@@ -233,7 +240,7 @@
           "title": "Operating charter — Orchestrator",
           "path": "agents/orchestrator/charter.md",
           "format": "markdown",
-          "date_modified": "2026-04-02"
+          "date_modified": "2026-04-04"
         },
         {
           "id": "agents-qa-charter-md",
@@ -346,14 +353,14 @@
           "title": "Project overview — Ashen Hollow & toolchain",
           "path": "README.md",
           "format": "markdown",
-          "date_modified": "2026-04-03"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "prompts-project-plan-md",
           "title": "Project plan",
           "path": "prompts/project_plan.md",
           "format": "markdown",
-          "date_modified": "2026-03-28"
+          "date_modified": "2026-04-06"
         },
         {
           "id": "docs-readability-pass-v1-md",
@@ -385,11 +392,25 @@
       "default_open": false,
       "items": [
         {
+          "id": "docs-agent-os-workspace-contract-md",
+          "title": "Agent os workspace contract",
+          "path": "docs/agent-os-workspace-contract.md",
+          "format": "markdown",
+          "date_modified": "2026-04-09"
+        },
+        {
           "id": "docs-analytics-dashboard-kpis-md",
           "title": "Analytics dashboard kpis",
           "path": "docs/analytics-dashboard-kpis.md",
           "format": "markdown",
           "date_modified": "2026-04-03"
+        },
+        {
+          "id": "docs-creative-minor-decisions-v0-3-md",
+          "title": "Creative minor decisions v0.3",
+          "path": "docs/creative-minor-decisions-v0.3.md",
+          "format": "markdown",
+          "date_modified": "2026-04-09"
         },
         {
           "id": "docs-cross-tool-usage-md",
@@ -399,11 +420,95 @@
           "date_modified": "2026-03-28"
         },
         {
+          "id": "docs-room-environment-pipeline-mvp-env-001-editor-api-flow-md",
+          "title": "ENV 001 editor api flow",
+          "path": "docs/room-environment-pipeline-mvp/ENV-001-editor-api-flow.md",
+          "format": "markdown",
+          "date_modified": "2026-04-04"
+        },
+        {
+          "id": "docs-room-environment-pipeline-mvp-env-002-persistence-layout-md",
+          "title": "ENV 002 persistence layout",
+          "path": "docs/room-environment-pipeline-mvp/ENV-002-persistence-layout.md",
+          "format": "markdown",
+          "date_modified": "2026-04-04"
+        },
+        {
+          "id": "docs-room-environment-pipeline-mvp-env-003-editor-payload-contract-md",
+          "title": "ENV 003 editor payload contract",
+          "path": "docs/room-environment-pipeline-mvp/ENV-003-editor-payload-contract.md",
+          "format": "markdown",
+          "date_modified": "2026-04-04"
+        },
+        {
+          "id": "docs-room-environment-pipeline-mvp-env-029-deprecation-path-md",
+          "title": "ENV 029 deprecation path",
+          "path": "docs/room-environment-pipeline-mvp/ENV-029-deprecation-path.md",
+          "format": "markdown",
+          "date_modified": "2026-04-05"
+        },
+        {
+          "id": "docs-room-environment-pipeline-mvp-env-030-founder-calibration-packet-md",
+          "title": "ENV 030 founder calibration packet",
+          "path": "docs/room-environment-pipeline-mvp/ENV-030-founder-calibration-packet.md",
+          "format": "markdown",
+          "date_modified": "2026-04-05"
+        },
+        {
+          "id": "docs-handover-art-bible-v0-3-spec-md",
+          "title": "Handover art bible v0.3 spec",
+          "path": "docs/handover-art-bible-v0.3-spec.md",
+          "format": "markdown",
+          "date_modified": "2026-04-09"
+        },
+        {
+          "id": "docs-handover-room-shell-fidelity-fix-md",
+          "title": "Handover room shell fidelity fix",
+          "path": "docs/handover-room-shell-fidelity-fix.md",
+          "format": "markdown",
+          "date_modified": "2026-04-09"
+        },
+        {
+          "id": "docs-handover-room-shell-fidelity-fix-2-md",
+          "title": "Handover room shell fidelity fix 2",
+          "path": "docs/handover-room-shell-fidelity-fix 2.md",
+          "format": "markdown",
+          "date_modified": "2026-04-09"
+        },
+        {
+          "id": "docs-handover-room-shell-fidelity-ld-qa-review-md",
+          "title": "Handover room shell fidelity ld qa review",
+          "path": "docs/handover-room-shell-fidelity-ld-qa-review.md",
+          "format": "markdown",
+          "date_modified": "2026-04-09"
+        },
+        {
           "id": "docs-diagrams-room-environment-v3-index-md",
           "title": "Index",
           "path": "docs/diagrams/room-environment-v3/index.md",
           "format": "markdown",
           "date_modified": "2026-04-02"
+        },
+        {
+          "id": "docs-my-actions-integration-plan-md",
+          "title": "My actions integration plan",
+          "path": "docs/my-actions-integration-plan.md",
+          "format": "markdown",
+          "date_modified": "2026-04-04"
+        },
+        {
+          "id": "docs-pacing-tuning-v1-md",
+          "title": "Pacing tuning v1",
+          "path": "docs/pacing-tuning-v1.md",
+          "format": "markdown",
+          "date_modified": "2026-04-06"
+        },
+        {
+          "id": "docs-room-environment-pipeline-mvp-readme-md",
+          "title": "README",
+          "path": "docs/room-environment-pipeline-mvp/README.md",
+          "format": "markdown",
+          "date_modified": "2026-04-04"
         },
         {
           "id": "docs-room-creation-wizard-plan-md",
@@ -446,6 +551,13 @@
           "path": "docs/room-editor-workbench-integration-plan.md",
           "format": "markdown",
           "date_modified": "2026-03-28"
+        },
+        {
+          "id": "docs-qa-room-environment-calibration-rooms-md",
+          "title": "Room environment calibration rooms",
+          "path": "docs/qa/room-environment-calibration-rooms.md",
+          "format": "markdown",
+          "date_modified": "2026-04-06"
         },
         {
           "id": "docs-room-environment-pipeline-v3-software-requirements-md",
@@ -565,7 +677,7 @@
           "title": "Pixel art quality standards — production gate (Animation)",
           "path": "docs/pixel-art-quality-standards.md",
           "format": "markdown",
-          "date_modified": "2026-04-04"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "tools-2d-sprite-and-animation-readme-md",
@@ -589,6 +701,13 @@
       "description": "Research library, findings, dashboard inputs.",
       "default_open": false,
       "items": [
+        {
+          "id": "research-library-technical-agent-os-repo-split-workspace-contract-2026-04-08-md",
+          "title": "Agent os repo split workspace contract 2026 04 08",
+          "path": "research/library/technical/agent-os-repo-split-workspace-contract-2026-04-08.md",
+          "format": "markdown",
+          "date_modified": "2026-04-09"
+        },
         {
           "id": "research-library-technical-assurance-copilot-do178c-market-2026-04-02-md",
           "title": "Assurance copilot do178c market 2026 04 02",
@@ -622,7 +741,7 @@
           "title": "INDEX",
           "path": "research/library/INDEX.md",
           "format": "markdown",
-          "date_modified": "2026-04-04"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "research-library-findings-passive-income-market-scan-2026-04-01-md",
@@ -651,7 +770,7 @@
           "title": "2026 03 31 room environment quality pass",
           "path": "decisions/2026-03-31-room-environment-quality-pass.md",
           "format": "markdown",
-          "date_modified": "2026-04-04"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "decisions-2026-04-01-room-environment-v3-review-decision-brief-md",
@@ -944,11 +1063,39 @@
           "date_modified": "2026-04-02"
         },
         {
+          "id": "docs-reports-room-environment-editor-payload-contract-md",
+          "title": "Room environment editor payload contract",
+          "path": "docs/reports/room-environment-editor-payload-contract.md",
+          "format": "markdown",
+          "date_modified": "2026-04-04"
+        },
+        {
+          "id": "docs-reports-room-environment-mvp-qa-regression-plan-md",
+          "title": "Room environment mvp qa regression plan",
+          "path": "docs/reports/room-environment-mvp-qa-regression-plan.md",
+          "format": "markdown",
+          "date_modified": "2026-04-06"
+        },
+        {
           "id": "docs-reports-room-environment-v3-executive-summary-2026-04-01-md",
           "title": "Room environment pipeline v3 — executive summary",
           "path": "docs/reports/room-environment-v3-executive-summary-2026-04-01.md",
           "format": "markdown",
           "date_modified": "2026-04-02"
+        },
+        {
+          "id": "docs-reports-room-environment-room-semantics-contract-md",
+          "title": "Room environment room semantics contract",
+          "path": "docs/reports/room-environment-room-semantics-contract.md",
+          "format": "markdown",
+          "date_modified": "2026-04-04"
+        },
+        {
+          "id": "docs-reports-room-environment-stylepack-reference-contract-md",
+          "title": "Room environment stylepack reference contract",
+          "path": "docs/reports/room-environment-stylepack-reference-contract.md",
+          "format": "markdown",
+          "date_modified": "2026-04-04"
         },
         {
           "id": "docs-reports-room-environment-v3-creative-review-2026-04-01-md",
@@ -1007,17 +1154,128 @@
           "date_modified": "2026-04-04"
         }
       ]
+    },
+    {
+      "id": "other",
+      "label": "Other",
+      "description": "Remaining indexed documents; consider recategorizing or archiving.",
+      "default_open": false,
+      "items": [
+        {
+          "id": "agent-os-standalone-docs-agent-os-workspace-contract-md",
+          "title": "Agent os workspace contract",
+          "path": "agent-os-standalone/docs/agent-os-workspace-contract.md",
+          "format": "markdown",
+          "date_modified": "2026-04-09"
+        },
+        {
+          "id": "agent-os-standalone-agents-md",
+          "title": "AGENTS",
+          "path": "agent-os-standalone/AGENTS.md",
+          "format": "markdown",
+          "date_modified": "2026-04-09"
+        },
+        {
+          "id": "agent-os-standalone-claude-md",
+          "title": "CLAUDE",
+          "path": "agent-os-standalone/CLAUDE.md",
+          "format": "markdown",
+          "date_modified": "2026-04-09"
+        },
+        {
+          "id": "agent-os-standalone-agents-design-dashboard-standard-md",
+          "title": "Dashboard standard",
+          "path": "agent-os-standalone/agents/design/dashboard-standard.md",
+          "format": "markdown",
+          "date_modified": "2026-04-09"
+        },
+        {
+          "id": "agent-os-standalone-agents-directives-dashboard-standard-md",
+          "title": "Dashboard standard",
+          "path": "agent-os-standalone/agents/directives/dashboard-standard.md",
+          "format": "markdown",
+          "date_modified": "2026-04-09"
+        },
+        {
+          "id": "agent-os-standalone-agents-directives-plain-language-dashboards-md",
+          "title": "Plain language dashboards",
+          "path": "agent-os-standalone/agents/directives/plain-language-dashboards.md",
+          "format": "markdown",
+          "date_modified": "2026-04-09"
+        },
+        {
+          "id": "agent-os-standalone-readme-md",
+          "title": "README",
+          "path": "agent-os-standalone/README.md",
+          "format": "markdown",
+          "date_modified": "2026-04-09"
+        },
+        {
+          "id": "agent-os-standalone-agents-directives-task-completion-update-md",
+          "title": "Task completion update",
+          "path": "agent-os-standalone/agents/directives/task-completion-update.md",
+          "format": "markdown",
+          "date_modified": "2026-04-09"
+        }
+      ]
     }
   ],
   "duplicate_groups": [
     {
+      "basename": "AGENTS.md",
+      "same_content": false,
+      "paths": [
+        "agent-os-standalone/AGENTS.md",
+        "AGENTS.md"
+      ],
+      "note": "Same filename, different contents — review both; do not assume parity."
+    },
+    {
+      "basename": "CLAUDE.md",
+      "same_content": false,
+      "paths": [
+        "agent-os-standalone/CLAUDE.md",
+        "CLAUDE.md"
+      ],
+      "note": "Same filename, different contents — review both; do not assume parity."
+    },
+    {
+      "basename": "agent-os-workspace-contract.md",
+      "same_content": true,
+      "canonical_path": "docs/agent-os-workspace-contract.md",
+      "paths": [
+        "agent-os-standalone/docs/agent-os-workspace-contract.md",
+        "docs/agent-os-workspace-contract.md"
+      ]
+    },
+    {
       "basename": "dashboard-standard.md",
       "same_content": false,
       "paths": [
+        "agent-os-standalone/agents/design/dashboard-standard.md",
+        "agent-os-standalone/agents/directives/dashboard-standard.md",
         "agents/design/dashboard-standard.md",
         "agents/directives/dashboard-standard.md"
       ],
       "note": "Same filename, different contents — review both; do not assume parity."
+    },
+    {
+      "basename": "plain-language-dashboards.md",
+      "same_content": true,
+      "canonical_path": "agents/directives/plain-language-dashboards.md",
+      "paths": [
+        "agent-os-standalone/agents/directives/plain-language-dashboards.md",
+        "agents/directives/plain-language-dashboards.md"
+      ]
+    },
+    {
+      "basename": "task-completion-update.md",
+      "same_content": true,
+      "canonical_path": "agents/directives/task-completion-update.md",
+      "paths": [
+        "agent-os-standalone/agents/directives/task-completion-update.md",
+        "agents/directives/task-completion-update.md"
+      ]
     }
   ],
   "relationship_notes": [
@@ -1028,7 +1286,7 @@
     "To retire a policy: Archive on a card or scripts/archive_policy_document.py — files move to docs/archived-policies/; rebuild the library to refresh this page."
   ],
   "stats": {
-    "files_indexed": 131,
-    "categories_non_empty": 11
+    "files_indexed": 160,
+    "categories_non_empty": 12
   }
 }

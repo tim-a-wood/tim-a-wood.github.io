@@ -1,6 +1,6 @@
 # OS document library — dedupe notes
 
-Generated: `2026-04-04T02:59:16Z`
+Generated: `2026-04-09T19:24:04Z`
 
 ## Relationship tiers (not duplicates)
 
@@ -12,8 +12,37 @@ Generated: `2026-04-04T02:59:16Z`
 
 ## Filename clusters
 
+### `AGENTS.md`
+- **different bytes**
+  - `agent-os-standalone/AGENTS.md`
+  - `AGENTS.md`
+- Same filename, different contents — review both; do not assume parity.
+
+### `CLAUDE.md`
+- **different bytes**
+  - `agent-os-standalone/CLAUDE.md`
+  - `CLAUDE.md`
+- Same filename, different contents — review both; do not assume parity.
+
+### `agent-os-workspace-contract.md`
+- **identical bytes**
+  - `agent-os-standalone/docs/agent-os-workspace-contract.md`
+  - `docs/agent-os-workspace-contract.md`
+
 ### `dashboard-standard.md`
 - **different bytes**
+  - `agent-os-standalone/agents/design/dashboard-standard.md`
+  - `agent-os-standalone/agents/directives/dashboard-standard.md`
   - `agents/design/dashboard-standard.md`
   - `agents/directives/dashboard-standard.md`
 - Same filename, different contents — review both; do not assume parity.
+
+### `plain-language-dashboards.md`
+- **identical bytes**
+  - `agent-os-standalone/agents/directives/plain-language-dashboards.md`
+  - `agents/directives/plain-language-dashboards.md`
+
+### `task-completion-update.md`
+- **identical bytes**
+  - `agent-os-standalone/agents/directives/task-completion-update.md`
+  - `agents/directives/task-completion-update.md`

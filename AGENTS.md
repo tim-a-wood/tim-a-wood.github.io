@@ -94,7 +94,7 @@ Directive for all agents:
 
 ## In-game pixel art (production gate)
 
-For **game-facing sprites and raster art** during development, **[`docs/pixel-art-quality-standards.md`](docs/pixel-art-quality-standards.md)** is mandatory **alongside** the Ashen Hollow art bible ([`artifacts/ashen-hollow-art-bible-v0.2.md`](artifacts/ashen-hollow-art-bible-v0.2.md)). Standing directives in the **Animation**, **Creative**, **Level Design**, **Game Director**, **Engineering**, and **Orchestrator** charters require agents to read, apply, route, or implement against that gate as their role demands.
+For **game-facing sprites and raster art** during development, **[`docs/pixel-art-quality-standards.md`](docs/pixel-art-quality-standards.md)** is mandatory **alongside** the game art bible ([`artifacts/ashen-hollow-art-bible-v0.3.md`](artifacts/ashen-hollow-art-bible-v0.3.md)). Standing directives in the **Animation**, **Creative**, **Level Design**, **Game Director**, **Engineering**, and **Orchestrator** charters require agents to read, apply, route, or implement against that gate as their role demands.
 
 ## Visual Validation Honesty Gate
 

@@ -1,0 +1,143 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500">
+  <defs>
+    <!-- Sky / zenith — full sun, warm gold, radiant -->
+    <linearGradient id="sky5" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#C4962A"/>
+      <stop offset="30%" stop-color="#A85B32" stop-opacity="0.6"/>
+      <stop offset="70%" stop-color="#2B343B"/>
+      <stop offset="100%" stop-color="#1A2127"/>
+    </linearGradient>
+    <!-- Primary oculus shaft -->
+    <radialGradient id="solarShaft" cx="50%" cy="0%" r="60%">
+      <stop offset="0%" stop-color="#C4962A" stop-opacity="0.9"/>
+      <stop offset="40%" stop-color="#C4962A" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#C4962A" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Floor catch light -->
+    <radialGradient id="floorGlow5" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#C4962A" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#C4962A" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Vignette — edges still dark, the darkness hasn't fully retreated -->
+    <radialGradient id="vig5" cx="50%" cy="45%" r="55%">
+      <stop offset="0%" stop-color="#07090B" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#07090B" stop-opacity="0.85"/>
+    </radialGradient>
+    <filter id="glow6s"><feGaussianBlur stdDeviation="6"/></filter>
+    <filter id="glow20s"><feGaussianBlur stdDeviation="20"/></filter>
+    <filter id="glow35s"><feGaussianBlur stdDeviation="35"/></filter>
+    <filter id="blur3s"><feGaussianBlur stdDeviation="3"/></filter>
+  </defs>
+
+  <!-- Base — still some darkness at edges, the light hasn't won the whole frame yet -->
+  <rect width="800" height="500" fill="#1A2127"/>
+
+  <!-- Sky dome — the sun is HERE -->
+  <rect width="800" height="280" fill="url(#sky5)"/>
+
+  <!-- Grand oculus — the sun opening at the temple's crown -->
+  <!-- Oculus ring architecture -->
+  <circle cx="400" cy="0" r="160" fill="#C4962A" opacity="0.25" filter="url(#glow35s)"/>
+  <circle cx="400" cy="0" r="110" fill="#C4962A" opacity="0.4" filter="url(#glow20s)"/>
+  <!-- Oculus shaft — cone of light descending -->
+  <polygon points="280,0 520,0 480,380 320,380" fill="url(#solarShaft)" opacity="0.45"/>
+  <!-- Inner shaft tighter -->
+  <polygon points="340,0 460,0 440,380 360,380" fill="#C4962A" opacity="0.12"/>
+
+  <!-- Floor catch — where the light lands -->
+  <ellipse cx="400" cy="440" rx="130" ry="35" fill="url(#floorGlow5)" filter="url(#glow20s)"/>
+  <ellipse cx="400" cy="445" rx="80" ry="20" fill="#C4962A" opacity="0.18" filter="url(#glow6s)"/>
+
+  <!-- Temple architecture — Order of the Sun at its grandest -->
+  <!-- Left grand column -->
+  <rect x="80" y="0" width="60" height="500" fill="#1A2127"/>
+  <rect x="70" y="0" width="14" height="500" fill="#0D1115"/>
+  <rect x="136" y="0" width="10" height="500" fill="#2B343B" opacity="0.6"/>
+  <!-- Column capital -->
+  <rect x="65" y="120" width="85" height="20" fill="#2B343B"/>
+  <rect x="60" y="116" width="95" height="8" fill="#4B5A63" opacity="0.4"/>
+
+  <!-- Right grand column -->
+  <rect x="660" y="0" width="60" height="500" fill="#1A2127"/>
+  <rect x="716" y="0" width="14" height="500" fill="#0D1115"/>
+  <rect x="654" y="0" width="10" height="500" fill="#2B343B" opacity="0.6"/>
+  <!-- Column capital -->
+  <rect x="650" y="120" width="85" height="20" fill="#2B343B"/>
+  <rect x="645" y="116" width="95" height="8" fill="#4B5A63" opacity="0.4"/>
+
+  <!-- Left wall -->
+  <rect x="0" y="0" width="82" height="500" fill="#0D1115"/>
+
+  <!-- Right wall -->
+  <rect x="718" y="0" width="82" height="500" fill="#0D1115"/>
+
+  <!-- Grand arch spanning the nave — solar temple proportions -->
+  <path d="M 80 140 Q 400 -40 720 140" fill="none" stroke="#2B343B" stroke-width="16"/>
+  <path d="M 80 140 Q 400 -40 720 140" fill="none" stroke="#4B5A63" stroke-width="4" opacity="0.5"/>
+
+  <!-- Sun disc — the Order's primary symbol, massive, at the altar -->
+  <!-- Outer ring -->
+  <circle cx="400" cy="300" r="80" fill="none" stroke="#4B5A63" stroke-width="4" opacity="0.9"/>
+  <!-- Solar rays radiating from disc -->
+  <line x1="400" y1="216" x2="400" y2="384" stroke="#4B5A63" stroke-width="3" opacity="0.8"/>
+  <line x1="316" y1="300" x2="484" y2="300" stroke="#4B5A63" stroke-width="3" opacity="0.8"/>
+  <line x1="341" y1="241" x2="459" y2="359" stroke="#4B5A63" stroke-width="2.5" opacity="0.7"/>
+  <line x1="459" y1="241" x2="341" y2="359" stroke="#4B5A63" stroke-width="2.5" opacity="0.7"/>
+  <line x1="323" y1="267" x2="477" y2="333" stroke="#4B5A63" stroke-width="1.5" opacity="0.5"/>
+  <line x1="323" y1="333" x2="477" y2="267" stroke="#4B5A63" stroke-width="1.5" opacity="0.5"/>
+  <!-- Inner ring -->
+  <circle cx="400" cy="300" r="52" fill="none" stroke="#4B5A63" stroke-width="3" opacity="0.7"/>
+  <!-- Centre point -->
+  <circle cx="400" cy="300" r="18" fill="#4B5A63" opacity="0.4"/>
+  <circle cx="400" cy="300" r="10" fill="#C4962A" opacity="0.3" filter="url(#glow6s)"/>
+  <!-- Solar glow on disc from the shaft above -->
+  <circle cx="400" cy="300" r="85" fill="#C4962A" opacity="0.12" filter="url(#glow20s)"/>
+
+  <!-- DARK CONTRAST — The Deep's presence here is at its most desperate -->
+  <!-- Enemy silhouette — grotesque, massive, dark against the radiant light -->
+  <!-- A servant-class entity blocking the sun disc, defined by its darkness -->
+  <g opacity="0.92">
+    <!-- Body mass — hunched, too-wide, wrong proportions -->
+    <ellipse cx="400" cy="390" rx="55" ry="45" fill="#07090B"/>
+    <!-- Upper mass — swollen shoulders -->
+    <ellipse cx="380" cy="355" rx="35" ry="30" fill="#07090B"/>
+    <ellipse cx="420" cy="350" rx="38" ry="32" fill="#07090B"/>
+    <!-- Head — too small, wrong -->
+    <circle cx="400" cy="330" r="20" fill="#07090B"/>
+    <!-- Extended limb left — reaching, claw-like -->
+    <path d="M 355 370 Q 290 350 260 320 Q 245 308 250 295" fill="none" stroke="#07090B" stroke-width="16"/>
+    <!-- Claw tips -->
+    <line x1="250" y1="295" x2="235" y2="278" stroke="#07090B" stroke-width="6"/>
+    <line x1="250" y1="295" x2="240" y2="272" stroke="#07090B" stroke-width="5"/>
+    <line x1="250" y1="295" x2="248" y2="268" stroke="#07090B" stroke-width="5"/>
+    <!-- Extended limb right -->
+    <path d="M 445 365 Q 510 345 545 318 Q 560 305 555 292" fill="none" stroke="#07090B" stroke-width="14"/>
+    <!-- Right claw tips -->
+    <line x1="555" y1="292" x2="570" y2="275" stroke="#07090B" stroke-width="5"/>
+    <line x1="555" y1="292" x2="565" y2="270" stroke="#07090B" stroke-width="5"/>
+    <!-- The figure casts a shadow INTO the sun — the contrast is total -->
+    <ellipse cx="400" cy="432" rx="65" ry="12" fill="#07090B" opacity="0.6" filter="url(#blur3s)"/>
+  </g>
+
+  <!-- Altar base beneath sun disc and enemy -->
+  <rect x="340" y="420" width="120" height="80" fill="#0D1115"/>
+  <rect x="325" y="416" width="150" height="10" fill="#1A2127" rx="2"/>
+  <rect x="315" y="412" width="170" height="6" fill="#2B343B" opacity="0.5" rx="1"/>
+
+  <!-- Particle motes in the light shaft — dust of the old world in the sun -->
+  <circle cx="390" cy="150" r="2" fill="#C4962A" opacity="0.6" filter="url(#blur3s)"/>
+  <circle cx="415" cy="200" r="1.5" fill="#C4962A" opacity="0.5"/>
+  <circle cx="375" cy="250" r="2" fill="#C4962A" opacity="0.4" filter="url(#blur3s)"/>
+  <circle cx="420" cy="100" r="1.5" fill="#C4962A" opacity="0.7"/>
+  <circle cx="385" cy="180" r="1" fill="#C4962A" opacity="0.5"/>
+  <circle cx="430" cy="280" r="2" fill="#C4962A" opacity="0.35" filter="url(#blur3s)"/>
+
+  <!-- Ground plane -->
+  <rect x="0" y="450" width="800" height="50" fill="#0D1115"/>
+  <rect x="0" y="448" width="800" height="5" fill="#1A2127"/>
+  <!-- Floor catching the light -->
+  <rect x="320" y="448" width="160" height="5" fill="#2B343B" opacity="0.5"/>
+
+  <!-- Vignette — keeps the edges dark, light is centred and earned -->
+  <rect width="800" height="500" fill="url(#vig5)"/>
+</svg>

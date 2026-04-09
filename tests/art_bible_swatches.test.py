@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify art bible swatch generator produces 12 PNGs with expected colors."""
+"""Verify art bible swatch generator produces 15 PNGs with expected colors."""
 
 from __future__ import annotations
 
@@ -33,7 +33,7 @@ def main() -> None:
         )
         assert r.returncode == 0, r.stderr
         pngs = sorted(out.glob("AH-*.png"))
-        assert len(pngs) == 12, f"expected 12 swatches, got {len(pngs)}"
+        assert len(pngs) == 15, f"expected 15 swatches, got {len(pngs)}"
         ink0 = out / "AH-INK-0.png"
         im = Image.open(ink0).convert("RGB")
         assert im.size == (64, 64)

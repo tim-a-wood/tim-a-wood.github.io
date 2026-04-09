@@ -1,6 +1,6 @@
 {
   "_note": "Updated by Creative after each task. Plain language — no jargon.",
-  "updated": "2026-04-02",
+  "updated": "2026-04-09",
   "schema_version": "v1.0",
   "priorities": [
     {
@@ -8,8 +8,8 @@
       "title": "Write the Ashen Hollow art bible foundation — palette, silhouette rules, visual identity",
       "status": "done",
       "risk": "med",
-      "note": "Canonical art bible is v0.2 at artifacts/ashen-hollow-art-bible-v0.2.md with embedded swatches, SVG figures, and concept plates under artifacts/art-bible/. v0.1 is a superseded stub.",
-      "proposed_solution": "Use v0.2 as the quality gate; regenerate swatches with scripts/generate_art_bible_swatches.py when palette tokens change.",
+      "note": "Canonical art bible is v0.3 at artifacts/ashen-hollow-art-bible-v0.3.md with embedded swatches, SVG figures, and concept plates under artifacts/art-bible/. v0.2 is superseded; v0.1 is a stub pointer.",
+      "proposed_solution": "Use v0.3 as the quality gate; regenerate swatches with scripts/generate_art_bible_swatches.py when palette tokens change.",
       "modified_at": "2026-04-02T16:51:30-04:00",
       "modified_by": "creative"
     },
@@ -25,12 +25,22 @@
     },
     {
       "id": 3,
-      "title": "Art bible v0.2 — visual-integrated foundation",
+      "title": "Art bible v0.3 — full creative direction pass",
       "status": "done",
       "risk": "low",
-      "note": "Shipped v0.2: per-token PNG swatches, biome mood grid, materials board, silhouette plates, lighting/value/separation SVGs. Concepts in artifacts/art-bible/concepts/; AI-generated—human gate before production.",
-      "proposed_solution": "Lock v0.3 items (room crosswalk, pixel export spec) after Game Director / Narrative sign-off.",
-      "modified_at": "2026-04-02T16:51:30-04:00",
+      "note": "Implemented: artifacts/ashen-hollow-art-bible-v0.3.md from docs/handover-art-bible-v0.3-spec.md. Game title flagged placeholder; Order of the Sun knight + three-state tabard arc; five biomes with founder-approved plates; AH-SOLAR, AH-ARCANE, AH-SKY; world light progression; animation + enemy faction sections; swatches regenerated (15 tokens).",
+      "proposed_solution": "Confirm placeholder names and new token hexes with founder; Game Director locks knight state transition triggers before sprite production.",
+      "modified_at": "2026-04-09T00:00:00-04:00",
+      "modified_by": "creative"
+    },
+    {
+      "id": 4,
+      "title": "Player character visual design — Order of the Sun knight",
+      "status": "queued",
+      "risk": "high",
+      "note": "Player identity established: armoured knight, Order of the Sun, tabard with sun iconography reveal arc (Hidden → Emerging → Revealed across 3 states). Blocked on Game Director crosswalk — which narrative/progression event triggers each state transition. See game-director-status.json priority #3.",
+      "proposed_solution": "Once Game Director produces the milestone map for state transitions, Creative can produce silhouette variants and palette assignments for all three player states.",
+      "modified_at": "2026-04-09T00:00:00-04:00",
       "modified_by": "creative"
     }
   ],
@@ -41,7 +51,16 @@
       "note": "The v0.1 bible now exists, but consistency risk remains unless all specialists and contributors actively apply the quality gate during asset reviews."
     }
   ],
-  "founder_decisions": [],
+  "founder_decisions": [
+    {
+      "title": "Confirm or replace placeholder names: The Deep, The Sunken, The Servants",
+      "note": "All three are working placeholders established during the v0.3 interview. A dedicated naming session with Narrative is needed. The being behind The Deep also has no name yet."
+    },
+    {
+      "title": "Confirm new palette token hexes: AH-SOLAR (#C4962A), AH-ARCANE (#3A7BD5), AH-SKY (#7EB8D4)",
+      "note": "Proposed values are Creative's best guess. Founder should review swatches before these are used in production art."
+    }
+  ],
   "actions": [
     {
       "id": "art-bible-update",
@@ -49,7 +68,7 @@
       "description": "Updated art bible section — palette assignment, silhouette rules, consistency constraints, atmospheric notes for a new biome or character.",
       "trigger": "A new biome, character, or visual system is approved for production",
       "last_run": "2026-04-02",
-      "output_location": "artifacts/ashen-hollow-art-bible-v0.2.md"
+      "output_location": "artifacts/ashen-hollow-art-bible-v0.3.md"
     },
     {
       "id": "asset-review",

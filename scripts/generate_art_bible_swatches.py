@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Emit 64x64 PNG swatches for Ashen Hollow art bible palette tokens."""
+"""Emit 64x64 PNG swatches for game art bible palette tokens (`AH-*`)."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from pathlib import Path
 
 from PIL import Image
 
-# Must match artifacts/ashen-hollow-art-bible-v0.2.md §2.1
+# Must match artifacts/ashen-hollow-art-bible-v0.3.md §2.1
 TOKENS: dict[str, str] = {
     "AH-INK-0": "#07090B",
     "AH-INK-1": "#0D1115",
@@ -22,6 +22,9 @@ TOKENS: dict[str, str] = {
     "AH-GLINT-9": "#9FD6C7",
     "AH-TOXIC-10": "#6E8F2E",
     "AH-ROYAL-11": "#5A4E87",
+    "AH-SOLAR": "#C4962A",
+    "AH-ARCANE": "#3A7BD5",
+    "AH-SKY": "#7EB8D4",
 }
 
 

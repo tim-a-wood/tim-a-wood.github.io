@@ -67,6 +67,7 @@ LIBRARY_HTML_ALLOW = frozenset({
 # Only these artifact markdowns are catalogued (rest are transient exports / digests).
 ARTIFACT_INDEX_ALLOW = frozenset({
     "artifacts/ashen-hollow-art-bible-v0.2.md",
+    "artifacts/ashen-hollow-art-bible-v0.3.md",
 })
 # Shared filenames that are intentionally repeated across directories (not organizational duplicates).
 IGNORE_DUP_BASE = frozenset({
@@ -185,7 +186,8 @@ FORMAL_DISPLAY_TITLES: dict[str, str] = {
     "docs/reports/room-environment-v3-stakeholder-review-kickoff-2026-04-01.md": (
         "Room environment v3 — stakeholder review kickoff record"
     ),
-    "artifacts/ashen-hollow-art-bible-v0.2.md": "Art bible — Ashen Hollow v0.2 (authoritative text)",
+    "artifacts/ashen-hollow-art-bible-v0.2.md": "Art bible — v0.2 (superseded)",
+    "artifacts/ashen-hollow-art-bible-v0.3.md": "Art bible — v0.3 (authoritative text; working title TBD)",
     "docs/pixel-art-quality-standards.md": (
         "Pixel art quality standards — production gate (Animation)"
     ),

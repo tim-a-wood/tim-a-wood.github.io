@@ -1,0 +1,123 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500">
+  <defs>
+    <radialGradient id="bg3" cx="50%" cy="30%" r="60%">
+      <stop offset="0%" stop-color="#1A2127"/>
+      <stop offset="100%" stop-color="#0D1115"/>
+    </radialGradient>
+    <radialGradient id="skyGlow3" cx="50%" cy="0%" r="50%">
+      <stop offset="0%" stop-color="#2B343B" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#0D1115" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="bioGlow3L" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#4B5A63" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#4B5A63" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="bioGlow3G" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#6E8F2E" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#6E8F2E" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="vig3" cx="50%" cy="50%" r="70%">
+      <stop offset="0%" stop-color="#0D1115" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#07090B" stop-opacity="0.8"/>
+    </radialGradient>
+    <filter id="glow5b"><feGaussianBlur stdDeviation="5"/></filter>
+    <filter id="glow10b"><feGaussianBlur stdDeviation="10"/></filter>
+  </defs>
+
+  <!-- Base -->
+  <rect width="800" height="500" fill="url(#bg3)"/>
+
+  <!-- Sky glow from high above — first hint of light from this world -->
+  <rect width="800" height="180" fill="url(#skyGlow3)"/>
+
+  <!-- Far background pillars — recession -->
+  <!-- Far pair -->
+  <rect x="360" y="0" width="18" height="440" fill="#0D1115" opacity="0.6"/>
+  <rect x="422" y="0" width="18" height="440" fill="#0D1115" opacity="0.6"/>
+  <path d="M 360 0 Q 400 -20 440 0" fill="none" stroke="#0D1115" stroke-width="4" opacity="0.5"/>
+
+  <!-- Mid pair -->
+  <rect x="300" y="0" width="22" height="480" fill="#1A2127" opacity="0.7"/>
+  <rect x="478" y="0" width="22" height="480" fill="#1A2127" opacity="0.7"/>
+  <path d="M 300 0 Q 400 -30 500 0" fill="none" stroke="#1A2127" stroke-width="6" opacity="0.6"/>
+
+  <!-- Near pair — main nave pillars -->
+  <rect x="180" y="0" width="30" height="500" fill="#1A2127"/>
+  <rect x="590" y="0" width="30" height="500" fill="#1A2127"/>
+  <!-- Nave arch -->
+  <path d="M 180 0 Q 400 -60 620 0" fill="none" stroke="#2B343B" stroke-width="10" opacity="0.9"/>
+  <!-- Arch detail -->
+  <path d="M 185 0 Q 400 -45 615 0" fill="none" stroke="#1A2127" stroke-width="4" opacity="0.6"/>
+
+  <!-- Left wall -->
+  <rect x="0" y="0" width="120" height="500" fill="#0D1115"/>
+  <rect x="100" y="0" width="20" height="500" fill="#1A2127" opacity="0.7"/>
+
+  <!-- Right wall -->
+  <rect x="680" y="0" width="120" height="500" fill="#0D1115"/>
+  <rect x="680" y="0" width="20" height="500" fill="#1A2127" opacity="0.7"/>
+
+  <!-- Gothic window openings in walls — letting in grey-blue light -->
+  <!-- Left wall windows -->
+  <rect x="4" y="80" width="90" height="160" fill="#1A2127" rx="4" opacity="0.7"/>
+  <path d="M 4 80 Q 49 50 94 80" fill="#2B343B" opacity="0.5"/>
+  <rect x="4" y="280" width="90" height="130" fill="#1A2127" rx="4" opacity="0.5"/>
+
+  <!-- Right wall windows -->
+  <rect x="706" y="80" width="90" height="160" fill="#1A2127" rx="4" opacity="0.7"/>
+  <path d="M 706 80 Q 751 50 796 80" fill="#2B343B" opacity="0.5"/>
+  <rect x="706" y="280" width="90" height="130" fill="#1A2127" rx="4" opacity="0.5"/>
+
+  <!-- Window light shafts — cold grey-blue, light is returning but slowly -->
+  <path d="M 4 80 L 180 200 L 180 240 L 4 120 Z" fill="#2B343B" opacity="0.12"/>
+  <path d="M 796 80 L 620 200 L 620 240 L 796 120 Z" fill="#2B343B" opacity="0.12"/>
+
+  <!-- Wild growth — vines and roots climbing left pillar -->
+  <path d="M 180 500 Q 160 420 175 360 Q 185 300 170 240 Q 158 180 178 100" fill="none" stroke="#1A2127" stroke-width="6" opacity="0.9"/>
+  <path d="M 185 500 Q 195 400 182 320 Q 172 260 190 190" fill="none" stroke="#2B343B" stroke-width="4" opacity="0.7"/>
+  <!-- Vine tendrils L -->
+  <path d="M 175 360 Q 140 340 120 350" fill="none" stroke="#1A2127" stroke-width="3" opacity="0.8"/>
+  <path d="M 182 300 Q 150 285 130 295" fill="none" stroke="#1A2127" stroke-width="2" opacity="0.6"/>
+  <path d="M 178 240 Q 155 220 135 228" fill="none" stroke="#1A2127" stroke-width="2" opacity="0.5"/>
+
+  <!-- Wild growth — vines right pillar -->
+  <path d="M 620 500 Q 640 400 625 320 Q 615 250 632 170" fill="none" stroke="#1A2127" stroke-width="6" opacity="0.9"/>
+  <path d="M 615 460 Q 650 380 635 300 Q 622 230 640 140" fill="none" stroke="#2B343B" stroke-width="4" opacity="0.7"/>
+  <!-- Vine tendrils R -->
+  <path d="M 625 340 Q 660 320 680 330" fill="none" stroke="#1A2127" stroke-width="3" opacity="0.8"/>
+  <path d="M 630 270 Q 662 255 682 262" fill="none" stroke="#1A2127" stroke-width="2" opacity="0.6"/>
+
+  <!-- Overgrowth at floor level — spreading, alive, not toxic -->
+  <ellipse cx="200" cy="490" rx="80" ry="20" fill="#1A2127" opacity="0.8"/>
+  <ellipse cx="600" cy="490" rx="80" ry="20" fill="#1A2127" opacity="0.8"/>
+  <ellipse cx="400" cy="495" rx="120" ry="15" fill="#2B343B" opacity="0.5"/>
+
+  <!-- Bioluminescent nodes — transitional, fading green, some cool grey-blue emerging -->
+  <!-- Green fading nodes — remnant corruption transitioning away -->
+  <circle cx="165" cy="350" r="5" fill="#6E8F2E" opacity="0.5" filter="url(#glow5b)"/>
+  <circle cx="168" cy="290" r="4" fill="#6E8F2E" opacity="0.35" filter="url(#glow5b)"/>
+  <circle cx="635" cy="330" r="5" fill="#6E8F2E" opacity="0.5" filter="url(#glow5b)"/>
+  <circle cx="628" cy="270" r="4" fill="#6E8F2E" opacity="0.35" filter="url(#glow5b)"/>
+  <!-- Cooler, cleaner glow nodes emerging — life, not corruption -->
+  <ellipse cx="150" cy="360" rx="25" ry="18" fill="url(#bioGlow3G)" filter="url(#glow10b)"/>
+  <ellipse cx="640" cy="320" rx="22" ry="16" fill="url(#bioGlow3G)" filter="url(#glow10b)"/>
+
+  <!-- Centre distant altar — Order ruin, overgrown but still standing -->
+  <rect x="370" y="380" width="60" height="120" fill="#0D1115"/>
+  <rect x="360" y="375" width="80" height="12" fill="#1A2127" rx="2"/>
+  <!-- Sun disc on altar — faded, overgrown -->
+  <circle cx="400" cy="340" r="28" fill="none" stroke="#1A2127" stroke-width="3" opacity="0.7"/>
+  <circle cx="400" cy="340" r="18" fill="none" stroke="#1A2127" stroke-width="2" opacity="0.5"/>
+  <!-- Vine covering part of disc -->
+  <path d="M 400 312 Q 415 330 428 340 Q 415 350 400 368" fill="none" stroke="#2B343B" stroke-width="4" opacity="0.9"/>
+
+  <!-- Cool light glow around altar remnant — the light trying to return -->
+  <ellipse cx="400" cy="340" rx="60" ry="40" fill="url(#bioGlow3L)" filter="url(#glow10b)"/>
+
+  <!-- Floor -->
+  <rect x="0" y="460" width="800" height="40" fill="#07090B"/>
+  <path d="M 0 460 L 120 455 L 180 465 L 620 465 L 680 455 L 800 460 L 800 500 L 0 500 Z" fill="#0D1115"/>
+
+  <!-- Vignette -->
+  <rect width="800" height="500" fill="url(#vig3)"/>
+</svg>

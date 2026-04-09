@@ -2,7 +2,7 @@
 
 **Owner:** Animation agent  
 **Status:** Active as of 2026-04-03  
-**Scope:** All raster sprites and sprite sheets intended for the Ashen Hollow game (player, enemies, effects, props), whether hand-drawn or AI-assisted.
+**Scope:** All raster sprites and sprite sheets intended for the flagship game ([GAME TITLE TBD]; see art bible) — player, enemies, effects, props — whether hand-drawn or AI-assisted.
 
 ---
 
@@ -10,7 +10,7 @@
 
 | Document | Role |
 |----------|------|
-| [`artifacts/ashen-hollow-art-bible-v0.2.md`](../artifacts/ashen-hollow-art-bible-v0.2.md) | **Foundational visual contract** — master palette (`AH-*` tokens), silhouette differentiation, lighting, materials, biome grammar, and the bible’s §7 production quality gate. |
+| [`artifacts/ashen-hollow-art-bible-v0.3.md`](../artifacts/ashen-hollow-art-bible-v0.3.md) | **Foundational visual contract** — master palette (`AH-*` tokens), silhouette differentiation, lighting, materials, biome grammar, enemy faction rules, animation language, and the bible’s §8 production quality gate. |
 | [`agents/animation/charter.md`](../agents/animation/charter.md) | Domain authority for animation theory, export discipline, and AI workflow rules (e.g. no AI sprites in production without human pixel pass). |
 | [`STYLE_GUIDE.md`](../STYLE_GUIDE.md) | **Toolchain UI only** — editor chrome, dashboards, workbench panels. In-game pixel art follows the art bible, not product cyan tokens. |
 
@@ -22,7 +22,7 @@ If guidance conflicts: **art bible wins for world-facing pixels**; **STYLE_GUIDE
 
 ### 1.1 Token compliance
 
-- Production sprites must use **only** colors that map to approved **`AH-*` tokens** from the art bible §2 (core palette, usage limits, usage matrix).
+- Production sprites must use **only** colors that map to approved **`AH-*` tokens** from the art bible §2 (core palette, usage limits, usage matrix), including `AH-SOLAR`, `AH-ARCANE`, and `AH-SKY` where biome rules permit.
 - The art bible **hard ban** applies: no untracked one-off hexes in production sprites. Every opaque pixel must be attributable to the locked palette (or an explicitly documented extension approved by Creative and logged for the asset).
 - **Accent budget** and **pairing rules** from the bible §2.3–2.4 apply per entity and per biome assignment.
 
@@ -45,7 +45,7 @@ If guidance conflicts: **art bible wins for world-facing pixels**; **STYLE_GUIDE
 
 ### 2.1 Art bible baseline
 
-- Follow art bible **§3 Silhouette differentiation rules** for class identity (player, enemy archetypes, bosses, environment reads) and **§6** separation (player vs hazard vs interactable).
+- Follow art bible **§3 Silhouette differentiation rules** for class identity (knight, enemy archetypes, bosses, environment reads), **§6** separation and enemy faction rules (knight vs hazard vs interactable; Sunken / Servants tiers).
 - **Black-fill test:** At target display scale, the entity must remain **class-identifiable** with interior filled black against a mid-gray background (bosses: bible §3.3 minimum read points).
 
 ### 2.2 Animation-specific bar
@@ -96,7 +96,7 @@ Use this list for hand-off, review, and `spritesheet-audit` outcomes.
 | P3 | Anti-alias / alpha | Partial transparency, gray fringes, or lossy compression artifacts. |
 | P4 | Animation | Merge artifacts, unreadable contacts, or clutter that breaks motion read. |
 | P5 | Lighting | Conflicting light direction or pillow shading on primary forms. |
-| P6 | Bible gate | Any art bible §7 production check failed for this asset type. |
+| P6 | Bible gate | Any art bible §8 production check failed for this asset type. |
 
 **Any single fail = not production-ready** until corrected.
 
@@ -112,3 +112,4 @@ Use this list for hand-off, review, and `spritesheet-audit` outcomes.
 ## Revision
 
 - **v1.0** — 2026-04-03: Initial publication (palette, silhouette, anti-aliasing policy) aligned with art bible v0.2.
+- **v1.1** — 2026-04-09: Cross-references updated for art bible v0.3 (§8 quality gate, new tokens, §6 factions).
