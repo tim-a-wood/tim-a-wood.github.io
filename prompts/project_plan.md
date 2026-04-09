@@ -54,6 +54,50 @@ These steps are small, independent units of work. Each can be done in one or two
 
 This section captures the locked high-level activities and expands each into atomic procedural tasks. Each activity produces explicit downstream inputs that should be used by the next activity.
 
+### Execution standard — expert subagents, training, research, and evidence
+
+**Owners:** **Development (Engineering)** (`agents/engineering/charter.md`, `engineering-status.json`) implements and refactors runtime and tests; **QA** (`agents/qa/charter.md`, `qa-status.json`) owns release readiness, test strategy, regression evidence, and severity triage for Activities 5–10 especially. Orchestration may delegate work to **subagents** (e.g. Cursor Task tool: `explore`, `shell`, `generalPurpose`, `Research`). The rules below apply to every Map MVP activity so work is not done by a default generalist when a specialist fit exists.
+
+#### 1. Choose subagents by expertise (not convenience)
+
+Before splitting work, classify the task:
+
+| Need | Prefer | Avoid |
+|------|--------|--------|
+| Wide repo search, file discovery, “where is X?” | Readonly explore / codebase map | Guessing paths without searching |
+| Git, CI, scripted verification | Shell specialist | Manual copy-paste only |
+| Library index, prior scans, competitive or technical research | **Research** subagent + `/research/library/INDEX.md` | Re-deriving findings already in the library |
+| Multi-step implementation touching `index.html` / `tests/` | Development-led implementation (single agent or `generalPurpose` with explicit file list) | Parallel edits without a contract doc read first |
+
+**Cross-functional activities:** Activities that are primarily **navigation or comprehension** (e.g. Activity 7) should involve **Level Design** review inputs; **progression logic** (Activities 3–4, 6) should stay aligned with **Game Systems** / frozen specs. Engineering executes code; QA validates against specs and tests—per charters, not ad hoc.
+
+#### 2. Training and mandatory research (before substantive work)
+
+Anyone executing or reviewing Map MVP work must complete this **pre-flight** and cite it in the evidence pack (see below):
+
+1. **`AGENTS.md` — Research Library protocol:** Search `research/library/INDEX.md` for keywords (e.g. `gate`, `progression`, `Phaser`); read matching entries; check `research/dashboard.md` for open issues; check `/decisions/` so resolved choices are not re-litigated.
+2. **Frozen contracts for this track:** At minimum, the activity’s authoritative docs (e.g. `docs/map-mvp-constraints.md`, `docs/map-graph-v1.md`, `docs/progression-unlocks-v1.md`, `docs/gate-state-spec-v1.md`, `docs/pacing-tuning-v1.md` as applicable).
+3. **QA:** `tests/acceptance_tests.md` and the gate-state / sequence coverage implied by `docs/gate-state-spec-v1.md` (transition matrix, invalid paths).
+4. **Development:** `CLAUDE.md` / `STYLE_GUIDE.md` for any tool UI touch; `tests/README.md` and existing `tests/game-logic.test.js` patterns before changing progression helpers.
+
+If nothing in the library applies, the evidence pack must still include a **short “INDEX grep / read result”** (e.g. keywords tried, no match)—so absence of prior art is documented, not assumed.
+
+#### 3. Evidence pack (required for handoff, PR, or activity closure)
+
+Each completed activity (or PR that advances one) must leave **verifiable** evidence—not claims:
+
+| Evidence type | What to attach |
+|---------------|------------------|
+| **Research** | Paths + titles of INDEX entries read, or grep/log of keywords searched; list of `decisions/` files consulted. |
+| **Subagent routing** | Table or bullet list: task slice → subagent type or owner role → output artifact (file path or transcript reference). If no subagents were used, state **why** (single small change, one file). |
+| **Implementation** | Commit hash or PR link; for logic changes, **`node --test tests/game-logic.test.js`** (or the relevant test file) exit status and command line as run locally or in CI. |
+| **QA / release** | Updates to `tests/test_report.md` per repo rules; for browser-only checks (e.g. Activity 5 smoke), dated notes or checklist with **what was observed** (not “looks fine”). Visual claims follow **`AGENTS.md` Visual Validation Honesty Gate** (inspect saved screenshots if asserting UI quality). |
+| **Playtests (Activities 9–10)** | Observer template notes, aggregates, triage board—per Activity 9–10 bullets—stored under `docs/` or `artifacts/` with a stable filename and referenced from the plan or status JSON. |
+
+**Definition of done for “trained and researched”:** Pre-flight list above is satisfied **and** the evidence pack for that slice references it.
+
+---
+
 ### Activity 1. Lock MVP Constraints
 
 Scope of work: align product boundaries and prevent scope creep.
