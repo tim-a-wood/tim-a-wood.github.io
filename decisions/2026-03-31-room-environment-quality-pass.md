@@ -985,3 +985,8 @@ This log records decisions for the room environment and bespoke asset quality pa
 - Status: Accepted (2026-04-07)
 - Why: After `template_family_drift` was no longer applied to `room_shell_foreground`, live regeneration could still fail all three attempts on `shell_ceiling_composite_read`. The top-band mean luminance-gradient gate (`_image_region_contrast` on the ceiling strip) was tuned for collage-like ceilings; mask-filled masonry often exceeds the old **0.024** floor from mortar and stone micro-contrast, not from pasted tile strips.
 - Consequence: Introduced `ROOM_SHELL_CEILING_BAND_MEAN_CONTRAST_MAX` (initial value **0.035**) and use it in `_validate_room_shell_after_punchout` for `shell_ceiling_composite_read`. Retry prompts for that code are unchanged; the gate remains a hard block but with a threshold aligned to realistic shell texture.
+
+### 171. Runtime polygon mask clips unified shell to the authored footprint
+- Status: Accepted (2026-04-08)
+- Why: `room_shell_foreground` is displayed at the chamber axis-aligned bounds while the layout polygon can be stepped or notched; the rectangular shell art bleeds into void space outside the real footprint.
+- Consequence: Playtest applies `applyUnifiedShellFootprintMask` in `index.html`: a Phaser geometry mask built from a thick closed `strokePoints` trace of `room.polygon` in world space (thickness ≈ 12% of min(chamber width, height), clamped 64–200px) so masonry from the scaled shell sprite does not show in notch/void regions. This is a composition fix alongside silhouette/Gemini conditioning, not a substitute for regenerating shell art for extreme shapes.

@@ -1058,6 +1058,8 @@ function simulateSequenceAttempt(order) {
             && html.includes('SHELL_UNIFIED_SIDE_COLLIDER_SIDE_PX')
             && html.includes('setDisplaySize(lipPx, bodyH)')
             && html.includes('addRoomBespokeUnifiedShellForegroundDecor(roomId, shellSupport)')
+            && html.includes('applyUnifiedShellFootprintMask(this, sprite, roomId, roomBounds)')
+            && html.includes('strokePoints(worldPts, true)')
             && html.includes('this.addRoomBespokeShellInteriorSideColliders(roomId, shellSupport, tile, shellFloorTileCenterY)'),
         'unified bespoke shell should add interior side physics strips sized from shell display width + atlas border ratio'
     );

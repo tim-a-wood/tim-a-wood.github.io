@@ -893,6 +893,38 @@ function getRoomPolygonBounds(roomId) {
 }
 
 /**
+ * `room_shell_foreground` art is scaled to the chamber AABB; for notched / stepped footprints the frame
+ * bleeds into void space. Clip the shell sprite to a thick stroke along the layout polygon so masonry
+ * only appears near the real footprint edge (Phaser geometry mask; mask graphics stay hidden).
+ */
+function applyUnifiedShellFootprintMask(scene, sprite, roomId, roomBounds) {
+    if (!scene || !sprite || !roomBounds) return;
+    const room = getLayoutRoom(roomId);
+    const poly = room?.polygon;
+    if (!Array.isArray(poly) || poly.length < 3) return;
+    const roomStart = Number(roomBounds.start || 0);
+    const worldPts = poly.map((p) => {
+        const lx = Number(p?.[0]);
+        const ly = Number(p?.[1]);
+        if (!Number.isFinite(lx) || !Number.isFinite(ly)) return null;
+        return { x: roomStart + lx, y: ly };
+    }).filter(Boolean);
+    if (worldPts.length < 3) return;
+    const pb = getRoomPolygonBounds(roomId);
+    const cw = Math.max(1, Number(pb.right) - Number(pb.left));
+    const ch = Math.max(1, Number(pb.bottom) - Number(pb.top));
+    const thickness = Phaser.Math.Clamp(Math.round(Math.min(cw, ch) * 0.12), 64, 200);
+    const maskG = scene.add.graphics();
+    maskG.lineStyle(thickness, 0xffffff, 1);
+    maskG.strokePoints(worldPts, true);
+    sprite.setMask(maskG.createGeometryMask());
+    maskG.setVisible(false);
+    if (Array.isArray(scene.environmentDecor)) {
+        scene.environmentDecor.push(maskG);
+    }
+}
+
+/**
  * Primary floor spans along the polygon bottom: for each tile column, find the lowest interior
  * point (max Y) and snap to the 32px floor grid. Merging runs yields disjoint horizontal segments
  * at possibly different tile-center Y values so the floor cap / lip follows stepped or non-rect footprints
@@ -2886,6 +2918,7 @@ class AshenHollow extends Phaser.Scene {
             .setDepth(depth)
             .setAlpha(RUNTIME_REVIEW_CAPTURE_MODE ? 1 : 0.98);
         this.environmentDecor.push(sprite);
+        applyUnifiedShellFootprintMask(this, sprite, roomId, roomBounds);
         return true;
     }
 
