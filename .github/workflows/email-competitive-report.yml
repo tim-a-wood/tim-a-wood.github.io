@@ -1,0 +1,58 @@
+name: Email Competitive Intelligence Report
+
+on:
+  push:
+    paths:
+      - 'research/library/competitive/**'
+  workflow_dispatch:
+    inputs:
+      report_path:
+        description: 'Path to competitive report (leave blank for latest)'
+        required: false
+
+jobs:
+  email:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # need HEAD~1 to detect changed files
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Resolve report path
+        id: report
+        run: |
+          if [ -n "${{ inputs.report_path }}" ]; then
+            echo "path=${{ inputs.report_path }}" >> $GITHUB_OUTPUT
+          else
+            # Find the competitive report file added or modified in this push
+            CHANGED=$(git diff --name-only HEAD~1 HEAD -- 'research/library/competitive/*.md' | head -1)
+            if [ -n "$CHANGED" ]; then
+              echo "path=$CHANGED" >> $GITHUB_OUTPUT
+            else
+              # Fallback: most recently modified file in the directory
+              LATEST=$(ls -t research/library/competitive/*.md 2>/dev/null | head -1)
+              echo "path=$LATEST" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+      - name: Send competitive intelligence report
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          DIGEST_EMAIL_TO: ${{ vars.DIGEST_EMAIL_TO || 'tim.a.wood@outlook.com' }}
+        run: |
+          REPORT="${{ steps.report.outputs.path }}"
+          if [ -z "$REPORT" ] || [ ! -f "$REPORT" ]; then
+            echo "No competitive report found at: $REPORT"
+            exit 1
+          fi
+          echo "Sending: $REPORT"
+          DATE=$(date +%Y-%m-%d)
+          python3 scripts/send_weekly_digest.py \
+            --file "$REPORT" \
+            --subject "[MV Toolchain] Competitive Intelligence — $DATE" \
+            --subtitle "Metroidvania Toolchain — Competitive Intelligence"

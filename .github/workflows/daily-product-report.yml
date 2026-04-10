@@ -1,0 +1,30 @@
+name: Daily Product Report
+
+on:
+  schedule:
+    # 6:07pm ET (EDT = UTC-4), weekdays. Adjust to '7 23 * * 1-5' Nov–Mar (EST = UTC-5).
+    - cron: '7 22 * * 1-5'
+  workflow_dispatch:
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # full history so git log --since works correctly
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install openai
+
+      - name: Generate and send daily product report
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          DIGEST_EMAIL_TO: ${{ vars.DIGEST_EMAIL_TO || 'tim.a.wood@outlook.com' }}
+        run: python3 scripts/ci_daily_report.py

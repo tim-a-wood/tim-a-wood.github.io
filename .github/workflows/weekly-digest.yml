@@ -1,0 +1,30 @@
+name: Weekly Founder Digest
+
+on:
+  schedule:
+    # Monday 9:07am ET (EDT = UTC-4). Adjust to '7 14 * * 1' Nov–Mar (EST = UTC-5).
+    - cron: '7 13 * * 1'
+  workflow_dispatch:
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # full history so git log --since works correctly
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install openai
+
+      - name: Generate and send weekly founder digest
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          DIGEST_EMAIL_TO: ${{ vars.DIGEST_EMAIL_TO || 'tim.a.wood@outlook.com' }}
+        run: python3 scripts/ci_weekly_digest.py
