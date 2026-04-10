@@ -29,13 +29,13 @@ jobs:
           if [ -n "${{ inputs.report_path }}" ]; then
             echo "path=${{ inputs.report_path }}" >> $GITHUB_OUTPUT
           else
-            # Find the competitive report file added or modified in this push
-            CHANGED=$(git diff --name-only HEAD~1 HEAD -- 'research/library/competitive/*.md' | head -1)
+            # On push: prefer the file changed in this commit
+            CHANGED=$(git diff --name-only HEAD~1 HEAD -- 'research/library/competitive/*.md' 2>/dev/null | head -1)
             if [ -n "$CHANGED" ]; then
               echo "path=$CHANGED" >> $GITHUB_OUTPUT
             else
-              # Fallback: most recently modified file in the directory
-              LATEST=$(ls -t research/library/competitive/*.md 2>/dev/null | head -1)
+              # On manual dispatch or no diff: latest by git log (reliable in CI)
+              LATEST=$(git log --diff-filter=A --name-only --pretty=format: -- 'research/library/competitive/*.md' | grep -v '^$' | head -1)
               echo "path=$LATEST" >> $GITHUB_OUTPUT
             fi
           fi

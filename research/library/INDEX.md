@@ -38,7 +38,7 @@
 
 | Date | Title | File | Summary | Status |
 |------|-------|------|---------|--------|
-| — | *No competitive analysis yet* | — | — | — |
+| 2026-04-10 | Competitive Landscape — MV Workbench & Ashen Hollow (April 2026) | [competitive-landscape-2026-04.md](competitive/competitive-landscape-2026-04.md) | Initial baseline scan across pixel art tools (Aseprite, Pixelorama, AI sprite generators), level editors (LDtk, Tiled), AI-native game dev tools (GDevelop AI agent, Rosebud AI, Unity Muse, Promethean AI), and integrated web toolchains. No competitor combines all five Workbench pillars today. GDevelop and Rosebud AI are the highest-priority watches. | final |
 
 ### Reports
 
@@ -61,4 +61,4 @@ Common tags used across library documents:
 
 ---
 
-*Last updated: 2026-04-08 — Agent OS repo split workspace contract indexed*
+*Last updated: 2026-04-10 — Initial competitive landscape baseline indexed*
