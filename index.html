@@ -948,24 +948,6 @@ function applyRoomInteriorFootprintMask(scene, sprite, roomId, roomBounds) {
 }
 
 /**
- * `room_shell_foreground` art is scaled to the chamber AABB; for notched / stepped footprints the frame
- * bleeds into void space. Cut the authored polygon opening out of the shell sprite so shell mass
- * only survives outside the real room perimeter.
- *
- * Runtime review capture: skip polygon mask on unified shell — the QA screenshot must reflect the
- * saved shell PNG. Even small footprint-vs-art mismatches on L-shaped rooms make the mask read as
- * a “broken” or incomplete frame; play mode still applies the mask below.
- */
-function applyUnifiedShellFootprintMask(scene, sprite, roomId, roomBounds) {
-    if (!scene || !sprite || !roomBounds) return;
-    if (RUNTIME_REVIEW_CAPTURE_MODE) {
-        return;
-    }
-    const mask = ensureRoomFootprintGeometryMask(scene, roomId, roomBounds, true);
-    if (mask) sprite.setMask(mask);
-}
-
-/**
  * Primary floor spans along the polygon bottom: for each tile column, find the lowest interior
  * point (max Y) and snap to the 32px floor grid. Merging runs yields disjoint horizontal segments
  * at possibly different tile-center Y values so the floor cap / lip follows stepped or non-rect footprints
@@ -2959,18 +2941,17 @@ class AshenHollow extends Phaser.Scene {
         const oy = Number(pl.origin_y ?? 1);
         const localX = Number(pl.x != null ? pl.x : chamberLeft + chamberWidth * 0.5);
         const localY = Number(pl.y != null ? pl.y : chamberBottom);
-        /* Normal play: between midground (~-0.18) and modular wall shell (0.17). Runtime review capture:
-         * keep shell above platform ledges / floor-face accents (0.05–0.11) so QA screenshots do not read as
-         * an incomplete frame; stay below door frames (0.18) so thresholds remain in front. */
-        const depth = RUNTIME_REVIEW_CAPTURE_MODE ? 0.16 : 0.12;
+        /* Above midground (~-0.18) and platform ledges / floor-face accents (~0.05–0.11); below door
+         * frames (0.18). Same in play and runtime-review capture so workbench playtest matches the
+         * saved runtime-review.png. Opening read comes from shell PNG alpha, not a polygon mask (mask
+         * clipped L-shell borders vs layout polygon). */
+        const depth = 0.16;
         const sprite = this.add.image(roomBounds.start + localX, localY, `env-bespoke-${asset.slot_id}`)
             .setOrigin(ox, oy)
             .setDisplaySize(dw, dh)
             .setDepth(depth)
             .setAlpha(RUNTIME_REVIEW_CAPTURE_MODE ? 1 : 0.98);
         this.environmentDecor.push(sprite);
-        // Unified shell art uses the room perimeter as the shell's inner edge; deterministically clear the opening.
-        applyUnifiedShellFootprintMask(this, sprite, roomId, roomBounds);
         return true;
     }
 

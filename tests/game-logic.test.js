@@ -1046,7 +1046,7 @@ function simulateSequenceAttempt(order) {
     );
 })();
 
-(function testIndexUnifiedShellUsesAuthoredPerimeterInsteadOfInteriorWorkarounds() {
+(function testIndexUnifiedShellSkipsPolygonMaskForPlaytestParity() {
     const fs = require('fs');
     const path = require('path');
     const htmlPath = path.join(__dirname, '../index.html');
@@ -1054,15 +1054,12 @@ function simulateSequenceAttempt(order) {
     const html = fs.readFileSync(htmlPath, 'utf8');
     assert.ok(
         html.includes('addRoomBespokeUnifiedShellForegroundDecor(roomId, shellSupport)')
-            && html.includes("room perimeter as the shell's inner edge")
-            && html.includes('applyUnifiedShellFootprintMask(this, sprite, roomId, roomBounds)')
-            && html.includes('Runtime review capture: skip polygon mask on unified shell')
-            && html.includes('if (RUNTIME_REVIEW_CAPTURE_MODE)') && html.includes('function applyUnifiedShellFootprintMask')
-            && html.includes('ensureRoomFootprintGeometryMask(scene, roomId, roomBounds, true)')
-            && html.includes('maskG.fillPath()')
-            && html.includes('mask.invertAlpha = invertAlpha')
+            && html.includes('saved runtime-review.png')
+            && html.includes('not a polygon mask')
+            && html.includes('const depth = 0.16')
+            && !html.includes('applyUnifiedShellFootprintMask')
             && !html.includes('strokePoints(worldPts, true)'),
-        'unified bespoke shell should use footprint mask in play mode and skip it for runtime-review capture'
+        'unified shell should rely on PNG alpha and depth only (no footprint geometry mask)'
     );
 })();
 

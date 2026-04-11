@@ -1092,6 +1092,11 @@ This log records decisions for the room environment and bespoke asset quality pa
 - Consequence: In capture mode only, unified shell depth is raised to **0.16**—still below door frames (**0.18**) and the player, but above **0.05–0.11** traversal/ledge decor so the chamber frame reads whole in `runtime-review.png`. Normal play depth stays **0.12** vs modular wall shell **0.17**. Follow-up: depth alone did not fix founder-visible “incomplete frame” in capture; see §198 (skip shell mask in capture only).
 
 ### 198. Runtime review capture must not apply the unified-shell footprint mask
-- Status: Accepted (2026-04-11)
+- Status: Superseded by §199 (2026-04-11)
 - Why: After §197 (capture shell depth 0.16), founder reported **no visible improvement**—runtime review still matched the prior “cut off” read. Play mode applies `applyUnifiedShellFootprintMask` (inverted room polygon geometry mask) so shell mass stays outside the walkable footprint; when polygon edge and authored shell inner edge disagree even slightly on **L-shaped** rooms, the mask **clips** real border pixels and the flattened QA PNG reads as a **broken frame** even though `R1-room-shell.png` is intact.
-- Consequence: When `RUNTIME_REVIEW_CAPTURE_MODE` is true, `applyUnifiedShellFootprintMask` returns **without** `setMask` so the capture shows the **same** silhouette as the saved shell asset. Play mode behavior is unchanged (mask still applied). Rejected: removing the mask in play (would re-open interior bleed/collision reads); softening the polygon globally (would blur the contract).
+- Consequence (historical): Capture briefly skipped the mask while play kept it; founder then showed **workbench runtime preview** (correct) vs **playtest embed** (still clipped). §199 removes the mask in **all** modes for parity.
+
+### 199. Unified shell: no Phaser footprint mask in play or capture (parity with saved runtime-review)
+- Status: Accepted (2026-04-11)
+- Why: **Sprite Workbench** runtime preview uses the saved `runtime-review.png` (headless capture without polygon mask on shell after §198). **Playtest** (`#preview=embed`) still ran `applyUnifiedShellFootprintMask`, so the same room looked **cut off / masked** in the modal while the Build Summary image looked correct—purely a compositor divergence, not new art.
+- Consequence: `applyUnifiedShellFootprintMask` is **removed** from `index.html`. Unified shell uses **PNG alpha** for the opening and fixed depth **0.16** in both play and capture (above ledges ~0.11, below doors ~0.18). Polygon wall tiles and existing physics outside the footprint remain the gameplay contract. Rejected: keeping mask only in play (founder-visible inconsistency); reintroducing stroke-based masks from pre-§171 behavior.
