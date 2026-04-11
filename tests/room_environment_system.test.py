@@ -62,7 +62,7 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
                 return payload, None
             envsys._gemini_generate_content_rest = _fake_gemini_generate_content_rest
         # Most tests do not validate reference-guide image content; avoid expensive guide synthesis.
-        _ref_sensitive_tokens = ("reference", "guide", "silhouette", "layout_conditioning", "level1_fallback_preview")
+        _ref_sensitive_tokens = ("reference", "guide", "silhouette", "contract", "material", "layout_conditioning", "level1_fallback_preview")
         if not any(token in self._testMethodName for token in _ref_sensitive_tokens):
             def _fast_bespoke_refs(
                 component_type,
@@ -1377,6 +1377,32 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         cx, cy = w // 2, h // 2
         self.assertLess(px[cx, cy][3], 16)
 
+    def test_apply_walkable_interior_punchout_clears_forbidden_outer_margin(self):
+        l_room = {
+            "id": "RX",
+            "size": {"width": 400, "height": 320},
+            "polygon": [[0, 0], [400, 0], [400, 140], [220, 140], [220, 320], [0, 320]],
+        }
+        geom = envsys._room_geometry(l_room)
+        w, h = 400, 320
+        path = self.root / "shell-punch-margin.png"
+        img = envsys.Image.new("RGBA", (w, h), (12, 12, 12, 255))
+        draw = envsys.ImageDraw.Draw(img)
+        draw.rectangle((24, 24, w - 24, h - 24), fill=(84, 92, 104, 255))
+        img.save(path)
+        envsys._apply_walkable_interior_punchout(path, geom)
+        out = envsys.Image.open(path).convert("RGBA")
+        band = envsys._room_shell_silhouette_band_mask(geom, (w, h), pad=envsys._room_shell_band_px_for_size((w, h)))
+        alpha = out.split()[3]
+        for point in ((w // 2, h // 2), (w - 8, h - 8)):
+            self.assertEqual(band.getpixel(point), 0)
+            self.assertLess(alpha.getpixel(point), 16)
+        self.assertGreater(alpha.getpixel((w // 2, 20)), 32)
+        self.assertGreater(alpha.getpixel((20, h // 2)), 32)
+        ok, errors = envsys._validate_room_shell_after_punchout(path, geom, (w, h))
+        self.assertTrue(ok)
+        self.assertNotIn("shell_silhouette_overreach", errors)
+
     def test_inset_polygon_vertices_toward_centroid_moves_corners_inward(self):
         pts = [(0, 0), (100, 0), (100, 100), (0, 100)]
         out = envsys._inset_polygon_vertices_toward_centroid(pts, 10.0)
@@ -1386,6 +1412,8 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.assertLess(out[1][0], pts[1][0])
 
     def test_room_shell_punch_inset_px_reads_env(self):
+        with mock.patch.dict(os.environ, {}, clear=True):
+            self.assertEqual(envsys._room_shell_punch_inset_px(), 0)
         with mock.patch.dict(os.environ, {"MV_ROOM_SHELL_PUNCH_INSET_PX": "12"}, clear=False):
             self.assertEqual(envsys._room_shell_punch_inset_px(), 12)
         with mock.patch.dict(os.environ, {"MV_ROOM_SHELL_PUNCH_INSET_PX": "99"}, clear=False):
@@ -1425,8 +1453,7 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         envsys._apply_walkable_interior_punchout(path, geom)
         ok, errors = envsys._validate_room_shell_after_punchout(path, geom, (400, 320))
         self.assertFalse(ok)
-        # Dark-tone check is advisory in current validator contract; rejection must still occur.
-        self.assertTrue(errors)
+        self.assertIn("shell_tone_too_dark", errors)
 
     def test_validate_room_shell_before_punchout_tolerates_dark_top_band(self):
         path = self.root / "shell-pre-top-gap.png"
@@ -1442,6 +1469,42 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         ok, errors = envsys._validate_room_shell_before_punchout(path, (400, 320))
         self.assertTrue(ok)
         self.assertNotIn("shell_top_edge_gap_pre", errors)
+
+    def test_validate_room_shell_before_punchout_rejects_corner_gap(self):
+        path = self.root / "shell-pre-corner-gap.png"
+        img = envsys.Image.new("RGBA", (400, 320), (30, 38, 48, 255))
+        draw = envsys.ImageDraw.Draw(img)
+        draw.rectangle((0, 0, 399, 70), fill=(62, 70, 82, 255))
+        draw.rectangle((0, 250, 399, 319), fill=(62, 70, 82, 255))
+        draw.rectangle((0, 70, 70, 250), fill=(58, 66, 78, 255))
+        draw.rectangle((329, 70, 399, 250), fill=(58, 66, 78, 255))
+        draw.rectangle((0, 0, 80, 88), fill=(0, 0, 0, 255))
+        img.save(path)
+        ok, errors = envsys._validate_room_shell_before_punchout(path, (400, 320))
+        self.assertFalse(ok)
+        self.assertIn("shell_corner_gap_pre", errors)
+
+    def test_validate_room_shell_before_punchout_ignores_geometry_absent_concave_corner(self):
+        path = self.root / "shell-pre-concave-corner-ok.png"
+        contract = self.root / "shell-pre-concave-contract.png"
+        l_room = {
+            "id": "RX",
+            "size": {"width": 400, "height": 320},
+            "polygon": [[0, 0], [400, 0], [400, 140], [220, 140], [220, 320], [0, 320]],
+        }
+        geom = envsys._room_geometry(l_room)
+        self.assertTrue(envsys._write_room_shell_contract_map_reference(geom, contract, (400, 320)))
+        contract_img = envsys.Image.open(contract).convert("RGBA")
+        raw = envsys.Image.new("RGBA", contract_img.size, (0, 0, 0, 255))
+        for x in range(contract_img.width):
+            for y in range(contract_img.height):
+                r, g, b, a = contract_img.getpixel((x, y))
+                if a > 0 and (r, g, b) == envsys.ROOM_SHELL_CONTRACT_BAND_RGB:
+                    raw.putpixel((x, y), (76, 86, 96, 255))
+        raw.save(path)
+        ok, errors = envsys._validate_room_shell_before_punchout(path, (400, 320), geometry=geom)
+        self.assertTrue(ok)
+        self.assertNotIn("shell_corner_gap_pre", errors)
 
     def test_validate_room_shell_after_punchout_rejects_corner_gap(self):
         geom = envsys._room_geometry(copy.deepcopy(self.saved["room_layout"]["rooms"][0]))
@@ -1459,13 +1522,63 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.assertFalse(ok)
         self.assertIn("shell_corner_gap_post", errors)
 
+    def test_validate_room_shell_after_punchout_ignores_geometry_absent_concave_corner(self):
+        contract = self.root / "shell-post-concave-contract.png"
+        raw = self.root / "shell-post-concave-raw.png"
+        l_room = {
+            "id": "RX",
+            "size": {"width": 400, "height": 320},
+            "polygon": [[0, 0], [400, 0], [400, 140], [220, 140], [220, 320], [0, 320]],
+        }
+        geom = envsys._room_geometry(l_room)
+        self.assertTrue(envsys._write_room_shell_contract_map_reference(geom, contract, (400, 320)))
+        contract_img = envsys.Image.open(contract).convert("RGBA")
+        image = envsys.Image.new("RGBA", contract_img.size, (0, 0, 0, 0))
+        for x in range(contract_img.width):
+            for y in range(contract_img.height):
+                r, g, b, a = contract_img.getpixel((x, y))
+                if a > 0 and (r, g, b) == envsys.ROOM_SHELL_CONTRACT_BAND_RGB:
+                    image.putpixel((x, y), (84, 94, 104, 255))
+        image.save(raw)
+        ok, errors = envsys._validate_room_shell_after_punchout(raw, geom, (400, 320))
+        self.assertTrue(ok)
+        self.assertNotIn("shell_corner_gap_post", errors)
+
     def test_room_shell_silhouette_band_mask_creates_border_zone(self):
         geom = envsys._room_geometry(copy.deepcopy(self.saved["room_layout"]["rooms"][0]))
         mask = envsys._room_shell_silhouette_band_mask(geom, (400, 320), pad=24)
         self.assertEqual(mask.size, (400, 320))
         px = mask.load()
         self.assertGreater(sum(1 for y in range(320) for x in range(400) if px[x, y] > 0), 0)
+        self.assertGreater(px[200, 10], 0)
         self.assertEqual(px[200, 180], 0)
+
+    def test_generate_bespoke_component_room_shell_preserves_canvas_without_trimming(self):
+        out = self.root / "room-shell.png"
+
+        def fake_generate(output_path, _prompt, _refs, size_hint=None):
+            self.assertEqual(size_hint, "50x50")
+            img = envsys.Image.new("RGBA", (50, 50), (0, 0, 0, 0))
+            draw = envsys.ImageDraw.Draw(img)
+            draw.rectangle((10, 10, 39, 39), fill=(80, 90, 100, 255))
+            img.save(output_path)
+            return True, None
+
+        with mock.patch.object(envsys, "_generate_image_from_references", side_effect=fake_generate):
+            ok, err = envsys._generate_bespoke_component_from_references(
+                out,
+                "prompt",
+                [],
+                (50, 50),
+                True,
+                component_type="room_shell_foreground",
+            )
+        self.assertTrue(ok)
+        self.assertIsNone(err)
+        img = envsys.Image.open(out).convert("RGBA")
+        self.assertEqual(img.size, (50, 50))
+        self.assertEqual(img.getpixel((0, 0))[3], 0)
+        self.assertEqual(img.getpixel((25, 25))[3], 255)
 
     def test_validate_room_shell_after_punchout_rejects_silhouette_overreach(self):
         geom = envsys._room_geometry(copy.deepcopy(self.saved["room_layout"]["rooms"][0]))
@@ -2088,6 +2201,7 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.assertEqual(len(bg), 3)
         self.assertTrue(str(bg[0]).endswith("-silhouette.png"))
         self.assertEqual(bg[1], template)
+        self.assertTrue(str(bg[2]).endswith("-guide.png"))
         self.assertEqual(len(mg), 3)
         self.assertTrue(str(mg[0]).endswith("-silhouette.png"))
         self.assertEqual(mg[1], template)
@@ -2097,15 +2211,21 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.assertEqual(len(floor_top), 3)
         self.assertTrue(str(floor_top[0]).endswith("-silhouette.png"))
         self.assertEqual(floor_top[1], template)
-        with envsys.Image.open(bg[0]) as sil:
+        with envsys.Image.open(mg[0]) as sil:
             self.assertEqual(sil.size, (160, 120))
 
-    def test_room_shell_references_use_silhouette_and_preview(self):
+    def test_room_shell_references_use_contract_map_guide_and_material_reference_in_order(self):
         refs_root = self.root / "refs-shell"
         template = self.root / "template-shell.png"
         preview = self.root / "preview-shell.png"
-        envsys.Image.new("RGBA", (320, 240), (110, 120, 130, 255)).save(template)
-        envsys.Image.new("RGBA", (320, 240), (70, 82, 95, 255)).save(preview)
+        template_img = envsys.Image.new("RGBA", (320, 240), (110, 120, 130, 255))
+        draw = envsys.ImageDraw.Draw(template_img)
+        draw.rectangle((48, 32, 272, 208), fill=(24, 28, 34, 255))
+        template_img.save(template)
+        preview_img = envsys.Image.new("RGBA", (320, 240), (70, 82, 95, 255))
+        draw = envsys.ImageDraw.Draw(preview_img)
+        draw.rectangle((40, 24, 280, 216), fill=(12, 16, 20, 255))
+        preview_img.save(preview)
         l_room = {
             "id": "RX",
             "size": {"width": 320, "height": 240},
@@ -2123,9 +2243,193 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
             True,
             room=l_room,
         )
-        self.assertEqual(len(shell_refs), 2)
-        self.assertTrue(str(shell_refs[0]).endswith("-silhouette.png"))
-        self.assertEqual(shell_refs[1], preview)
+        self.assertEqual(len(shell_refs), 3)
+        self.assertTrue(str(shell_refs[0]).endswith("-contract.png"))
+        self.assertTrue(str(shell_refs[1]).endswith("-guide.png"))
+        self.assertTrue(str(shell_refs[2]).endswith("-material.png"))
+
+    def test_room_shell_references_cleanup_obsolete_ref_artifacts(self):
+        refs_root = self.root / "refs-shell-clean"
+        template = self.root / "template-shell-clean.png"
+        preview = self.root / "preview-shell-clean.png"
+        envsys.Image.new("RGBA", (320, 240), (110, 120, 130, 255)).save(template)
+        envsys.Image.new("RGBA", (320, 240), (90, 104, 118, 255)).save(preview)
+        refs_root.mkdir(parents=True, exist_ok=True)
+        stale_sil = refs_root / "room_shell_foreground-silhouette.png"
+        stale_preview = refs_root / "room_shell_foreground-preview-tone.png"
+        envsys.Image.new("RGBA", (16, 16), (0, 0, 0, 255)).save(stale_sil)
+        envsys.Image.new("RGBA", (16, 16), (0, 0, 0, 255)).save(stale_preview)
+        l_room = {
+            "id": "RX",
+            "size": {"width": 320, "height": 240},
+            "polygon": [[0, 0], [320, 0], [320, 120], [160, 120], [160, 240], [0, 240]],
+        }
+        shell_refs = envsys._bespoke_reference_images_for_component(
+            "room_shell_foreground",
+            template,
+            preview,
+            [],
+            refs_root,
+            (320, 240),
+            True,
+            room=l_room,
+        )
+        self.assertEqual(len(shell_refs), 3)
+        self.assertFalse(stale_sil.exists())
+        self.assertFalse(stale_preview.exists())
+        self.assertNotIn(template, shell_refs)
+        self.assertNotIn(preview, shell_refs)
+
+    def test_room_shell_contract_map_has_three_semantic_regions(self):
+        l_room = {
+            "id": "RX",
+            "size": {"width": 320, "height": 240},
+            "polygon": [[0, 0], [220, 0], [220, 80], [320, 80], [320, 240], [0, 240]],
+        }
+        geom = envsys._room_geometry(l_room)
+        out = self.root / "shell-contract.png"
+        self.assertTrue(envsys._write_room_shell_contract_map_reference(geom, out, (320, 240)))
+        img = envsys.Image.open(out).convert("RGBA")
+        colors = {px for px in img.getdata()}
+        self.assertIn(envsys.ROOM_SHELL_SILHOUETTE_CLEAR_RGB + (255,), colors)
+        self.assertIn(envsys.ROOM_SHELL_CONTRACT_BAND_RGB + (255,), colors)
+        self.assertEqual(img.getpixel((160, 180)), envsys.ROOM_SHELL_SILHOUETTE_CLEAR_RGB + (255,))
+        self.assertEqual(img.getpixel((8, 120)), envsys.ROOM_SHELL_CONTRACT_BAND_RGB + (255,))
+
+    def test_room_shell_contract_map_fills_outer_corners_for_live_shell_guardrail(self):
+        l_room = {
+            "id": "RX",
+            "size": {"width": 320, "height": 240},
+            "polygon": [[0, 0], [320, 0], [320, 120], [160, 120], [160, 240], [0, 240]],
+        }
+        geom = envsys._room_geometry(l_room)
+        out = self.root / "shell-contract-corners.png"
+        self.assertTrue(envsys._write_room_shell_contract_map_reference(geom, out, (320, 240)))
+        img = envsys.Image.open(out).convert("RGBA")
+        band = envsys.ROOM_SHELL_CONTRACT_BAND_RGB + (255,)
+        self.assertEqual(img.getpixel((0, 0)), band)
+        self.assertEqual(img.getpixel((319, 0)), band)
+        self.assertEqual(img.getpixel((0, 239)), band)
+        self.assertEqual(img.getpixel((319, 239)), (0, 0, 0, 0))
+
+    def test_room_shell_contract_map_is_not_identical_to_structural_guide(self):
+        l_room = {
+            "id": "RX",
+            "size": {"width": 320, "height": 240},
+            "polygon": [[0, 0], [320, 0], [320, 240], [0, 240]],
+        }
+        geom = envsys._room_geometry(l_room)
+        contract = self.root / "shell-contract.png"
+        guide = self.root / "shell-guide.png"
+        self.assertTrue(envsys._write_room_shell_contract_map_reference(geom, contract, (320, 240)))
+        self.assertTrue(envsys._room_shell_reference_guide(geom, guide, (320, 240)))
+        contract_img = envsys.Image.open(contract).convert("RGBA")
+        guide_img = envsys.Image.open(guide).convert("RGBA")
+        self.assertIsNotNone(envsys.ImageChops.difference(contract_img, guide_img).getbbox())
+
+    def test_room_shell_structural_guide_uses_single_shell_band_tone(self):
+        l_room = {
+            "id": "RX",
+            "size": {"width": 320, "height": 240},
+            "polygon": [[0, 0], [320, 0], [320, 240], [0, 240]],
+        }
+        geom = envsys._room_geometry(l_room)
+        guide = self.root / "shell-guide-single-tone.png"
+        self.assertTrue(envsys._room_shell_reference_guide(geom, guide, (320, 240)))
+        img = envsys.Image.open(guide).convert("RGBA")
+        colors = {px for px in img.getdata()}
+        self.assertEqual(colors, {(0, 0, 0, 0), envsys.ROOM_SHELL_GUIDE_RGB + (255,)})
+
+    def test_room_shell_material_reference_has_no_frame_or_enclosed_negative_space(self):
+        template = self.root / "template-shell.png"
+        preview = self.root / "preview-shell.png"
+        out = self.root / "material-shell.png"
+        template_img = envsys.Image.new("RGBA", (320, 240), (112, 122, 132, 255))
+        draw = envsys.ImageDraw.Draw(template_img)
+        draw.rectangle((40, 30, 280, 210), fill=(16, 20, 24, 255))
+        template_img.save(template)
+        preview_img = envsys.Image.new("RGBA", (320, 240), (90, 104, 118, 255))
+        draw = envsys.ImageDraw.Draw(preview_img)
+        draw.rectangle((56, 40, 264, 200), fill=(8, 12, 16, 255))
+        preview_img.save(preview)
+        self.assertTrue(envsys._room_shell_material_reference(template, preview, out, (320, 240)))
+        img = envsys.Image.open(out).convert("RGBA")
+        center = envsys._region_luminance(out, (0.30, 0.30, 0.70, 0.70))
+        edges = (
+            envsys._region_luminance(out, (0.00, 0.20, 0.16, 0.80)) +
+            envsys._region_luminance(out, (0.84, 0.20, 1.00, 0.80))
+        ) / 2.0
+        top = envsys._region_luminance(out, (0.20, 0.00, 0.80, 0.16))
+        bottom = envsys._region_luminance(out, (0.20, 0.84, 0.80, 1.00))
+        self.assertGreater(sum(1 for _px in img.getdata() if _px[3] > 0), 0)
+        self.assertLess(abs(center - edges), 28.0)
+        self.assertLess(abs(top - bottom), 64.0)
+
+    def test_room_shell_material_reference_prefers_high_information_patch(self):
+        template = self.root / "template-shell-scored.png"
+        preview = self.root / "preview-shell-scored.png"
+        out = self.root / "material-shell-scored.png"
+        template_img = envsys.Image.new("RGBA", (320, 240), (16, 18, 20, 255))
+        draw = envsys.ImageDraw.Draw(template_img)
+        for x in range(18, 118, 10):
+            tone = 210 if (x // 10) % 2 == 0 else 118
+            draw.rectangle((x, 24, x + 7, 124), fill=(tone, tone - 10, tone - 18, 255))
+        draw.rectangle((24, 136, 116, 224), fill=(182, 168, 144, 255))
+        template_img.save(template)
+        envsys.Image.new("RGBA", (320, 240), (34, 36, 42, 255)).save(preview)
+        self.assertTrue(envsys._room_shell_material_reference(template, preview, out, (320, 240)))
+        luminance = envsys._region_luminance(out, (0.30, 0.30, 0.70, 0.70))
+        self.assertGreater(luminance, 58.0)
+
+    def test_room_shell_material_reference_rejects_keyed_green_template_contamination(self):
+        template = self.root / "template-shell-green.png"
+        preview = self.root / "preview-shell-green.png"
+        out = self.root / "material-shell-green.png"
+        envsys.Image.new("RGBA", (320, 240), (0, 255, 0, 255)).save(template)
+        envsys.Image.new("RGBA", (320, 240), (62, 74, 86, 255)).save(preview)
+        self.assertTrue(envsys._room_shell_material_reference(template, preview, out, (320, 240)))
+        img = envsys.Image.open(out).convert("RGBA")
+        keyed_greenish = sum(
+            1
+            for r, g, b, a in img.getdata()
+            if a > 0 and g > max(r, b) + 24
+        )
+        self.assertEqual(keyed_greenish, 0)
+
+    def test_room_shell_material_reference_honors_shell_geometry_when_present(self):
+        template = self.root / "template-shell-geom.png"
+        preview = self.root / "preview-shell-geom.png"
+        out = self.root / "material-shell-geom.png"
+        room = {
+            "id": "RX",
+            "size": {"width": 320, "height": 240},
+            "polygon": [[0, 0], [320, 0], [320, 120], [160, 120], [160, 240], [0, 240]],
+        }
+        geom = envsys._room_geometry(room)
+        envsys.Image.new("RGBA", (320, 240), (90, 100, 110, 255)).save(template)
+        envsys.Image.new("RGBA", (320, 240), (64, 76, 88, 255)).save(preview)
+        self.assertTrue(envsys._room_shell_material_reference(template, preview, out, (320, 240), geometry=geom))
+        img = envsys.Image.open(out).convert("RGBA")
+        self.assertEqual(img.getpixel((319, 239)), (0, 0, 0, 0))
+        self.assertEqual(img.getpixel((160, 180)), envsys.ROOM_SHELL_SILHOUETTE_CLEAR_RGB + (255,))
+        self.assertGreater(img.getpixel((10, 120))[3], 0)
+
+    def test_geometry_footprint_polygon_output_pixels_respects_shell_band_margin(self):
+        geometry = {
+            "polygon": [[0, 0], [320, 0], [320, 120], [0, 120]],
+            "left": 0,
+            "top": 0,
+            "chamber_width": 320,
+            "chamber_height": 120,
+        }
+        points = envsys._geometry_footprint_polygon_output_pixels(geometry, 400, 320, pad=envsys._room_shell_band_px_for_size((400, 320)))
+        xs = [pt[0] for pt in points]
+        ys = [pt[1] for pt in points]
+        pad = envsys._room_shell_band_px_for_size((400, 320))
+        self.assertEqual(min(xs), pad)
+        self.assertLessEqual(abs(max(xs) - (399 - pad)), 1)
+        self.assertEqual(min(ys), pad)
+        self.assertLessEqual(abs(max(ys) - (319 - pad)), 1)
 
     def test_write_bespoke_room_silhouette_reference_requires_polygon(self):
         out = self.root / "sil-empty.png"
@@ -2137,7 +2441,7 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         l_room = {
             "id": "RX",
             "size": {"width": 320, "height": 240},
-            "polygon": [[0, 0], [320, 0], [320, 240], [0, 240]],
+            "polygon": [[0, 0], [220, 0], [220, 80], [320, 80], [320, 240], [0, 240]],
         }
         geom = envsys._room_geometry(l_room)
         out = self.root / "sil-dark-clear.png"
@@ -2146,7 +2450,7 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         pixels = list(img.getdata())
         paper_white = sum(1 for r, g, b in pixels if r >= 250 and g >= 250 and b >= 250)
         self.assertEqual(paper_white, 0)
-        self.assertEqual(img.getpixel((0, 0)), envsys.ROOM_SHELL_SILHOUETTE_CLEAR_RGB)
+        self.assertEqual(img.getpixel((200, 180)), envsys.ROOM_SHELL_SILHOUETTE_CLEAR_RGB)
 
     def test_layout_conditioning_reference_avoids_cyan_outline(self):
         geom = {
@@ -2187,6 +2491,36 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
                 "mood": "somber",
                 "lighting": "low",
                 "description": "test",
+                "component_schemas": {"walls": envsys._default_component_schema("walls", "test")},
+            },
+            {
+                "component_type": "wall_module_left",
+                "schema_key": "walls",
+                "target_dimensions": {"width": 320, "height": 240},
+                "orientation": "full",
+                "tile_mode": "stretch",
+                "border_treatment": "full_frame",
+                "protected_zones": [],
+            },
+            {"variant_family": "wall", "orientation": "full"},
+            room_geometry=geom,
+        )
+        self.assertIn("room footprint conditioning", prompt.lower())
+        self.assertIn("chamber bounds", prompt.lower())
+
+    def test_build_bespoke_prompt_background_includes_footprint_silhouette_clause(self):
+        l_room = {
+            "id": "RX",
+            "size": {"width": 320, "height": 240},
+            "polygon": [[0, 0], [320, 0], [320, 240], [0, 240]],
+        }
+        geom = envsys._room_geometry(l_room)
+        prompt = envsys._build_bespoke_prompt(
+            {"high_level_direction": "Ruins", "negative_direction": "none"},
+            {
+                "mood": "somber",
+                "lighting": "low",
+                "description": "test",
                 "component_schemas": {"background": envsys._default_component_schema("background", "test")},
             },
             {
@@ -2201,10 +2535,15 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
             {"variant_family": "background", "orientation": "full"},
             room_geometry=geom,
         )
-        self.assertIn("room footprint conditioning", prompt.lower())
-        self.assertIn("chamber bounds", prompt.lower())
+        low = prompt.lower()
+        self.assertIn("room footprint conditioning", low)
+        self.assertIn("footprint silhouette map", low)
+        self.assertIn("interior void", low)
+        self.assertIn("chamber bounds", low)
+        # Shell-only masonry wording must not leak into background prompts.
+        self.assertNotIn("black pixels mark allowed border masonry occupancy", low)
 
-    def test_build_bespoke_prompt_room_shell_includes_masonry_thickness_rules(self):
+    def test_build_bespoke_prompt_room_shell_uses_contract_map_and_biome_neutral_topology_language(self):
         l_room = {
             "id": "RX",
             "size": {"width": 320, "height": 240},
@@ -2222,7 +2561,7 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
             {
                 "component_type": "room_shell_foreground",
                 "schema_key": "walls",
-                "target_dimensions": {"width": 1600, "height": 1200},
+                "target_dimensions": {"width": 400, "height": 320},
                 "orientation": "full",
                 "tile_mode": "stretch",
                 "border_treatment": "full_frame",
@@ -2232,14 +2571,41 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
             room_geometry=geom,
         )
         low = prompt.lower()
-        self.assertIn("heavy masonry", low)
-        self.assertIn("hairline", low)
-        self.assertIn("edge-fill contract", low)
+        self.assertIn("3-region contract map", low)
+        self.assertIn("exactly one shell ring", low)
+        self.assertIn("exactly one clear opening", low)
+        self.assertIn("forbidden outer margin", low)
+        self.assertIn("material-only shell reference", low)
         self.assertIn("spatial contract", low)
-        self.assertIn("shell_band_axis_aligned_bbox_px_inclusive", prompt)
-        self.assertIn("mask paint", low)
-        self.assertNotIn("only adapt it to the requested fit", low)
-        self.assertNotIn("compose fog, depth, and architecture", low)
+        self.assertNotIn("weathered stone/mortar", low)
+
+    def test_room_shell_retry_prompt_for_overreach_uses_generalized_outer_frame_language(self):
+        retry = envsys._retry_prompt_for_validation_errors(
+            "room_shell_foreground",
+            "base prompt",
+            ["shell_silhouette_overreach"],
+            0,
+        )
+        low = retry.lower()
+        self.assertIn("outer frame", low)
+        self.assertIn("nested frame", low)
+        self.assertIn("exactly one shell ring", low)
+        self.assertIn("exactly one clear opening", low)
+        self.assertIn("forbidden outer margin", low)
+        self.assertNotIn("masonry", low)
+        self.assertNotIn("stone arch", low)
+
+    def test_room_shell_retry_prompt_accumulates_primary_live_failure_instructions(self):
+        retry = envsys._retry_prompt_for_validation_errors(
+            "room_shell_foreground",
+            "base prompt",
+            ["shell_band_tone_drift", "shell_corner_join_seam_read", "shell_silhouette_overreach"],
+            0,
+        )
+        low = retry.lower()
+        self.assertIn("outer frame or nested frame", low)
+        self.assertIn("fix corner joins", low)
+        self.assertIn("unify top/side/bottom shell tone", low)
 
     def test_room_shell_spatial_contract_json_matches_mask_geometry(self):
         geom = {
@@ -2253,9 +2619,9 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.assertEqual(data["output_size_px"], [320, 240])
         self.assertIn("shell_band_axis_aligned_bbox_px_inclusive", data)
         self.assertIn("edge_flush_rule", data)
-        ref1 = data.get("reference_1_silhouette") or {}
-        self.assertIn("neutral_clear_rgb_8_12_16", ref1)
-        self.assertNotIn("white_rgb_255", str(data))
+        ref1 = data.get("reference_1_contract_map") or {}
+        self.assertEqual(ref1.get("required_clear_opening_rgb"), list(envsys.ROOM_SHELL_SILHOUETTE_CLEAR_RGB))
+        self.assertEqual(ref1.get("forbidden_outer_margin_alpha"), 0)
         self.assertNotIn("footprint_shape", data)
 
     def test_geometry_footprint_area_fill_ratio_full_rectangle(self):
@@ -2332,6 +2698,11 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.assertIn("avoid a broad bright lower fog bank", retry)
         self.assertIn("rear-floor depth", retry)
 
+    def test_background_retry_prompt_can_reject_vertical_bar_artifacts(self):
+        retry = envsys._retry_prompt_for_validation_errors("background_far_plate", "base prompt", ["background_vertical_bar_artifacts"], 0)
+        self.assertIn("vertical slats", retry)
+        self.assertIn("flat black bars", retry)
+
     def test_postprocess_component_for_validation_salvages_scenic_readability(self):
         background = self.root / "background-hot.png"
         midground = self.root / "midground-clutter.png"
@@ -2365,6 +2736,50 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
 
         self.assertTrue(changed)
         self.assertLess(envsys._region_luminance(background, (0.34, 0.22, 0.66, 0.78)), 190)
+
+    def test_restore_background_shell_definition_without_template_does_not_add_guide_lines(self):
+        source = envsys.Image.new("RGBA", (160, 120), (72, 84, 96, 255))
+
+        restored = envsys._restore_background_shell_definition(source, None)
+
+        self.assertEqual(list(restored.getdata()), list(source.getdata()))
+
+    def test_restore_background_shell_definition_with_template_does_not_reintroduce_shell_bands(self):
+        source = envsys.Image.new("RGBA", (160, 120), (72, 84, 96, 255))
+        template = envsys.Image.new("RGBA", (160, 120), (30, 36, 42, 255))
+
+        restored = envsys._restore_background_shell_definition(source, template)
+
+        self.assertEqual(list(restored.getdata()), list(source.getdata()))
+
+    def test_background_refs_include_room_silhouette_when_geometry_exists(self):
+        template = self.root / "bg-template.png"
+        preview = self.root / "bg-preview.png"
+        refs_root = self.root / "bg-refs"
+        refs_root.mkdir(parents=True, exist_ok=True)
+        envsys.Image.new("RGBA", (160, 120), (30, 36, 42, 255)).save(template)
+        envsys.Image.new("RGBA", (160, 120), (40, 46, 52, 255)).save(preview)
+        room = {
+            "id": "RX",
+            "size": {"width": 320, "height": 240},
+            "polygon": [[0, 0], [220, 0], [220, 80], [320, 80], [320, 240], [0, 240]],
+        }
+
+        refs = envsys._bespoke_reference_images_for_component(
+            "background_far_plate",
+            template,
+            preview,
+            [],
+            refs_root,
+            (160, 120),
+            False,
+            room=room,
+        )
+
+        self.assertEqual(len(refs), 3)
+        self.assertIn("silhouette", refs[0].name)
+        self.assertEqual(refs[1], template)
+
 
     def test_midground_template_family_check_uses_edge_similarity(self):
         template = self.root / "midground-template.png"
@@ -2661,7 +3076,10 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
 
         image = envsys.Image.open(review).convert("RGBA")
         self.assertEqual(image.getpixel((800, 20))[:3], (220, 40, 40))
-        self.assertEqual(image.getpixel((400, 400))[:3], (20, 30, 40))
+        pixel = image.getpixel((400, 400))[:3]
+        self.assertLess(abs(pixel[0] - 20), 8)
+        self.assertLess(abs(pixel[1] - 30), 8)
+        self.assertLess(abs(pixel[2] - 40), 8)
 
     def test_composite_runtime_review_matches_runtime_floor_top_scaling(self):
         asset = self.root / "floor-top.png"
@@ -2798,9 +3216,37 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         envsys._composite_runtime_review_image(room, assets, review)
 
         image = envsys.Image.open(review).convert("RGBA")
-        self.assertEqual(image.getpixel((800, 500))[:3], (180, 40, 40))
+        self.assertGreater(image.getpixel((800, 500))[0], 120)
         self.assertNotEqual(image.getpixel((80, 500))[:3], (180, 40, 40))
         self.assertNotEqual(image.getpixel((800, 1120))[:3], (180, 40, 40))
+
+    def test_composite_runtime_review_clips_scenic_layers_to_room_opening(self):
+        room = {
+            "id": "R1",
+            "size": {"width": 1600, "height": 1200},
+            "polygon": [[160, 260], [900, 260], [900, 120], [1240, 120], [1240, 1080], [980, 1080], [980, 860], [160, 860]],
+            "platforms": [{"id": "R1-P1", "x": 192, "y": 1024, "len": 38}],
+        }
+        asset = self.root / "background-opening-mask.png"
+        review = self.root / "runtime-opening-mask.png"
+        envsys.Image.new("RGBA", (1600, 1200), (180, 40, 40, 255)).save(asset)
+        assets = {
+            "R1-background": {
+                "slot_id": "R1-background",
+                "component_type": "background_far_plate",
+                "slot_group": "background",
+                "url": f"/{asset.relative_to(envsys.ROOT).as_posix()}",
+                "placement": {"x": 800, "y": 1200, "display_width": 1600, "display_height": 1200, "origin_x": 0.5, "origin_y": 1},
+            },
+        }
+
+        envsys._composite_runtime_review_image(room, assets, review)
+
+        image = envsys.Image.open(review).convert("RGBA")
+        self.assertGreater(image.getpixel((500, 500))[0], 120)
+        self.assertGreater(image.getpixel((1080, 500))[0], 120)
+        self.assertNotEqual(image.getpixel((500, 180))[:3], (180, 40, 40))
+        self.assertNotEqual(image.getpixel((1080, 1120))[:3], (180, 40, 40))
 
     def test_composite_runtime_asset_scopes_room_shell_to_chamber_bounds(self):
         room = {
@@ -2824,6 +3270,84 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.assertEqual(sprite.size, (1280, 880))
         self.assertEqual((x, y), (160, 160))
         self.assertGreater(sprite.getpixel((sprite.size[0] // 2, sprite.size[1] // 2))[3], 240)
+
+    def test_composite_runtime_asset_applies_scenic_review_alpha(self):
+        room = {
+            "id": "R1",
+            "size": {"width": 1600, "height": 1200},
+            "polygon": [[160, 160], [1440, 160], [1440, 1040], [160, 1040]],
+            "platforms": [{"id": "R1-P1", "x": 192, "y": 1024, "len": 38}],
+        }
+        asset = self.root / "review-alpha-background.png"
+        envsys.Image.new("RGBA", (1600, 1200), (180, 40, 40, 255)).save(asset)
+        item = {
+            "slot_id": "R1-background",
+            "component_type": "background_far_plate",
+            "slot_group": "background",
+            "url": f"/{asset.relative_to(envsys.ROOT).as_posix()}",
+            "placement": {"x": 800, "y": 1200, "display_width": 1600, "display_height": 1200, "origin_x": 0.5, "origin_y": 1},
+        }
+        composed = envsys._composite_runtime_asset_sprite(item, asset, room)
+        self.assertIsNotNone(composed)
+        sprite, _origin = composed
+        self.assertLess(sprite.getpixel((sprite.size[0] // 2, sprite.size[1] // 2))[3], 255)
+        self.assertGreater(sprite.getpixel((sprite.size[0] // 2, sprite.size[1] // 2))[3], 150)
+
+    def test_composite_runtime_review_skips_helper_masonry_under_unified_shell(self):
+        room = {
+            "id": "R1",
+            "size": {"width": 1600, "height": 1200},
+            "polygon": [[160, 260], [900, 260], [900, 120], [1240, 120], [1240, 1080], [980, 1080], [980, 860], [160, 860]],
+            "platforms": [{"id": "R1-P1", "x": 192, "y": 1024, "len": 38}],
+        }
+        asset = self.root / "transparent-shell.png"
+        review = self.root / "runtime-shell-helper-dark.png"
+        envsys.Image.new("RGBA", (1080, 960), (0, 0, 0, 0)).save(asset)
+        assets = {
+            "R1-room-shell": {
+                "slot_id": "R1-room-shell",
+                "component_type": "room_shell_foreground",
+                "slot_group": "foreground",
+                "url": f"/{asset.relative_to(envsys.ROOT).as_posix()}",
+                "placement": {"x": 700, "y": 1080, "display_width": 1080, "display_height": 960, "origin_x": 0.5, "origin_y": 1},
+            },
+        }
+
+        envsys._composite_runtime_review_image(room, assets, review)
+
+        image = envsys.Image.open(review).convert("RGBA")
+        pixel = image.getpixel((320, 980))[:3]
+        self.assertLess(sum(pixel), 160)
+
+    def test_composite_runtime_review_can_skip_midground_when_disabled(self):
+        asset = self.root / "midground-disabled.png"
+        review = self.root / "runtime-midground-disabled.png"
+        envsys.Image.new("RGBA", (1600, 1200), (40, 220, 40, 255)).save(asset)
+        room = {
+            "id": "R1",
+            "polygon": [[0, 0], [1600, 0], [1600, 1200], [0, 1200]],
+            "global": {"x": 0, "y": 0},
+        }
+        assets = {
+            "R1-midground": {
+                "slot_id": "R1-midground",
+                "component_type": "midground_side_frame",
+                "slot_group": "midground",
+                "url": f"/{asset.relative_to(envsys.ROOT).as_posix()}",
+                "placement": {"x": 800, "y": 1200, "display_width": 1600, "display_height": 1200, "origin_x": 0.5, "origin_y": 1},
+            },
+        }
+
+        original = envsys.RUNTIME_REVIEW_DISABLE_MIDGROUND
+        envsys.RUNTIME_REVIEW_DISABLE_MIDGROUND = True
+        try:
+            envsys._composite_runtime_review_image(room, assets, review)
+        finally:
+            envsys.RUNTIME_REVIEW_DISABLE_MIDGROUND = original
+
+        image = envsys.Image.open(review).convert("RGBA")
+        pixel = image.getpixel((800, 500))[:3]
+        self.assertNotEqual(pixel, (40, 220, 40))
 
     def test_composite_runtime_review_matches_runtime_floor_face_band_height(self):
         asset = self.root / "floor-face.png"
@@ -2906,6 +3430,23 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         valid, errors = envsys._validate_bespoke_component(candidate, "background_far_plate", (160, 120), "opaque", template)
         self.assertFalse(valid)
         self.assertIn("background_shell_definition_low", errors)
+
+    def test_background_validation_flags_vertical_bar_artifacts(self):
+        template = self.root / "background-template-bars.png"
+        candidate = self.root / "background-candidate-bars.png"
+        sz = (1024, 768)
+        envsys.Image.new("RGBA", sz, (70, 80, 90, 255)).save(template)
+        image = envsys.Image.new("RGBA", sz, (78, 88, 96, 255))
+        draw = envsys.ImageDraw.Draw(image)
+        # Draw wide dark vertical bars aligned with detector probe centers
+        for cx_frac in [0.12, 0.20, 0.72, 0.80]:
+            cx = int(sz[0] * cx_frac)
+            draw.rectangle((cx - 20, 92, cx + 20, 691), fill=(0, 0, 0, 255))
+        image.save(candidate)
+
+        valid, errors = envsys._validate_bespoke_component(candidate, "background_far_plate", sz, "opaque", template)
+        self.assertFalse(valid)
+        self.assertIn("background_vertical_bar_artifacts", errors)
 
     def test_runtime_review_blocks_over_suppressed_shell_reads(self):
         review_root = self.projects_root / self.project_id / "room_environment_assets" / "R1" / "review"
@@ -3543,10 +4084,10 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
             ["shell_corner_gap_pre"],
             0,
         )
-        self.assertIn("continuous carved slab", ceiling_retry)
-        self.assertIn("fused masonry corner", corner_retry)
+        self.assertIn("continuous top band", ceiling_retry)
+        self.assertIn("fused shell corner", corner_retry)
         self.assertIn("remove heavy corner vignette shading", shadow_retry)
-        self.assertIn("reduce block scale", detail_retry)
+        self.assertIn("reduce large-unit scale", detail_retry)
         self.assertIn("fill the top ledge continuously", edge_gap_retry)
         self.assertIn("fill all border corners", corner_gap_retry)
 
