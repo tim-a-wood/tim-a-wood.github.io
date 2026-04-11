@@ -45,6 +45,10 @@
 <script>
 const bootDebugEl = document.getElementById('boot-debug');
 const RUNTIME_REVIEW_CAPTURE_MODE = /(?:[?#&])capture=runtime-review(?:[&#]|$)/.test(window.location.href);
+/* Temporary founder-approved isolation switch while we verify whether midground is contaminating shell reads. */
+const DISABLE_RUNTIME_MIDGROUND = true;
+/* Temporary founder-approved isolation switch while we remove runtime-only scenic/border contamination from unified-shell rooms. */
+const DISABLE_UNIFIED_SHELL_RUNTIME_OVERLAYS = true;
 function setPageBootState(message, state = 'info') {
     if (bootDebugEl) {
         bootDebugEl.textContent = message;
@@ -892,36 +896,66 @@ function getRoomPolygonBounds(roomId) {
     return { left: 0, right: fallbackWidth, top: 0, bottom: CONFIG.WORLD_HEIGHT };
 }
 
-/**
- * `room_shell_foreground` art is scaled to the chamber AABB; for notched / stepped footprints the frame
- * bleeds into void space. Clip the shell sprite to a thick stroke along the layout polygon so masonry
- * only appears near the real footprint edge (Phaser geometry mask; mask graphics stay hidden).
- */
-function applyUnifiedShellFootprintMask(scene, sprite, roomId, roomBounds) {
-    if (!scene || !sprite || !roomBounds) return;
+function getRoomPolygonWorldPoints(roomId, roomBounds) {
+    if (!roomBounds) return [];
     const room = getLayoutRoom(roomId);
     const poly = room?.polygon;
-    if (!Array.isArray(poly) || poly.length < 3) return;
+    if (!Array.isArray(poly) || poly.length < 3) return [];
     const roomStart = Number(roomBounds.start || 0);
-    const worldPts = poly.map((p) => {
+    return poly.map((p) => {
         const lx = Number(p?.[0]);
         const ly = Number(p?.[1]);
         if (!Number.isFinite(lx) || !Number.isFinite(ly)) return null;
         return { x: roomStart + lx, y: ly };
     }).filter(Boolean);
-    if (worldPts.length < 3) return;
-    const pb = getRoomPolygonBounds(roomId);
-    const cw = Math.max(1, Number(pb.right) - Number(pb.left));
-    const ch = Math.max(1, Number(pb.bottom) - Number(pb.top));
-    const thickness = Phaser.Math.Clamp(Math.round(Math.min(cw, ch) * 0.12), 64, 200);
+}
+
+function ensureRoomFootprintGeometryMask(scene, roomId, roomBounds, invertAlpha = false) {
+    if (!scene || !roomBounds) return null;
+    const maskType = invertAlpha ? 'outer-shell' : 'room-opening';
+    scene.roomEnvironmentFootprintMasks = scene.roomEnvironmentFootprintMasks || {};
+    const cached = scene.roomEnvironmentFootprintMasks?.[roomId]?.[maskType];
+    if (cached?.mask) return cached.mask;
+    const worldPts = getRoomPolygonWorldPoints(roomId, roomBounds);
+    if (worldPts.length < 3) return null;
     const maskG = scene.add.graphics();
-    maskG.lineStyle(thickness, 0xffffff, 1);
-    maskG.strokePoints(worldPts, true);
-    sprite.setMask(maskG.createGeometryMask());
+    maskG.fillStyle(0xffffff, 1);
+    maskG.beginPath();
+    maskG.moveTo(worldPts[0].x, worldPts[0].y);
+    for (let i = 1; i < worldPts.length; i += 1) {
+        maskG.lineTo(worldPts[i].x, worldPts[i].y);
+    }
+    maskG.closePath();
+    maskG.fillPath();
+    const mask = maskG.createGeometryMask();
+    if (mask && typeof mask === 'object' && 'invertAlpha' in mask) {
+        mask.invertAlpha = invertAlpha;
+    }
     maskG.setVisible(false);
+    scene.roomEnvironmentFootprintMasks[roomId] = scene.roomEnvironmentFootprintMasks[roomId] || {};
+    scene.roomEnvironmentFootprintMasks[roomId][maskType] = { mask, graphics: maskG };
+    scene.environmentDecor = scene.environmentDecor || [];
     if (Array.isArray(scene.environmentDecor)) {
         scene.environmentDecor.push(maskG);
     }
+    return mask;
+}
+
+function applyRoomInteriorFootprintMask(scene, sprite, roomId, roomBounds) {
+    if (!scene || !sprite || !roomBounds) return;
+    const mask = ensureRoomFootprintGeometryMask(scene, roomId, roomBounds, false);
+    if (mask) sprite.setMask(mask);
+}
+
+/**
+ * `room_shell_foreground` art is scaled to the chamber AABB; for notched / stepped footprints the frame
+ * bleeds into void space. Cut the authored polygon opening out of the shell sprite so shell mass
+ * only survives outside the real room perimeter.
+ */
+function applyUnifiedShellFootprintMask(scene, sprite, roomId, roomBounds) {
+    if (!scene || !sprite || !roomBounds) return;
+    const mask = ensureRoomFootprintGeometryMask(scene, roomId, roomBounds, true);
+    if (mask) sprite.setMask(mask);
 }
 
 /**
@@ -1518,9 +1552,9 @@ function getRoomEnvironmentRuntimeComposition(roomId) {
     const manifest = getRoomEnvironmentBespokeManifest(roomId);
     const hasBespokeManifest = Boolean(isPlayableRoomEnvironmentBespokeManifest(manifest));
     const backgroundAsset = hasBespokeManifest ? getRoomEnvironmentBespokeAsset(roomId, 'background_plate') : null;
-    const midgroundAsset = hasBespokeManifest ? getRoomEnvironmentBespokeAsset(roomId, 'midground_frame') : null;
+    const midgroundAsset = (!DISABLE_RUNTIME_MIDGROUND && hasBespokeManifest) ? getRoomEnvironmentBespokeAsset(roomId, 'midground_frame') : null;
     const backgroundPlan = hasBespokeManifest ? (getRoomEnvironmentBespokePlanEntry(roomId, 'background_far_plate') || getRoomEnvironmentBespokePlanEntry(roomId, 'background_plate')) : null;
-    const midgroundPlan = hasBespokeManifest ? (getRoomEnvironmentBespokePlanEntry(roomId, 'midground_side_frame') || getRoomEnvironmentBespokePlanEntry(roomId, 'midground_frame')) : null;
+    const midgroundPlan = (!DISABLE_RUNTIME_MIDGROUND && hasBespokeManifest) ? (getRoomEnvironmentBespokePlanEntry(roomId, 'midground_side_frame') || getRoomEnvironmentBespokePlanEntry(roomId, 'midground_frame')) : null;
     const midgroundZone = Array.isArray(midgroundPlan?.protected_zones)
         ? midgroundPlan.protected_zones.find((zone) => zone && Number(zone.width || 0) > 0)
         : null;
@@ -1602,6 +1636,7 @@ function resolveRoomDoorTexture(scene, roomId) {
 }
 
 function resolveRoomMidgroundTexture(scene, roomId) {
+    if (DISABLE_RUNTIME_MIDGROUND) return null;
     const bespoke = getRoomEnvironmentBespokeAsset(roomId, 'midground_frame');
     if (bespoke?.url && textureMatchesExpectedSize(scene, roomMidgroundAssetKey(roomId), 1600, 1200)) {
         return roomMidgroundAssetKey(roomId);
@@ -2576,9 +2611,10 @@ class AshenHollow extends Phaser.Scene {
             this.roomBackgroundSprites = {};
             this.roomMidgroundSprites = {};
             this.roomBackgroundFeatherSprites = {};
+            this.environmentDecor = [];
+            this.roomEnvironmentFootprintMasks = {};
             this.createRoomEnvironmentBackgrounds();
             this.trail = this.add.graphics();
-            this.environmentDecor = [];
             this.updateBootDebug(`BOOT: backgrounds bg=${Object.keys(this.roomBackgroundSprites).length} mid=${Object.keys(this.roomMidgroundSprites).length}`);
 
             this.platforms = this.physics.add.staticGroup();
@@ -2643,6 +2679,8 @@ class AshenHollow extends Phaser.Scene {
             const chamberWidth = Math.max(64, chamberRight - chamberLeft);
             const chamberHeight = Math.max(64, chamberBottom - chamberTop);
             const composition = getRoomEnvironmentRuntimeComposition(roomId);
+            const suppressBespokeFeathers = DISABLE_UNIFIED_SHELL_RUNTIME_OVERLAYS
+                && (composition.hasBespokeBackground || roomHasBespokeUnifiedShellForeground(roomId));
             const ceilingCapH = getRoomBespokeCeilingCapHeightForRuntime(this, roomId);
             const vaultHeight = ceilingCapH > 0 ? Math.max(64, chamberHeight - ceilingCapH) : chamberHeight;
             const textureKey = roomBackgroundAssetKey(roomId);
@@ -2653,19 +2691,20 @@ class AshenHollow extends Phaser.Scene {
                     .setDepth(-2)
                     .setVisible(false)
                     .setAlpha(RUNTIME_REVIEW_CAPTURE_MODE ? (composition.hasBespokeBackground ? 0.72 : 0.58) : (composition.hasBespokeBackground ? 0.4 : 0.5));
+                applyRoomInteriorFootprintMask(this, sprite, roomId, room);
                 this.roomBackgroundSprites[roomId] = sprite;
                 const feathers = [];
                 const leftFade = this.add.image(room.start + chamberLeft + 96, chamberTop + (chamberHeight / 2), 'fade-edge-left')
                     .setDisplaySize(Math.min(192, chamberWidth * 0.28), chamberHeight)
                     .setDepth(-1.92)
                     .setVisible(false)
-                    .setAlpha(RUNTIME_REVIEW_CAPTURE_MODE ? 0.28 : 0.92);
+                    .setAlpha(suppressBespokeFeathers ? 0 : (RUNTIME_REVIEW_CAPTURE_MODE ? 0.28 : 0.92));
                 feathers.push(leftFade);
                 const rightFade = this.add.image(room.start + chamberRight - 95, chamberTop + (chamberHeight / 2), 'fade-edge-right')
                     .setDisplaySize(Math.min(192, chamberWidth * 0.28), chamberHeight)
                     .setDepth(-1.92)
                     .setVisible(false)
-                    .setAlpha(RUNTIME_REVIEW_CAPTURE_MODE ? 0.28 : 0.92);
+                    .setAlpha(suppressBespokeFeathers ? 0 : (RUNTIME_REVIEW_CAPTURE_MODE ? 0.28 : 0.92));
                 feathers.push(rightFade);
                 /* Top feather fights bespoke ceiling slab (double band + seam); skip when a loaded ceiling owns the cap. */
                 if (!ceilingCapH) {
@@ -2673,15 +2712,16 @@ class AshenHollow extends Phaser.Scene {
                         .setDisplaySize(chamberWidth, Math.min(160, chamberHeight * 0.3))
                         .setDepth(-1.91)
                         .setVisible(false)
-                        .setAlpha(RUNTIME_REVIEW_CAPTURE_MODE ? 0.24 : 0.88);
+                        .setAlpha(suppressBespokeFeathers ? 0 : (RUNTIME_REVIEW_CAPTURE_MODE ? 0.24 : 0.88));
                     feathers.push(topFade);
                 }
                 const bottomFade = this.add.image(room.start + chamberLeft + (chamberWidth / 2), chamberBottom - 96, 'fade-edge-bottom')
                     .setDisplaySize(chamberWidth, Math.min(192, chamberHeight * 0.32))
                     .setDepth(-1.91)
                     .setVisible(false)
-                    .setAlpha(RUNTIME_REVIEW_CAPTURE_MODE ? 0.3 : 0.94);
+                    .setAlpha(suppressBespokeFeathers ? 0 : (RUNTIME_REVIEW_CAPTURE_MODE ? 0.3 : 0.94));
                 feathers.push(bottomFade);
+                feathers.forEach((feather) => applyRoomInteriorFootprintMask(this, feather, roomId, room));
                 this.roomBackgroundFeatherSprites[roomId] = feathers;
             }
             const midgroundKey = resolveRoomMidgroundTexture(this, roomId);
@@ -2706,6 +2746,7 @@ class AshenHollow extends Phaser.Scene {
                         .setDepth(-0.18)
                         .setVisible(false)
                         .setAlpha(RUNTIME_REVIEW_CAPTURE_MODE ? 0.62 : 0.52));
+                    sprites.forEach((midSprite) => applyRoomInteriorFootprintMask(this, midSprite, roomId, room));
                     this.roomMidgroundSprites[roomId] = sprites;
                 } else {
                     let mgSrcW = chamberWidth;
@@ -2727,6 +2768,7 @@ class AshenHollow extends Phaser.Scene {
                         .setDepth(composition.hasBespokeMidground ? -0.22 : -0.35)
                         .setVisible(false)
                         .setAlpha(RUNTIME_REVIEW_CAPTURE_MODE ? (composition.hasBespokeMidground ? 0.5 : 0.46) : (composition.hasBespokeMidground ? 0.24 : 0.34));
+                    applyRoomInteriorFootprintMask(this, sprite, roomId, room);
                     this.roomMidgroundSprites[roomId] = sprite;
                 }
             }
@@ -2910,14 +2952,17 @@ class AshenHollow extends Phaser.Scene {
         const oy = Number(pl.origin_y ?? 1);
         const localX = Number(pl.x != null ? pl.x : chamberLeft + chamberWidth * 0.5);
         const localY = Number(pl.y != null ? pl.y : chamberBottom);
-        /* Between midground side frames (~-0.18) and bespoke wall shell (0.17); one coherent chamber shell. */
-        const depth = RUNTIME_REVIEW_CAPTURE_MODE ? 0.1 : 0.12;
+        /* Normal play: between midground (~-0.18) and modular wall shell (0.17). Runtime review capture:
+         * keep shell above platform ledges / floor-face accents (0.05–0.11) so QA screenshots do not read as
+         * an incomplete frame; stay below door frames (0.18) so thresholds remain in front. */
+        const depth = RUNTIME_REVIEW_CAPTURE_MODE ? 0.16 : 0.12;
         const sprite = this.add.image(roomBounds.start + localX, localY, `env-bespoke-${asset.slot_id}`)
             .setOrigin(ox, oy)
             .setDisplaySize(dw, dh)
             .setDepth(depth)
             .setAlpha(RUNTIME_REVIEW_CAPTURE_MODE ? 1 : 0.98);
         this.environmentDecor.push(sprite);
+        // Unified shell art uses the room perimeter as the shell's inner edge; deterministically clear the opening.
         applyUnifiedShellFootprintMask(this, sprite, roomId, roomBounds);
         return true;
     }
@@ -3299,6 +3344,7 @@ class AshenHollow extends Phaser.Scene {
                 this.environmentDecor.push(g);
             };
             const addShellOverlays = () => {
+                if (DISABLE_UNIFIED_SHELL_RUNTIME_OVERLAYS && roomHasBespokeUnifiedShellForeground(roomId)) return;
                 const style = deriveRoomEnvironmentRuntimeStyle(roomId);
                 if (style.wallFamily !== 'broken_gothic_stone' && !style.fracturedStone) return;
                 addGraphicsLayer((g) => {
@@ -3608,6 +3654,7 @@ class AshenHollow extends Phaser.Scene {
         ROOM_SEQUENCE.forEach((roomId) => {
             const roomBounds = ROOM_IDS[roomId];
             const room = getLayoutRoom(roomId);
+            const hasUnifiedShell = roomHasBespokeUnifiedShellForeground(roomId);
             const roomWidth = roomBounds?.width || getRoomWidth(roomId);
             const polygonBounds = getRoomPolygonBounds(roomId);
             const { top: roomTop } = getRoomVerticalBounds(roomId);
@@ -3619,7 +3666,7 @@ class AshenHollow extends Phaser.Scene {
             let shellFloorTileCenterY = layoutFloorTileCenterY;
             if (!roomBounds || roomWidth <= 0) return;
             const floorTextureKey = resolveRoomSurfaceTexture(this, roomId, 'floor');
-            if (!primaryFloorPlatform) {
+            if (!primaryFloorPlatform && !hasUnifiedShell) {
                 const floorRowCenterY = layoutFloorTileCenterY;
                 for (let localX = 0; localX < roomWidth; localX += tile) {
                     const centerX = localX + 16;
@@ -3630,7 +3677,7 @@ class AshenHollow extends Phaser.Scene {
                 this.addRoomFloorCapDecor(roomId, roomBounds.start, floorRowCenterY, roomWidth, 22);
             }
             const platforms = Array.isArray(room?.platforms) ? room.platforms : [];
-            if (primaryFloorPlatform) {
+            if (primaryFloorPlatform && !hasUnifiedShell) {
                 const chamberLeft = Number(polygonBounds.left || 0);
                 const chamberRight = Number(polygonBounds.right || roomBounds.width);
                 const surfaceBleed = Number(CONFIG.CAMERA_CHAMBER_SIDE_BLEED_PX) || Number(CONFIG.CAMERA_CHAMBER_SURFACE_BLEED_PX) || 32;
@@ -3683,6 +3730,8 @@ class AshenHollow extends Phaser.Scene {
                         faceMergeSpan
                     );
                 });
+            } else if (primaryFloorPlatform) {
+                shellFloorTileCenterY = layoutFloorTileCenterY;
             }
             // Do not add a second "underfloor" band + cap when !primaryFloorPlatform: the world floor row + cap
             // already fills the bottom; the old else branch stacked a second cap ~50px higher and caused a dark seam.
@@ -3701,9 +3750,8 @@ class AshenHollow extends Phaser.Scene {
                 floorTileCenterY: primaryFloorPlatform ? shellFloorTileCenterY : null,
                 chamberBounds: polygonBounds
             };
-            if (roomHasBespokeUnifiedShellForeground(roomId) && this.addRoomBespokeUnifiedShellForegroundDecor(roomId, shellSupport)) {
+            if (hasUnifiedShell && this.addRoomBespokeUnifiedShellForegroundDecor(roomId, shellSupport)) {
                 /* Unified shell carries wall + ceiling + primary floor read; skip modular wall modules and trims. */
-                this.addRoomBespokeShellInteriorSideColliders(roomId, shellSupport, tile, shellFloorTileCenterY);
             } else if (!this.addRoomBespokeWallShellDecor(roomId, shellSupport)) {
                 if (!roomHasPolygonWallTileRects(roomId)) {
                     if (leftMassWidth >= 24) {

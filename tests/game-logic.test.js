@@ -1046,22 +1046,21 @@ function simulateSequenceAttempt(order) {
     );
 })();
 
-(function testIndexUnifiedShellInteriorSideColliders() {
+(function testIndexUnifiedShellUsesAuthoredPerimeterInsteadOfInteriorWorkarounds() {
     const fs = require('fs');
     const path = require('path');
     const htmlPath = path.join(__dirname, '../index.html');
     if (!fs.existsSync(htmlPath)) return;
     const html = fs.readFileSync(htmlPath, 'utf8');
     assert.ok(
-        html.includes('addRoomBespokeShellInteriorSideColliders')
-            && html.includes('mask bleed')
-            && html.includes('SHELL_UNIFIED_SIDE_COLLIDER_SIDE_PX')
-            && html.includes('setDisplaySize(lipPx, bodyH)')
-            && html.includes('addRoomBespokeUnifiedShellForegroundDecor(roomId, shellSupport)')
+        html.includes('addRoomBespokeUnifiedShellForegroundDecor(roomId, shellSupport)')
+            && html.includes("room perimeter as the shell's inner edge")
             && html.includes('applyUnifiedShellFootprintMask(this, sprite, roomId, roomBounds)')
-            && html.includes('strokePoints(worldPts, true)')
-            && html.includes('this.addRoomBespokeShellInteriorSideColliders(roomId, shellSupport, tile, shellFloorTileCenterY)'),
-        'unified bespoke shell should add interior side physics strips sized from shell display width + atlas border ratio'
+            && html.includes('ensureRoomFootprintGeometryMask(scene, roomId, roomBounds, true)')
+            && html.includes('maskG.fillPath()')
+            && html.includes('mask.invertAlpha = invertAlpha')
+            && !html.includes('strokePoints(worldPts, true)'),
+        'unified bespoke shell runtime should cut the room opening out of the shell instead of using a centered stroke mask'
     );
 })();
 
