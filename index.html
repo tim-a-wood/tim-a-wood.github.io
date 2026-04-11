@@ -1494,6 +1494,33 @@ function getRoomEnvironmentBespokePlanEntry(roomId, componentType) {
     return manifest.generation_plan.find((item) => item && item.component_type === componentType) || null;
 }
 
+/**
+ * UNIFIED_SHELL_PLACEMENT_CHAMBER_BBOX — place the unified shell so its outer frame matches the runtime
+ * polygon axis-aligned bounds: display size = chamber bbox in room px (Phaser stretches texture to fit).
+ * Position uses placement origins only; ignores stale placement x/y/display_width/display_height so the
+ * shell opening tracks layout edits and stays aligned with the footprint perimeter contract.
+ */
+function computeUnifiedShellWorldPlacement(asset, support) {
+    const pl = asset.placement || {};
+    const poly = support.chamberBounds;
+    const roomBounds = support.roomBounds;
+
+    const ox = Phaser.Math.Clamp(Number(pl.origin_x ?? 0.5), 0, 1);
+    const oy = Phaser.Math.Clamp(Number(pl.origin_y ?? 1), 0, 1);
+
+    const curLeft = Number(poly.left || 0);
+    const curRight = Number(poly.right || roomBounds.width);
+    const curTop = Number(poly.top || 0);
+    const curBottom = Number(poly.bottom || CONFIG.WORLD_HEIGHT);
+    const dw = Math.max(1, Math.round(curRight - curLeft));
+    const dh = Math.max(1, Math.round(curBottom - curTop));
+
+    const localX = curLeft + ox * dw;
+    const localY = curTop + oy * dh;
+
+    return { dw, dh, ox, oy, localX, localY };
+}
+
 function getRoomEnvironmentBespokeHeroPlatformAsset(roomId, platform) {
     if (!ENABLE_BESPOKE_ROOM_RUNTIME) return null;
     const manifest = getRoomEnvironmentBespokeManifest(roomId);
@@ -2928,19 +2955,7 @@ class AshenHollow extends Phaser.Scene {
         const asset = getRoomEnvironmentBespokeAsset(roomId, 'room_shell_foreground');
         if (!asset?.url || !this.textures.exists(`env-bespoke-${asset.slot_id}`)) return false;
         const roomBounds = support.roomBounds;
-        const poly = support.chamberBounds;
-        const chamberLeft = Number(poly.left || 0);
-        const chamberRight = Number(poly.right || roomBounds.width);
-        const chamberBottom = Number(poly.bottom || CONFIG.WORLD_HEIGHT);
-        const chamberWidth = Math.max(64, chamberRight - chamberLeft);
-        const chamberHeight = Math.max(64, Number(poly.bottom || 0) - Number(poly.top || 0));
-        const pl = asset.placement || {};
-        const dw = Math.max(1, Number(pl.display_width || asset.final_dimensions?.width || chamberWidth));
-        const dh = Math.max(1, Number(pl.display_height || asset.final_dimensions?.height || chamberHeight));
-        const ox = Number(pl.origin_x ?? 0.5);
-        const oy = Number(pl.origin_y ?? 1);
-        const localX = Number(pl.x != null ? pl.x : chamberLeft + chamberWidth * 0.5);
-        const localY = Number(pl.y != null ? pl.y : chamberBottom);
+        const { dw, dh, ox, oy, localX, localY } = computeUnifiedShellWorldPlacement(asset, support);
         /* Above midground (~-0.18) and platform ledges / floor-face accents (~0.05–0.11); below door
          * frames (0.18). Same in play and runtime-review capture so workbench playtest matches the
          * saved runtime-review.png. Opening read comes from shell PNG alpha, not a polygon mask (mask
