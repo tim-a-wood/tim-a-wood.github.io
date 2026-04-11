@@ -137,3 +137,5 @@ Update 2026-04-10: **Art bible v0.3.1 — per-biome wall/platform textures** —
 Update 2026-04-09 (later): **Map MVP plan — expert subagents + research evidence** — `prompts/project_plan.md`: added “Execution standard — expert subagents, training, research, and evidence” (Development/QA ownership, subagent selection table, pre-flight research, evidence pack). No product code changed. Ran `node --test tests/game-logic.test.js` (Pass). AT-01+ not re-run.
 
 Update 2026-04-09 (later): **Handover doc** — `docs/handover-map-mvp-subagent-research-evidence.md` (same execution standard + git ref `a65710bb`); `prompts/project_plan.md` links to handover. No product code changed. Ran `node --test tests/game-logic.test.js` (Pass). AT-01+ not re-run.
+
+Update 2026-04-10: **Intense dev orchestration** — Added `docs/skills/intense-dev-orchestration.md` (canonical multi-agent workflow for Cursor / Claude / Codex entry skills). Documentation only; automated test suites and AT-01+ not re-run.
