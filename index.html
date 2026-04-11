@@ -951,9 +951,16 @@ function applyRoomInteriorFootprintMask(scene, sprite, roomId, roomBounds) {
  * `room_shell_foreground` art is scaled to the chamber AABB; for notched / stepped footprints the frame
  * bleeds into void space. Cut the authored polygon opening out of the shell sprite so shell mass
  * only survives outside the real room perimeter.
+ *
+ * Runtime review capture: skip polygon mask on unified shell — the QA screenshot must reflect the
+ * saved shell PNG. Even small footprint-vs-art mismatches on L-shaped rooms make the mask read as
+ * a “broken” or incomplete frame; play mode still applies the mask below.
  */
 function applyUnifiedShellFootprintMask(scene, sprite, roomId, roomBounds) {
     if (!scene || !sprite || !roomBounds) return;
+    if (RUNTIME_REVIEW_CAPTURE_MODE) {
+        return;
+    }
     const mask = ensureRoomFootprintGeometryMask(scene, roomId, roomBounds, true);
     if (mask) sprite.setMask(mask);
 }

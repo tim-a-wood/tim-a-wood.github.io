@@ -1056,11 +1056,13 @@ function simulateSequenceAttempt(order) {
         html.includes('addRoomBespokeUnifiedShellForegroundDecor(roomId, shellSupport)')
             && html.includes("room perimeter as the shell's inner edge")
             && html.includes('applyUnifiedShellFootprintMask(this, sprite, roomId, roomBounds)')
+            && html.includes('Runtime review capture: skip polygon mask on unified shell')
+            && html.includes('if (RUNTIME_REVIEW_CAPTURE_MODE)') && html.includes('function applyUnifiedShellFootprintMask')
             && html.includes('ensureRoomFootprintGeometryMask(scene, roomId, roomBounds, true)')
             && html.includes('maskG.fillPath()')
             && html.includes('mask.invertAlpha = invertAlpha')
             && !html.includes('strokePoints(worldPts, true)'),
-        'unified bespoke shell runtime should cut the room opening out of the shell instead of using a centered stroke mask'
+        'unified bespoke shell should use footprint mask in play mode and skip it for runtime-review capture'
     );
 })();
 
