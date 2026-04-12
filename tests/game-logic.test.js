@@ -1046,7 +1046,7 @@ function simulateSequenceAttempt(order) {
     );
 })();
 
-(function testIndexUnifiedShellUsesInvertedPolygonMaskForParity() {
+(function testIndexUnifiedShellUsesPremaskedTexture() {
     const fs = require('fs');
     const path = require('path');
     const htmlPath = path.join(__dirname, '../index.html');
@@ -1058,11 +1058,11 @@ function simulateSequenceAttempt(order) {
             && html.includes('UNIFIED_SHELL_PLACEMENT_CHAMBER_BBOX')
             && html.includes('computeUnifiedShellWorldPlacement(asset, support)')
             && html.includes('const localX = curLeft + ox * dw')
-            && html.includes('SHELL_FOOTPRINT_MASK')
-            && html.includes('ensureRoomFootprintGeometryMask(this, roomId, roomBounds, true)')
-            && !html.includes('getUnifiedShellOpeningCentroidTexture')
-            && !html.includes('strokePoints(worldPts, true)'),
-        'unified shell uses inverted-alpha polygon mask for pixel-accurate alignment (§202)'
+            && html.includes('SHELL_TEXTURE_PREMASK')
+            && html.includes('getOrCreatePremaskedShellTexture')
+            && html.includes('destination-out')
+            && !html.includes('getUnifiedShellOpeningCentroidTexture'),
+        'unified shell uses canvas-premasked texture for polygon-accurate opening (§202b)'
     );
 })();
 

@@ -1495,10 +1495,57 @@ function getRoomEnvironmentBespokePlanEntry(roomId, componentType) {
 }
 
 /**
+ * SHELL_TEXTURE_PREMASK (§202b) — punch out the polygon interior from the shell texture using Canvas 2D
+ * compositing so the shell inner edge matches the footprint exactly. Bypasses Phaser GeometryMask
+ * invertAlpha (stencil flicker in some WebGL paths). Result cached as `env-bespoke-{slotId}-masked`.
+ */
+function getOrCreatePremaskedShellTexture(scene, slotId, roomId) {
+    const baseKey = `env-bespoke-${slotId}`;
+    const maskedKey = `${baseKey}-masked`;
+    if (scene.textures.exists(maskedKey)) return maskedKey;
+    if (!scene.textures.exists(baseKey)) return baseKey;
+    const room = getLayoutRoom(roomId);
+    const poly = room?.polygon;
+    if (!Array.isArray(poly) || poly.length < 3) return baseKey;
+    const bounds = getRoomPolygonBounds(roomId);
+    const cL = bounds.left;
+    const cT = bounds.top;
+    const cW = Math.max(1, bounds.right - cL);
+    const cH = Math.max(1, bounds.bottom - cT);
+    try {
+        const src = scene.textures.get(baseKey).getSourceImage();
+        const w = Number(src?.naturalWidth || src?.width || 0);
+        const h = Number(src?.naturalHeight || src?.height || 0);
+        if (!w || !h) return baseKey;
+        const cvs = document.createElement('canvas');
+        cvs.width = w;
+        cvs.height = h;
+        const ctx = cvs.getContext('2d');
+        ctx.drawImage(src, 0, 0);
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.fillStyle = 'rgba(0,0,0,1)';
+        ctx.beginPath();
+        const sx = w / cW;
+        const sy = h / cH;
+        poly.forEach((p, i) => {
+            const tx = (Number(p[0]) - cL) * sx;
+            const ty = (Number(p[1]) - cT) * sy;
+            if (i === 0) ctx.moveTo(tx, ty);
+            else ctx.lineTo(tx, ty);
+        });
+        ctx.closePath();
+        ctx.fill();
+        scene.textures.addCanvas(maskedKey, cvs);
+        return maskedKey;
+    } catch (_) {
+        return baseKey;
+    }
+}
+
+/**
  * UNIFIED_SHELL_PLACEMENT_CHAMBER_BBOX — display size = chamber polygon AABB; position from placement
- * origins. The inverted-alpha polygon mask (§202) enforces pixel-accurate alignment between the shell
- * inner edge and the footprint perimeter — the shell PNG opening need not match the polygon exactly
- * because the mask clips any shell mass that bleeds into the walkable interior.
+ * origins. Shell texture is pre-masked (§202b) so the polygon interior is transparent regardless of
+ * where the AI placed the opening in the original PNG.
  */
 function computeUnifiedShellWorldPlacement(asset, support) {
     const pl = asset.placement || {};
@@ -2956,16 +3003,15 @@ class AshenHollow extends Phaser.Scene {
         if (!asset?.url || !this.textures.exists(`env-bespoke-${asset.slot_id}`)) return false;
         const roomBounds = support.roomBounds;
         const { dw, dh, ox, oy, localX, localY } = computeUnifiedShellWorldPlacement(asset, support);
+        /* SHELL_TEXTURE_PREMASK (§202b): polygon interior punched out via Canvas 2D destination-out
+         * before Phaser sees the texture. No GeometryMask needed — opening is baked into the texture. */
+        const textureKey = getOrCreatePremaskedShellTexture(this, asset.slot_id, roomId);
         const depth = 0.16;
-        const sprite = this.add.image(roomBounds.start + localX, localY, `env-bespoke-${asset.slot_id}`)
+        const sprite = this.add.image(roomBounds.start + localX, localY, textureKey)
             .setOrigin(ox, oy)
             .setDisplaySize(dw, dh)
             .setDepth(depth)
             .setAlpha(RUNTIME_REVIEW_CAPTURE_MODE ? 1 : 0.98);
-        /* SHELL_FOOTPRINT_MASK (§202): inverted-alpha polygon mask clips any shell mass that bleeds
-         * into the walkable interior. Applied in both play and capture for parity. */
-        const shellMask = ensureRoomFootprintGeometryMask(this, roomId, roomBounds, true);
-        if (shellMask) sprite.setMask(shellMask);
         this.environmentDecor.push(sprite);
         return true;
     }
