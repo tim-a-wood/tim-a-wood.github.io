@@ -1061,8 +1061,25 @@ function simulateSequenceAttempt(order) {
             && html.includes('SHELL_TEXTURE_PREMASK')
             && html.includes('getOrCreatePremaskedShellTexture')
             && html.includes('destination-out')
+            && html.includes('MINIMAL_BESPOKE_COMPOSITOR')
+            && html.includes('minimalBespokeCompositor=1')
             && !html.includes('getUnifiedShellOpeningCentroidTexture'),
-        'unified shell uses canvas-premasked texture for polygon-accurate opening (§202b)'
+        'unified shell supports §202b premask by default and optional minimal compositor (§204)'
+    );
+})();
+
+(function testIndexMinimalBespokeCompositorSkipsFeathersAndBranchesShellTexture() {
+    const fs = require('fs');
+    const path = require('path');
+    const htmlPath = path.join(__dirname, '../index.html');
+    if (!fs.existsSync(htmlPath)) return;
+    const html = fs.readFileSync(htmlPath, 'utf8');
+    assert.ok(
+        html.includes('minimalBespokeStack')
+            && html.includes('this.roomBackgroundFeatherSprites[roomId] = [];')
+            && html.includes('const baseTexKey = `env-bespoke-${asset.slot_id}`')
+            && html.includes('MINIMAL_BESPOKE_COMPOSITOR && this.textures.exists(baseTexKey)'),
+        'minimal bespoke stack should skip feather sprites and branch unified shell texture (§204)'
     );
 })();
 

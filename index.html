@@ -49,6 +49,13 @@ const RUNTIME_REVIEW_CAPTURE_MODE = /(?:[?#&])capture=runtime-review(?:[&#]|$)/.
 const DISABLE_RUNTIME_MIDGROUND = true;
 /* Temporary founder-approved isolation switch while we remove runtime-only scenic/border contamination from unified-shell rooms. */
 const DISABLE_UNIFIED_SHELL_RUNTIME_OVERLAYS = true;
+/**
+ * Minimal bespoke compositor (opt-in): footprint mask on background only; skip feather stack; unified shell uses raw PNG (no Canvas premask).
+ * Enable: append ?minimalBespokeCompositor=1 or set window.__MV_MINIMAL_BESPOKE_COMPOSITOR = true before Phaser boots.
+ * Plan: docs/plans/room-bespoke-compositor-minimal.md
+ */
+const MINIMAL_BESPOKE_COMPOSITOR = /(?:[?#&])minimalBespokeCompositor=1(?:[&#]|$)/.test(window.location.href)
+    || (typeof window.__MV_MINIMAL_BESPOKE_COMPOSITOR === 'boolean' && window.__MV_MINIMAL_BESPOKE_COMPOSITOR);
 function setPageBootState(message, state = 'info') {
     if (bootDebugEl) {
         bootDebugEl.textContent = message;
@@ -2744,6 +2751,8 @@ class AshenHollow extends Phaser.Scene {
             const composition = getRoomEnvironmentRuntimeComposition(roomId);
             const suppressBespokeFeathers = DISABLE_UNIFIED_SHELL_RUNTIME_OVERLAYS
                 && (composition.hasBespokeBackground || roomHasBespokeUnifiedShellForeground(roomId));
+            const minimalBespokeStack = MINIMAL_BESPOKE_COMPOSITOR
+                && (composition.hasBespokeBackground || roomHasBespokeUnifiedShellForeground(roomId));
             const ceilingCapH = getRoomBespokeCeilingCapHeightForRuntime(this, roomId);
             const vaultHeight = ceilingCapH > 0 ? Math.max(64, chamberHeight - ceilingCapH) : chamberHeight;
             const textureKey = roomBackgroundAssetKey(roomId);
@@ -2756,36 +2765,40 @@ class AshenHollow extends Phaser.Scene {
                     .setAlpha(RUNTIME_REVIEW_CAPTURE_MODE ? (composition.hasBespokeBackground ? 0.72 : 0.58) : (composition.hasBespokeBackground ? 0.4 : 0.5));
                 applyRoomInteriorFootprintMask(this, sprite, roomId, room);
                 this.roomBackgroundSprites[roomId] = sprite;
-                const feathers = [];
-                const leftFade = this.add.image(room.start + chamberLeft + 96, chamberTop + (chamberHeight / 2), 'fade-edge-left')
-                    .setDisplaySize(Math.min(192, chamberWidth * 0.28), chamberHeight)
-                    .setDepth(-1.92)
-                    .setVisible(false)
-                    .setAlpha(suppressBespokeFeathers ? 0 : (RUNTIME_REVIEW_CAPTURE_MODE ? 0.28 : 0.92));
-                feathers.push(leftFade);
-                const rightFade = this.add.image(room.start + chamberRight - 95, chamberTop + (chamberHeight / 2), 'fade-edge-right')
-                    .setDisplaySize(Math.min(192, chamberWidth * 0.28), chamberHeight)
-                    .setDepth(-1.92)
-                    .setVisible(false)
-                    .setAlpha(suppressBespokeFeathers ? 0 : (RUNTIME_REVIEW_CAPTURE_MODE ? 0.28 : 0.92));
-                feathers.push(rightFade);
-                /* Top feather fights bespoke ceiling slab (double band + seam); skip when a loaded ceiling owns the cap. */
-                if (!ceilingCapH) {
-                    const topFade = this.add.image(room.start + chamberLeft + (chamberWidth / 2), chamberTop + 80, 'fade-edge-top')
-                        .setDisplaySize(chamberWidth, Math.min(160, chamberHeight * 0.3))
+                if (minimalBespokeStack) {
+                    this.roomBackgroundFeatherSprites[roomId] = [];
+                } else {
+                    const feathers = [];
+                    const leftFade = this.add.image(room.start + chamberLeft + 96, chamberTop + (chamberHeight / 2), 'fade-edge-left')
+                        .setDisplaySize(Math.min(192, chamberWidth * 0.28), chamberHeight)
+                        .setDepth(-1.92)
+                        .setVisible(false)
+                        .setAlpha(suppressBespokeFeathers ? 0 : (RUNTIME_REVIEW_CAPTURE_MODE ? 0.28 : 0.92));
+                    feathers.push(leftFade);
+                    const rightFade = this.add.image(room.start + chamberRight - 95, chamberTop + (chamberHeight / 2), 'fade-edge-right')
+                        .setDisplaySize(Math.min(192, chamberWidth * 0.28), chamberHeight)
+                        .setDepth(-1.92)
+                        .setVisible(false)
+                        .setAlpha(suppressBespokeFeathers ? 0 : (RUNTIME_REVIEW_CAPTURE_MODE ? 0.28 : 0.92));
+                    feathers.push(rightFade);
+                    /* Top feather fights bespoke ceiling slab (double band + seam); skip when a loaded ceiling owns the cap. */
+                    if (!ceilingCapH) {
+                        const topFade = this.add.image(room.start + chamberLeft + (chamberWidth / 2), chamberTop + 80, 'fade-edge-top')
+                            .setDisplaySize(chamberWidth, Math.min(160, chamberHeight * 0.3))
+                            .setDepth(-1.91)
+                            .setVisible(false)
+                            .setAlpha(suppressBespokeFeathers ? 0 : (RUNTIME_REVIEW_CAPTURE_MODE ? 0.24 : 0.88));
+                        feathers.push(topFade);
+                    }
+                    const bottomFade = this.add.image(room.start + chamberLeft + (chamberWidth / 2), chamberBottom - 96, 'fade-edge-bottom')
+                        .setDisplaySize(chamberWidth, Math.min(192, chamberHeight * 0.32))
                         .setDepth(-1.91)
                         .setVisible(false)
-                        .setAlpha(suppressBespokeFeathers ? 0 : (RUNTIME_REVIEW_CAPTURE_MODE ? 0.24 : 0.88));
-                    feathers.push(topFade);
+                        .setAlpha(suppressBespokeFeathers ? 0 : (RUNTIME_REVIEW_CAPTURE_MODE ? 0.3 : 0.94));
+                    feathers.push(bottomFade);
+                    feathers.forEach((feather) => applyRoomInteriorFootprintMask(this, feather, roomId, room));
+                    this.roomBackgroundFeatherSprites[roomId] = feathers;
                 }
-                const bottomFade = this.add.image(room.start + chamberLeft + (chamberWidth / 2), chamberBottom - 96, 'fade-edge-bottom')
-                    .setDisplaySize(chamberWidth, Math.min(192, chamberHeight * 0.32))
-                    .setDepth(-1.91)
-                    .setVisible(false)
-                    .setAlpha(suppressBespokeFeathers ? 0 : (RUNTIME_REVIEW_CAPTURE_MODE ? 0.3 : 0.94));
-                feathers.push(bottomFade);
-                feathers.forEach((feather) => applyRoomInteriorFootprintMask(this, feather, roomId, room));
-                this.roomBackgroundFeatherSprites[roomId] = feathers;
             }
             const midgroundKey = resolveRoomMidgroundTexture(this, roomId);
             if (room && midgroundKey) {
@@ -3003,9 +3016,11 @@ class AshenHollow extends Phaser.Scene {
         if (!asset?.url || !this.textures.exists(`env-bespoke-${asset.slot_id}`)) return false;
         const roomBounds = support.roomBounds;
         const { dw, dh, ox, oy, localX, localY } = computeUnifiedShellWorldPlacement(asset, support);
-        /* SHELL_TEXTURE_PREMASK (§202b): polygon interior punched out via Canvas 2D destination-out
-         * before Phaser sees the texture. No GeometryMask needed — opening is baked into the texture. */
-        const textureKey = getOrCreatePremaskedShellTexture(this, asset.slot_id, roomId);
+        const baseTexKey = `env-bespoke-${asset.slot_id}`;
+        /* Minimal stack: trust PNG alpha; no Canvas premask. Default: §202b premask for polygon-accurate opening. */
+        const textureKey = (MINIMAL_BESPOKE_COMPOSITOR && this.textures.exists(baseTexKey))
+            ? baseTexKey
+            : getOrCreatePremaskedShellTexture(this, asset.slot_id, roomId);
         const depth = 0.16;
         const sprite = this.add.image(roomBounds.start + localX, localY, textureKey)
             .setOrigin(ox, oy)
