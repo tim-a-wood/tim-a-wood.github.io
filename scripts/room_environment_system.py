@@ -2375,15 +2375,15 @@ COMPONENT_SCHEMA_DEFAULTS: Dict[str, Dict[str, Any]] = {
         "left_right_edge_rules": "rim edges remain crisp and symmetrical enough to read jumps",
     },
     "background": {
-        "material_family": "far-depth architectural stone shell",
-        "silhouette_rules": ["enclosing hall shell", "open center lane", "far-depth columns and arches only"],
+        "material_family": "far-depth architectural stone interior",
+        "silhouette_rules": ["interior depth only", "open center lane", "far-depth columns and arches only"],
         "detail_density": "medium",
         "value_contrast": "muted far-depth values with softened center",
         "damage_profile": "aged architecture without focal props",
-        "readability_constraints": ["must read as enclosing room shell", "center lane stays calm and open"],
-        "negative_constraints": ["no altar", "no brazier", "no center dais", "no near framing"],
+        "readability_constraints": ["must stay subordinate to the shell layer", "center lane stays calm and open"],
+        "negative_constraints": ["no altar", "no brazier", "no center dais", "no near framing", "no duplicate perimeter shell"],
         "variation_rules": ["vary arch spacing and recess depth", "keep the middle quiet across variants"],
-        "enclosure_architecture": "rear wall, side walls, arches, and pillars read as one hall shell",
+        "enclosure_architecture": "rear wall depth, side recesses, arches, and pillars read inside the opening only",
         "center_openness": "fully open and calm center lane",
         "far_depth_layers": "at least two depth bands of architecture",
         "focal_suppression": "explicitly suppress altar, brazier, shrine, and dais imagery",
@@ -5477,8 +5477,9 @@ def _build_biome_template_prompt(component_type: str, direction: Dict[str, Any],
     role: str
     if component_type == "background_plate":
         role = (
-            "Full-room background plate: distant enclosing architecture, far depth, muted values, and obvious room-shell rhythm. "
-            "Build a side-view medieval castle / dungeon hall with dark side masses, repeating bays or buttresses, and a dim central recess. "
+            "Full-room background plate: far interior depth only, muted values, and calm atmospheric perspective behind gameplay. "
+            "Build a side-view medieval castle / dungeon interior with distant arches, rear wall depth, and subordinate side recesses. "
+            "Do not paint a perimeter shell, border frame, heavy rim band, or postcard surround; the room shell is a separate layer. "
             "No bright floor pool, no glowing apse, no ritual circle, and no scenic key-art focal composition."
         )
     elif component_type == "background_far_piece":
@@ -6280,7 +6281,7 @@ def _room_component_plan(room: Dict[str, Any], preview_id: str, biome_pack: Dict
             "placement": {"x": int(width / 2), "y": height, "display_width": width, "display_height": height, "origin_x": 0.5, "origin_y": 1},
             "orientation": "full",
             "tile_mode": slot_spec["tile_mode"],
-            "border_treatment": "full_frame",
+            "border_treatment": "interior_depth",
             "slot_group": slot_spec["slot_group"],
             "protected_zones": [{"type": "center_lane", "x": int(width * 0.25), "y": 0, "width": int(width * 0.5), "height": height}],
             "local_geometry": {"room_width": width, "room_height": height},
@@ -7444,15 +7445,20 @@ def _structural_slot_reference_guide(
         draw.rectangle((0, 0, width, max(10, int(height * 0.18))), fill=accent_fill)
         draw.rectangle((0, height - max(10, int(height * 0.2)), width, height), fill=dark_fill)
     elif component_type == "background_far_plate":
-        draw.rectangle((0, 0, width, height), fill=(34, 42, 50, 255))
-        side = max(64, int(width * 0.2))
-        draw.rectangle((0, 0, side, height), fill=(24, 30, 36, 255))
-        draw.rectangle((width - side, 0, width, height), fill=(24, 30, 36, 255))
-        center_left = int(width * (0.28 if aggressive else 0.3))
-        center_right = int(width * (0.72 if aggressive else 0.7))
-        center_top = int(height * 0.1)
-        center_bottom = int(height * 0.92)
-        draw.rounded_rectangle((center_left, center_top, center_right, center_bottom), radius=max(24, int(width * 0.06)), fill=(56, 66, 74, 255))
+        draw.rectangle((0, 0, width, height), fill=(30, 38, 46, 255))
+        top_h = max(28, int(height * 0.16))
+        floor_h = max(34, int(height * 0.2))
+        side_w = max(40, int(width * 0.11))
+        draw.rectangle((0, 0, width, top_h), fill=(40, 48, 56, 255))
+        draw.rectangle((0, height - floor_h, width, height), fill=(26, 32, 38, 255))
+        draw.rectangle((0, top_h, side_w, height - floor_h), fill=(36, 44, 52, 255))
+        draw.rectangle((width - side_w, top_h, width, height - floor_h), fill=(36, 44, 52, 255))
+        center_left = int(width * 0.22)
+        center_right = int(width * 0.78)
+        center_top = int(height * 0.2)
+        center_bottom = int(height * 0.82)
+        draw.rectangle((center_left, center_top, center_right, center_bottom), fill=(52, 62, 70, 255))
+        draw.rectangle((int(width * 0.44), int(height * 0.28), int(width * 0.56), int(height * 0.8)), fill=(62, 72, 80, 255))
     return _save_reference_image(image, output_path, transparent)
 
 

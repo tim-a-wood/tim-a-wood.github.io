@@ -1841,6 +1841,7 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.assertIn("tighter dungeon passage", prompt.lower())
         self.assertIn("Avoid a broad bright fog bank across the lower half", prompt)
         self.assertIn("continuous side-wall depth", prompt.lower())
+        self.assertIn("must stay subordinate to the shell layer", prompt.lower())
 
     def test_bespoke_prompt_requires_side_only_midground_and_structural_floor(self):
         room_geom = {
@@ -2008,7 +2009,8 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         }
         background = envsys._build_biome_template_prompt("background_plate", direction, "")
         door = envsys._build_biome_template_prompt("door_piece", direction, "")
-        self.assertIn("medieval castle / dungeon hall", background)
+        self.assertIn("medieval castle / dungeon interior", background)
+        self.assertIn("Do not paint a perimeter shell", background)
         self.assertIn("No bright floor pool", background)
         self.assertIn("transparent background", door)
         self.assertIn("Preserve transparent pixels outside the frame", door)
@@ -2540,6 +2542,7 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.assertIn("room footprint conditioning", low)
         self.assertIn("footprint silhouette map", low)
         self.assertIn("interior void", low)
+        self.assertIn("do not add a second masonry rim", low)
         self.assertIn("chamber bounds", low)
         # Shell-only masonry wording must not leak into background prompts.
         self.assertNotIn("black pixels mark allowed border masonry occupancy", low)

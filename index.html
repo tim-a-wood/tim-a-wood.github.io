@@ -1441,6 +1441,19 @@ function getRoomEnvironmentBespokeAssetsByType(roomId, componentTypes) {
     return assets.filter((item) => item && accepted.has(item.component_type) && item.url);
 }
 
+function getRoomEnvironmentBespokeBackgroundPlacement(roomId) {
+    const asset = getRoomEnvironmentBespokeAsset(roomId, 'background_far_plate');
+    const placement = asset?.placement || {};
+    const displayWidth = Math.max(1, Number(placement.display_width || asset?.final_dimensions?.width || 0));
+    const displayHeight = Math.max(1, Number(placement.display_height || asset?.final_dimensions?.height || 0));
+    const originX = Phaser.Math.Clamp(Number(placement.origin_x ?? 0.5), 0, 1);
+    const originY = Phaser.Math.Clamp(Number(placement.origin_y ?? 1), 0, 1);
+    const localX = Number(placement.x || (getRoomWidth(roomId) * 0.5));
+    const localY = Number(placement.y || getRoomVisualWorldBottom());
+    if (!asset?.url || displayWidth <= 1 || displayHeight <= 1) return null;
+    return { asset, displayWidth, displayHeight, originX, originY, localX, localY };
+}
+
 /** Pixels to reserve at chamber top for bespoke ceiling slab so background/midground do not duplicate arch read under it. */
 function getRoomBespokeCeilingCapHeightForRuntime(scene, roomId) {
     if (!ENABLE_BESPOKE_ROOM_RUNTIME || !scene?.textures?.exists) return 0;
@@ -2785,13 +2798,22 @@ class AshenHollow extends Phaser.Scene {
             const vaultHeight = ceilingCapH > 0 ? Math.max(64, chamberHeight - ceilingCapH) : chamberHeight;
             const textureKey = roomBackgroundAssetKey(roomId);
             if (room && this.textures.exists(textureKey)) {
-                const sprite = this.add.image(room.start + chamberLeft + (chamberWidth / 2), chamberBottom, textureKey)
-                    .setDisplaySize(chamberWidth, vaultHeight)
-                    .setOrigin(0.5, 1)
+                const bespokeBackgroundPlacement = composition.hasBespokeBackground
+                    ? getRoomEnvironmentBespokeBackgroundPlacement(roomId)
+                    : null;
+                const bgDisplayWidth = bespokeBackgroundPlacement?.displayWidth || chamberWidth;
+                const bgDisplayHeight = bespokeBackgroundPlacement?.displayHeight || vaultHeight;
+                const bgOriginX = bespokeBackgroundPlacement?.originX ?? 0.5;
+                const bgOriginY = bespokeBackgroundPlacement?.originY ?? 1;
+                const bgLocalX = bespokeBackgroundPlacement?.localX ?? (chamberLeft + (chamberWidth / 2));
+                const bgLocalY = bespokeBackgroundPlacement?.localY ?? chamberBottom;
+                const sprite = this.add.image(room.start + bgLocalX, bgLocalY, textureKey)
+                    .setDisplaySize(bgDisplayWidth, bgDisplayHeight)
+                    .setOrigin(bgOriginX, bgOriginY)
                     .setDepth(-2)
                     .setVisible(false)
                     .setAlpha(RUNTIME_REVIEW_CAPTURE_MODE ? (composition.hasBespokeBackground ? 0.72 : 0.58) : (composition.hasBespokeBackground ? 0.4 : 0.5));
-                applyRoomInteriorFootprintMask(this, sprite, roomId, room);
+                applyRoomInteriorFootprintMask(this, sprite, roomId, ROOM_IDS[roomId]);
                 this.roomBackgroundSprites[roomId] = sprite;
                 if (minimalBespokeStack) {
                     this.roomBackgroundFeatherSprites[roomId] = [];
@@ -2824,7 +2846,7 @@ class AshenHollow extends Phaser.Scene {
                         .setVisible(false)
                         .setAlpha(suppressBespokeFeathers ? 0 : (RUNTIME_REVIEW_CAPTURE_MODE ? 0.3 : 0.94));
                     feathers.push(bottomFade);
-                    feathers.forEach((feather) => applyRoomInteriorFootprintMask(this, feather, roomId, room));
+                    feathers.forEach((feather) => applyRoomInteriorFootprintMask(this, feather, roomId, ROOM_IDS[roomId]));
                     this.roomBackgroundFeatherSprites[roomId] = feathers;
                 }
             }
@@ -2850,7 +2872,7 @@ class AshenHollow extends Phaser.Scene {
                         .setDepth(-0.18)
                         .setVisible(false)
                         .setAlpha(RUNTIME_REVIEW_CAPTURE_MODE ? 0.62 : 0.52));
-                    sprites.forEach((midSprite) => applyRoomInteriorFootprintMask(this, midSprite, roomId, room));
+                    sprites.forEach((midSprite) => applyRoomInteriorFootprintMask(this, midSprite, roomId, ROOM_IDS[roomId]));
                     this.roomMidgroundSprites[roomId] = sprites;
                 } else {
                     let mgSrcW = chamberWidth;
@@ -2872,7 +2894,7 @@ class AshenHollow extends Phaser.Scene {
                         .setDepth(composition.hasBespokeMidground ? -0.22 : -0.35)
                         .setVisible(false)
                         .setAlpha(RUNTIME_REVIEW_CAPTURE_MODE ? (composition.hasBespokeMidground ? 0.5 : 0.46) : (composition.hasBespokeMidground ? 0.24 : 0.34));
-                    applyRoomInteriorFootprintMask(this, sprite, roomId, room);
+                    applyRoomInteriorFootprintMask(this, sprite, roomId, ROOM_IDS[roomId]);
                     this.roomMidgroundSprites[roomId] = sprite;
                 }
             }

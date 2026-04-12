@@ -1070,6 +1070,22 @@ function simulateSequenceAttempt(order) {
     );
 })();
 
+(function testIndexBespokeBackgroundUsesManifestPlacementAndRoomBoundsMask() {
+    const fs = require('fs');
+    const path = require('path');
+    const htmlPath = path.join(__dirname, '../index.html');
+    if (!fs.existsSync(htmlPath)) return;
+    const html = fs.readFileSync(htmlPath, 'utf8');
+    assert.ok(
+        html.includes('getRoomEnvironmentBespokeBackgroundPlacement')
+            && html.includes('const bespokeBackgroundPlacement = composition.hasBespokeBackground')
+            && html.includes('const bgDisplayWidth = bespokeBackgroundPlacement?.displayWidth || chamberWidth')
+            && html.includes('const bgLocalX = bespokeBackgroundPlacement?.localX ?? (chamberLeft + (chamberWidth / 2))')
+            && html.includes('applyRoomInteriorFootprintMask(this, sprite, roomId, ROOM_IDS[roomId])'),
+        'bespoke background should honor manifest placement/display size and mask using ROOM_IDS world bounds'
+    );
+})();
+
 (function testIndexMinimalBespokeCompositorSkipsFeathersAndBranchesShellTexture() {
     const fs = require('fs');
     const path = require('path');
