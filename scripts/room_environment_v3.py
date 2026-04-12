@@ -371,7 +371,7 @@ def build_generation_plan(room: Dict[str, Any], preview_id: str, biome_pack: Dic
         "background",
         [center_lane],
         {"room_width": width, "room_height": height},
-        border_treatment="full_frame",
+        border_treatment="interior_depth",
     )
     if _v3_include_backwall_panel_slots():
         for index, panel in enumerate(_backwall_panel_records(width, height, room_role)):
