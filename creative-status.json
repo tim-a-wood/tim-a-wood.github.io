@@ -55,10 +55,6 @@
     {
       "title": "Confirm or replace placeholder names: The Deep, The Sunken, The Servants",
       "note": "All three are working placeholders established during the v0.3 interview. A dedicated naming session with Narrative is needed. The being behind The Deep also has no name yet."
-    },
-    {
-      "title": "Confirm new palette token hexes: AH-SOLAR (#C4962A), AH-ARCANE (#3A7BD5), AH-SKY (#7EB8D4)",
-      "note": "Proposed values are Creative's best guess. Founder should review swatches before these are used in production art."
     }
   ],
   "actions": [

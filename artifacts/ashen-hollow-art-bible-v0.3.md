@@ -67,11 +67,11 @@ Each row is **token + swatch + hex + role**. Swatches are 64×64 PNG generated f
 | ![AH-GLINT-9](art-bible/swatches/AH-GLINT-9.png) | `AH-GLINT-9` | `#9FD6C7` | High-value focal accent | Rare pickups, key readability pings, eye guides |
 | ![AH-TOXIC-10](art-bible/swatches/AH-TOXIC-10.png) | `AH-TOXIC-10` | `#6E8F2E` | Biological hazard accent | Spores, caustic flora, poison reads |
 | ![AH-ROYAL-11](art-bible/swatches/AH-ROYAL-11.png) | `AH-ROYAL-11` | `#5A4E87` | Ability/ritual signal | Ability shrines, progression rituals |
-| ![AH-SOLAR](art-bible/swatches/AH-SOLAR.png) | `AH-SOLAR` | `#C4962A` | Player sun iconography + endgame world light | Knight tabard sun emblem (all reveal states), Ruined Belfry sun accent, The Solarium dominant. **Never used for hazards or enemies.** |
-| ![AH-ARCANE](art-bible/swatches/AH-ARCANE.png) | `AH-ARCANE` | `#3A7BD5` | Mystical/rune accent | Bone Warrens rune glow, magical interactive elements. Never used for sky or water. |
+| ![AH-SOLAR](art-bible/swatches/AH-SOLAR.png) | `AH-SOLAR` | `#ffaa00` | Player sun iconography + endgame world light | Knight tabard sun emblem (all reveal states), Ruined Belfry sun accent, The Solarium dominant. **Never used for hazards or enemies.** |
+| ![AH-ARCANE](art-bible/swatches/AH-ARCANE.png) | `AH-ARCANE` | `#43b3ae` | Mystical/rune accent | Bone Warrens rune glow, magical interactive elements. Never used for sky or water. |
 | ![AH-SKY](art-bible/swatches/AH-SKY.png) | `AH-SKY` | `#7EB8D4` | Open sky atmosphere | Ruined Belfry sky. Never used underground. |
 
-*Swatch PNGs generated via `scripts/generate_art_bible_swatches.py` — confirm hex values with founder at swatch review.*
+*Swatch PNGs generated via `scripts/generate_art_bible_swatches.py` — hex values confirmed by founder 2026-04-09.*
 
 ### 2.2 Palette strip (quick comparison)
 

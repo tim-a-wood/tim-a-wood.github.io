@@ -1046,7 +1046,7 @@ function simulateSequenceAttempt(order) {
     );
 })();
 
-(function testIndexUnifiedShellSkipsPolygonMaskForPlaytestParity() {
+(function testIndexUnifiedShellUsesInvertedPolygonMaskForParity() {
     const fs = require('fs');
     const path = require('path');
     const htmlPath = path.join(__dirname, '../index.html');
@@ -1054,16 +1054,15 @@ function simulateSequenceAttempt(order) {
     const html = fs.readFileSync(htmlPath, 'utf8');
     assert.ok(
         html.includes('addRoomBespokeUnifiedShellForegroundDecor(roomId, shellSupport)')
-            && html.includes('saved runtime-review.png')
-            && html.includes('not a polygon mask')
             && html.includes('const depth = 0.16')
             && html.includes('UNIFIED_SHELL_PLACEMENT_CHAMBER_BBOX')
-            && html.includes('computeUnifiedShellWorldPlacement(this, asset, support)')
-            && html.includes('getUnifiedShellOpeningCentroidTexture')
-            && html.includes('let localX = curLeft + ox * dw')
-            && !html.includes('applyUnifiedShellFootprintMask')
+            && html.includes('computeUnifiedShellWorldPlacement(asset, support)')
+            && html.includes('const localX = curLeft + ox * dw')
+            && html.includes('SHELL_FOOTPRINT_MASK')
+            && html.includes('ensureRoomFootprintGeometryMask(this, roomId, roomBounds, true)')
+            && !html.includes('getUnifiedShellOpeningCentroidTexture')
             && !html.includes('strokePoints(worldPts, true)'),
-        'unified shell should rely on PNG alpha and depth only (no footprint geometry mask)'
+        'unified shell uses inverted-alpha polygon mask for pixel-accurate alignment (§202)'
     );
 })();
 

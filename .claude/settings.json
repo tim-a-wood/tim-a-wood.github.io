@@ -166,7 +166,16 @@
       "Bash(curl -s http://127.0.0.1:7788/api/ping)",
       "Bash(curl -s http://127.0.0.1:7789/api/ping)",
       "Bash(curl -s http://127.0.0.1:7788/)",
-      "Bash(curl -s http://127.0.0.1:8766/)"
+      "Bash(curl -s http://127.0.0.1:8766/)",
+      "Skill(schedule)",
+      "Skill(schedule:*)",
+      "Bash(git remote:*)",
+      "Bash(kill 96631)",
+      "Bash(git add:*)",
+      "Bash(git commit -m ':*)",
+      "Bash(git push:*)",
+      "Bash(ls /Users/timwood/Desktop/projects/PWA/MV/package.json /Users/timwood/Desktop/projects/PWA/MV/server.* /Users/timwood/Desktop/projects/PWA/MV/app.*)",
+      "Bash(kill 19093)"
     ],
     "additionalDirectories": [
       "/Users/timwood/.claude/skills",

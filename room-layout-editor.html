@@ -2511,9 +2511,10 @@
 
         <!-- Right: Primary actions -->
         <div class="canvas-header-actions">
-          <button id="savePermanent" class="btn-save good">Save
+          <button id="savePermanent" class="btn-save good" title="Save this layout in your browser/device only">Save Local
             <span class="dirty-dot" id="dirtyDot" style="display:none;"></span>
           </button>
+          <button type="button" id="syncCanonicalJson" class="btn-secondary" title="Save this layout into the active workbench project">Sync Canonical</button>
           <button type="button" id="downloadJson" class="btn-secondary" title="Download full editor document (git-friendly JSON)">Export JSON</button>
           <button type="button" id="downloadRuntimePackage" class="btn-secondary" title="Download runtime bundle: manifest, world graph, per-room JSON, and full layout">Export runtime</button>
           <button id="openGameWithLayout" class="btn-secondary">Open Game</button>
@@ -3065,7 +3066,6 @@
             <button id="addRoom" class="btn-sm">+ Add Room</button>
             <button id="deleteRoom" class="btn-sm btn-danger">Delete Room</button>
             <button id="reloadJson" class="btn-sm">Reload Disk</button>
-            <button id="syncCanonicalJson" class="btn-sm">Sync Canonical</button>
           </div>
         </div>
       </div>
@@ -10884,12 +10884,12 @@
             // Task 2.5c: Show "Saved ✓" briefly — use text-node manipulation to preserve dirty dot span
             const saveBtn = document.getElementById('savePermanent');
             const textNode = Array.from(saveBtn.childNodes).find((n) => n.nodeType === Node.TEXT_NODE);
-            const originalText = textNode ? textNode.textContent : 'Save';
-            if (textNode) textNode.textContent = ' Saved ✓ ';
+            const originalText = textNode ? textNode.textContent : 'Save Local';
+            if (textNode) textNode.textContent = ' Local Saved ✓ ';
             setTimeout(() => {
               if (textNode) textNode.textContent = originalText;
             }, 1800);
-            setStatus('Saved to this device and to the selected file.', 'success');
+            setStatus('Saved locally to this device and to the selected file.', 'success');
             return;
           } catch (_) {}
         }
@@ -10898,12 +10898,12 @@
         // Task 2.5c: Show "Saved ✓" briefly — use text-node manipulation to preserve dirty dot span
         const saveBtn = document.getElementById('savePermanent');
         const textNode = Array.from(saveBtn.childNodes).find((n) => n.nodeType === Node.TEXT_NODE);
-        const originalText = textNode ? textNode.textContent : 'Save';
-        if (textNode) textNode.textContent = ' Saved ✓ ';
+        const originalText = textNode ? textNode.textContent : 'Save Local';
+        if (textNode) textNode.textContent = ' Local Saved ✓ ';
         setTimeout(() => {
           if (textNode) textNode.textContent = originalText;
         }, 1800);
-        setStatus('Saved to this device. Use Advanced > Save To File or Export Layout for git sync.', 'success');
+        setStatus('Saved locally to this device. Use Sync Canonical to update the active workbench project.', 'success');
       }
 
       async function syncCanonicalJson() {
