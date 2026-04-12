@@ -1140,6 +1140,10 @@ function simulateSequenceAttempt(order) {
             html.includes('getRoomBespokeCeilingCapHeightForRuntime') && html.includes('vaultHeight'),
             'background/midground should shorten when a bespoke ceiling slab owns the top band'
         );
+        assert.ok(
+            html.includes('roomHasBespokeUnifiedShellForeground(roomId)) return 0'),
+            'unified shell owns full chamber height; do not reserve ceiling cap for bg/mid vaultHeight (misaligns vs shell)'
+        );
     assert.ok(html.includes('ASHEN_HOLLOW_PREVIEW'), 'postMessage layout embed for room editor iframe');
     assert.ok(html.includes('ASHEN_HOLLOW_PREVIEW_READY'), 'child signals when listener can receive layout');
     assert.ok(html.includes('preview=embed'), 'hash flag for embed wait in bootGame');

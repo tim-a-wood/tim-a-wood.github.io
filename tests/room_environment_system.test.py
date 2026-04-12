@@ -1832,14 +1832,15 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
             },
             {"variant_family": "background", "orientation": "full"},
         )
-        self.assertIn("far-depth hall shell", prompt)
+        self.assertIn("not a second chamber shell", prompt.lower())
+        self.assertIn("duplicate perimeter frame", prompt.lower())
         self.assertIn("reject carryover of any altar", prompt)
         self.assertIn("open center lane", prompt)
         self.assertIn("not scenic concept art with gameplay layered on top", prompt)
-        self.assertIn("visible enclosing wall faces in the outer thirds", prompt)
-        self.assertIn("tighter dungeon passage shell", prompt)
+        self.assertIn("visible interior wall faces in the outer thirds", prompt.lower())
+        self.assertIn("tighter dungeon passage", prompt.lower())
         self.assertIn("Avoid a broad bright fog bank across the lower half", prompt)
-        self.assertIn("continuous side-wall enclosure", prompt)
+        self.assertIn("continuous side-wall depth", prompt.lower())
 
     def test_bespoke_prompt_requires_side_only_midground_and_structural_floor(self):
         room_geom = {
@@ -2690,9 +2691,10 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         with envsys.Image.open(right_refs[1]) as right_image:
             self.assertEqual(right_image.size, (60, 100))
 
-    def test_background_retry_prompt_strengthens_outer_shell_definition(self):
+    def test_background_retry_prompt_strengthens_interior_depth_not_outer_shell(self):
         retry = envsys._retry_prompt_for_validation_errors("background_far_plate", "base prompt", ["background_shell_definition_low"], 0)
-        self.assertIn("visible enclosing wall faces", retry)
+        self.assertIn("INTERIOR depth", retry)
+        self.assertIn("room_shell_foreground", retry)
         self.assertIn("Reduce the feeling of a giant open nave", retry)
 
     def test_background_retry_prompt_can_warn_against_lower_fog_bank(self):

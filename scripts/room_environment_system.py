@@ -6616,18 +6616,21 @@ def _build_bespoke_prompt(
     placement = plan_entry.get("placement") if isinstance(plan_entry.get("placement"), dict) else {}
     component_rules = {
         "background_far_plate": (
-            "Build only the far-depth hall shell. The image must read as enclosing architecture, not a scenic key art moment. "
-            "When a footprint silhouette reference is attached, the walkable opening shape (including L-shapes and concave outlines) is locked to that mask — do not substitute a generic centered rectangular nave. "
+            "Build ONLY the far INTERIOR DEPTH — atmospheric hall space, rear vaults, distant arches, fog, and stone mass seen through the walkable opening. "
+            "NOT a second chamber shell: a separate `room_shell_foreground` asset renders the masonry border, rim, and outer frame. "
+            "Do NOT paint a duplicate perimeter frame, thick enclosing border band, postcard surround, nested picture-frame, or stage skirting that reads as a second shell inside this plate. "
+            "Do NOT repeat top/side/bottom structural bands meant for the unified shell layer — this image is depth-only inside the void, not a second copy of the rim. "
+            "When a footprint silhouette reference is attached, the walkable opening shape (including L-shapes and concave outlines) is locked — do not substitute a generic centered rectangular nave. "
             "Treat the approved room preview as context only and explicitly reject carryover of any altar, brazier energy, shrine focal landmark, center dais, near framing, "
-            "or pasted-in floor strip from that preview. Use walls, arches, pillars, recesses, and bay rhythm to create a readable room shell with calm depth falloff and an open center lane. "
+            "or pasted-in floor strip from that preview. Use walls, arches, pillars, recesses, and bay rhythm in the DEPTH FIELD with calm falloff and an open center lane. "
             "Keep the center dimmer than the sides, but not empty fog; it should still show a dark recess, arch, or wall structure. "
-            "Prioritize visible enclosing wall faces in the outer thirds and reduce the feeling of a huge open cathedral void. The room should read as a tighter dungeon passage shell, not a vast ceremonial nave. "
-            "Do not let one giant central gothic arch dominate the image. The center should feel like a narrower distant recess or corridor mouth framed by heavier side masses, not a grand nave opening. "
-            "Do not open the roof into a bright skylight or exterior breach. The upper shell should stay enclosed, dark, and interior-facing."
+            "Prioritize visible interior wall faces in the outer thirds of the void and reduce the feeling of a huge open cathedral space. Read as a tighter dungeon passage in depth, not a vast ceremonial nave. "
+            "Do not let one giant central gothic arch dominate the image. The center should feel like a narrower distant recess or corridor mouth framed by heavier side masses in depth, not a grand nave opening. "
+            "Do not open the roof into a bright skylight or exterior breach; the far ceiling in-frame should stay enclosed, dark, and interior-facing."
             "Avoid a broad bright fog bank across the lower half; mist can exist, but lower wall structure and rear floor depth still need to read behind it. "
-            "Favor continuous side-wall enclosure and a darker rear chamber body over decorative floating arches. "
+            "Favor continuous side-wall depth and a darker rear chamber body over decorative floating arches. "
             "No thin cyan, teal, or electric accent lines tracing the chamber silhouette; depth and separation come from occlusion, mortar, and value steps in the stone family, not chromatic rim glow. "
-            "Push contrast between far shell and mid depth with value and cool-warm separation, not a clashing saturated accent band."
+            "Push contrast between far depth and mid-depth with value and cool-warm separation, not a clashing saturated accent band."
         ),
         "midground_side_frame": (
             "Build only side framing. Keep the center fully open and calm. Restrict arches, columns, and side mass to the left and right edges so the middle third stays clear. "
@@ -6767,6 +6770,7 @@ def _build_bespoke_prompt(
             "Do not invert that encoding. "
             "Far hall depth, vaulting, and recesses must follow the interior void shape—including L-shapes, steps, re-entrant corners, and diagonal edges—"
             "not a substitute centered rectangle or generic nave. "
+            "Paint depth and atmosphere inside the void only — do not add a second masonry rim, outer border frame, or duplicate chamber shell; the unified shell layer owns the perimeter. "
             "The interior void should read as continuous atmospheric depth; avoid tall near-black vertical slats, matte poster bars, or hard occluder strips there.\n"
             f"{_chamber_bounds_line}"
         )
@@ -7713,7 +7717,12 @@ def _retry_prompt_for_validation_errors(component_type: str, prompt: str, errors
     if component_type == "background_far_plate" and "center_lane_too_hot" in errors and attempt_index < 2:
         return f"{prompt}\nRetry instruction: remove the bright floor pool, center glow, ritual-circle read, and any hot apse lighting. The center third must stay dim and architecturally recessed, with visible dark stone structure rather than light bloom."
     if component_type == "background_far_plate" and "background_shell_definition_low" in errors and attempt_index < 2:
-        return f"{prompt}\nRetry instruction: strengthen shell definition with visible enclosing wall faces, arches, recesses, vertical bay rhythm, and wall-mass layering in the outer thirds. Reduce the feeling of a giant open nave, one dominant center arch, or a blown-open roof. Keep the center dim, but not blank or fog-only; it should read like a narrower distant recess framed by heavier side structure."
+        return (
+            f"{prompt}\nRetry instruction: strengthen INTERIOR depth read only — visible rear wall faces, arches, recesses, vertical bay rhythm, and wall-mass layering in the outer thirds of the "
+            "footprint VOID. Do not add outer perimeter framing, border bands, or a second shell rim (those belong on `room_shell_foreground`). "
+            "Reduce the feeling of a giant open nave, one dominant center arch, or a blown-open roof. Keep the center dim, but not blank or fog-only; "
+            "it should read like a narrower distant recess in depth, framed by heavier side structure inside the void."
+        )
     if component_type == "background_far_plate" and "background_vertical_bar_artifacts" in errors and attempt_index < 2:
         return f"{prompt}\nRetry instruction: remove tall near-black vertical slats, matte bars, and hard interior occluder strips. Side architecture should read as broad stone columns or wall masses integrated into the hall, never as flat black bars."
     if component_type == "background_far_plate" and "generation_failed" not in errors and attempt_index < 2:

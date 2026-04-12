@@ -1444,6 +1444,9 @@ function getRoomEnvironmentBespokeAssetsByType(roomId, componentTypes) {
 /** Pixels to reserve at chamber top for bespoke ceiling slab so background/midground do not duplicate arch read under it. */
 function getRoomBespokeCeilingCapHeightForRuntime(scene, roomId) {
     if (!ENABLE_BESPOKE_ROOM_RUNTIME || !scene?.textures?.exists) return 0;
+    /* Unified shell PNG already includes top rim; separate ceiling decor is skipped. Reserving cap height here
+     * would scale the background to vaultHeight while the shell uses full chamberHeight — misaligned double framing. */
+    if (roomHasBespokeUnifiedShellForeground(roomId)) return 0;
     const assets = getRoomEnvironmentBespokeAssetsByType(roomId, ['ceiling_band', 'ceiling_piece']);
     const asset = assets[0];
     if (!asset?.slot_id || !scene.textures.exists(`env-bespoke-${asset.slot_id}`)) return 0;
