@@ -1502,13 +1502,38 @@ function getRoomEnvironmentBespokePlanEntry(roomId, componentType) {
 }
 
 /**
+ * Stable hash of footprint polygon + chamber AABB so premask cache invalidates when layout changes
+ * (same slot_id would otherwise reuse a stale Canvas punch after editor polygon edits).
+ */
+function hashRoomFootprintForShellPremask(roomId) {
+    const room = getLayoutRoom(roomId);
+    const poly = room?.polygon;
+    if (!Array.isArray(poly) || poly.length < 3) return '0';
+    const b = getRoomPolygonBounds(roomId);
+    let s = `${b.left},${b.top},${b.right},${b.bottom}|`;
+    for (let i = 0; i < poly.length; i += 1) {
+        const p = poly[i];
+        const x = Math.round(Number(p[0]) * 100) / 100;
+        const y = Math.round(Number(p[1]) * 100) / 100;
+        s += `${x},${y};`;
+    }
+    let h = 2166136261;
+    for (let i = 0; i < s.length; i += 1) {
+        h ^= s.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+    }
+    return (h >>> 0).toString(36);
+}
+
+/**
  * SHELL_TEXTURE_PREMASK (§202b) — punch out the polygon interior from the shell texture using Canvas 2D
  * compositing so the shell inner edge matches the footprint exactly. Bypasses Phaser GeometryMask
- * invertAlpha (stencil flicker in some WebGL paths). Result cached as `env-bespoke-{slotId}-masked`.
+ * invertAlpha (stencil flicker in some WebGL paths). Result cached as `env-bespoke-{slotId}-masked-{footprintHash}`.
  */
 function getOrCreatePremaskedShellTexture(scene, slotId, roomId) {
     const baseKey = `env-bespoke-${slotId}`;
-    const maskedKey = `${baseKey}-masked`;
+    const fp = hashRoomFootprintForShellPremask(roomId);
+    const maskedKey = `${baseKey}-masked-${fp}`;
     if (scene.textures.exists(maskedKey)) return maskedKey;
     if (!scene.textures.exists(baseKey)) return baseKey;
     const room = getLayoutRoom(roomId);

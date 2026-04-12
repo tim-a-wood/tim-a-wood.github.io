@@ -6572,6 +6572,7 @@ def _build_bespoke_prompt_room_shell_foreground(
         TOPOLOGY CONTRACT: there is exactly one shell ring and exactly one clear opening. Do not create an outer frame, nested frame, second border, postcard framing, centered miniature frame, or any picture-in-picture composition.
         OPENING GEOMETRY: the inner boundary between contract band and clear opening is the room footprint at this resolution — including L-shapes, steps, re-entrant corners, and diagonal edges. Do not round it into a portal, nave, or centered rectangle; if references #2 or #3 disagree, reference #1 wins.
         EDGE-FILL CONTRACT: where the contract band reaches x=0, x=W-1, y=0, or y=H-1, the occupied shell surface must meet that same edge. Do not leave an unused outer gutter.
+        ANTI-COLLAGE / ANTI-VOID-GUTTER: inside the occupied shell band only, do not use pure black (#000000) or near-black horizontal or vertical stripes, gutters, or separator bars between regions. The masonry must read as one physically continuous ring, not separate panels glued together with black gaps. Do not compose the shell as stacked rectangles divided by flat black bands — that reads as a broken export, not architecture.
 
         Reference #2 is a structural shell guide for band continuity, join discipline, and shell massing only. It is not an opening-shape authority.
         Reference #3 is a material-only shell reference. Use it for palette, material family, wear cadence, and surface character only. Do NOT copy framing, camera, perspective, interior depth, landmarks, or scene composition from it.
@@ -6647,6 +6648,7 @@ def _build_bespoke_prompt(
             "MATERIAL CONTRACT: keep one cohesive shell material family across top/sides/bottom with medium-to-fine surface cadence and no motif drift between bands. "
             "SEPARATION CONTRACT: shell must read against the center by value/texture only; no cyan/teal/aqua rim lines, no UI-like edge strokes, no neon outlines. "
             "MATERIAL REFERENCE CONTRACT: reference #3 is material context only; do not copy framing, opening shape, landmarks, or scene layout from it. "
+            "ANTI-COLLAGE: no flat black or near-black gutters, stripes, or void bands cutting through the shell band; keep one continuous stone ring with shadow from lighting only, not from rectangular black separators. "
             "FORBIDDEN: no extra outer frame outside the contract band, no second duplicate floor strip, no perspective floor scene, no scenic center set-piece."
         ),
         "wall_module_left": (

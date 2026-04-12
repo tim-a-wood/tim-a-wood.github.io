@@ -2577,6 +2577,8 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.assertIn("forbidden outer margin", low)
         self.assertIn("material-only shell reference", low)
         self.assertIn("spatial contract", low)
+        self.assertIn("anti-collage", low)
+        self.assertIn("near-black horizontal", low)
         self.assertNotIn("weathered stone/mortar", low)
 
     def test_room_shell_retry_prompt_for_overreach_uses_generalized_outer_frame_language(self):
