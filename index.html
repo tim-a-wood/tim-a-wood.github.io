@@ -1495,12 +1495,60 @@ function getRoomEnvironmentBespokePlanEntry(roomId, componentType) {
 }
 
 /**
- * UNIFIED_SHELL_PLACEMENT_CHAMBER_BBOX — place the unified shell so its outer frame matches the runtime
- * polygon axis-aligned bounds: display size = chamber bbox in room px (Phaser stretches texture to fit).
- * Position uses placement origins only; ignores stale placement x/y/display_width/display_height so the
- * shell opening tracks layout edits and stays aligned with the footprint perimeter contract.
+ * Centroid of fully transparent pixels (alpha0) in a unified shell texture — opening mass is often
+ * asymmetric in the frame (thick right pier, stepped L-void), so anchoring the image bbox to the chamber
+ * AABB leaves the walkable hole shifted vs the footprint. Called once per slot; result cached on scene.
  */
-function computeUnifiedShellWorldPlacement(asset, support) {
+function getUnifiedShellOpeningCentroidTexture(scene, slotId) {
+    if (!scene || !slotId) return null;
+    const key = `env-bespoke-${slotId}`;
+    scene.__shellOpeningCentroidCache = scene.__shellOpeningCentroidCache || {};
+    const cache = scene.__shellOpeningCentroidCache;
+    if (cache[key]) return cache[key];
+    if (!scene.textures.exists(key)) return null;
+    try {
+        const tex = scene.textures.get(key);
+        const src = tex.getSourceImage();
+        const w = Number(src?.naturalWidth || src?.width || 0);
+        const h = Number(src?.naturalHeight || src?.height || 0);
+        if (!w || !h || w > 4096 || h > 4096) return null;
+        const cvs = typeof document !== 'undefined' ? document.createElement('canvas') : null;
+        if (!cvs) return null;
+        cvs.width = w;
+        cvs.height = h;
+        const ctx = cvs.getContext('2d', { willReadFrequently: true });
+        if (!ctx) return null;
+        ctx.drawImage(src, 0, 0);
+        const img = ctx.getImageData(0, 0, w, h).data;
+        let sx = 0;
+        let sy = 0;
+        let n = 0;
+        for (let y = 0; y < h; y += 1) {
+            const row = y * w * 4;
+            for (let x = 0; x < w; x += 1) {
+                if (img[row + x * 4 + 3] === 0) {
+                    sx += x;
+                    sy += y;
+                    n += 1;
+                }
+            }
+        }
+        if (n < 64) return null;
+        const out = { x: sx / n, y: sy / n };
+        cache[key] = out;
+        return out;
+    } catch (_) {
+        return null;
+    }
+}
+
+/**
+ * UNIFIED_SHELL_PLACEMENT_CHAMBER_BBOX — outer frame matches polygon AABB (dw/dh); origin from placement.
+ * Then nudge position so the transparent opening’s centroid aligns with the chamber bbox center (inverse
+ * of intrinsic texture asymmetry). Stale manifest x/y still ignored; opening–footprint parity is geometry-
+ * driven, not author placement coordinates.
+ */
+function computeUnifiedShellWorldPlacement(scene, asset, support) {
     const pl = asset.placement || {};
     const poly = support.chamberBounds;
     const roomBounds = support.roomBounds;
@@ -1515,8 +1563,20 @@ function computeUnifiedShellWorldPlacement(asset, support) {
     const dw = Math.max(1, Math.round(curRight - curLeft));
     const dh = Math.max(1, Math.round(curBottom - curTop));
 
-    const localX = curLeft + ox * dw;
-    const localY = curTop + oy * dh;
+    let localX = curLeft + ox * dw;
+    let localY = curTop + oy * dh;
+
+    const oc = scene ? getUnifiedShellOpeningCentroidTexture(scene, asset.slot_id) : null;
+    if (oc && scene) {
+        const nat = getEnvBespokeTextureFrameSize(scene, asset.slot_id);
+        const icx = nat.w * 0.5;
+        const icy = nat.h * 0.5;
+        const scaleX = dw / Math.max(1, nat.w);
+        const scaleY = dh / Math.max(1, nat.h);
+        /* Shift sprite so opening centroid lands where the image center would have (chamber center). */
+        localX += -(oc.x - icx) * scaleX;
+        localY += -(oc.y - icy) * scaleY;
+    }
 
     return { dw, dh, ox, oy, localX, localY };
 }
@@ -2955,7 +3015,7 @@ class AshenHollow extends Phaser.Scene {
         const asset = getRoomEnvironmentBespokeAsset(roomId, 'room_shell_foreground');
         if (!asset?.url || !this.textures.exists(`env-bespoke-${asset.slot_id}`)) return false;
         const roomBounds = support.roomBounds;
-        const { dw, dh, ox, oy, localX, localY } = computeUnifiedShellWorldPlacement(asset, support);
+        const { dw, dh, ox, oy, localX, localY } = computeUnifiedShellWorldPlacement(this, asset, support);
         /* Above midground (~-0.18) and platform ledges / floor-face accents (~0.05–0.11); below door
          * frames (0.18). Same in play and runtime-review capture so workbench playtest matches the
          * saved runtime-review.png. Opening read comes from shell PNG alpha, not a polygon mask (mask

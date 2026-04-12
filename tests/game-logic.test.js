@@ -1058,8 +1058,9 @@ function simulateSequenceAttempt(order) {
             && html.includes('not a polygon mask')
             && html.includes('const depth = 0.16')
             && html.includes('UNIFIED_SHELL_PLACEMENT_CHAMBER_BBOX')
-            && html.includes('computeUnifiedShellWorldPlacement(asset, support)')
-            && html.includes('const localX = curLeft + ox * dw')
+            && html.includes('computeUnifiedShellWorldPlacement(this, asset, support)')
+            && html.includes('getUnifiedShellOpeningCentroidTexture')
+            && html.includes('let localX = curLeft + ox * dw')
             && !html.includes('applyUnifiedShellFootprintMask')
             && !html.includes('strokePoints(worldPts, true)'),
         'unified shell should rely on PNG alpha and depth only (no footprint geometry mask)'
