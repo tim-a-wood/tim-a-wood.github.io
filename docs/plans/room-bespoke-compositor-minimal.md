@@ -1,8 +1,9 @@
 # Room bespoke compositor — minimal stack (intense-dev plan)
 
 **Status:** Slice 1 implemented (runtime opt-in). Default behavior unchanged.  
-**Related decisions:** `decisions/2026-03-31-room-environment-quality-pass.md` §202b (premask), §203 (editor overlay).  
-**Cross-stack fix (generation + QA + runtime):** `docs/plans/room-bespoke-pipeline-void-and-alignment.md` — use when **baked void / plate collage** in PNGs limits what this runtime track can fix.
+**Founder (§206):** Do **not** use this path for QA, calibration, or playtest — stay on the **default** compositor (premask + feathers, §202b). This doc remains for optional engineering experiments only.  
+**Related decisions:** `decisions/2026-03-31-room-environment-quality-pass.md` §202b (premask), §203 (editor overlay), §206 (no minimal for product).  
+**Cross-stack fix (generation + QA + runtime):** `docs/plans/room-bespoke-pipeline-void-and-alignment.md` — use when **baked void / plate collage** in PNGs limits what the **default** runtime can show.
 
 ---
 

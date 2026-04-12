@@ -2,7 +2,9 @@
 
 **Mode:** Intense (multi-layer: generation, validation, runtime, tooling).  
 **Canonical workflow:** `docs/skills/intense-dev-orchestration.md`.  
-**Related:** `docs/plans/room-bespoke-compositor-minimal.md` (runtime-only track), `decisions/2026-03-31-room-environment-quality-pass.md`.
+**Related:** `docs/plans/room-bespoke-compositor-minimal.md` (engineering opt-in only; **founder: do not use** for QA — see `decisions/2026-03-31-room-environment-quality-pass.md` §206), `decisions/2026-03-31-room-environment-quality-pass.md`.
+
+**Founder update (2026-04-12):** Use **default** runtime compositor only (§202b). **Defer** strict new auto-reject validators; favor prompts + regen + manual review on QA R1 until calibration matures.
 
 ---
 
@@ -12,7 +14,7 @@
 
 **Root cause (evidence):** Inspection of project bespoke outputs (e.g. `tools/2d-sprite-and-animation/projects-data/.../R1/bespoke/R1-background.png` and `R1-room-shell.png`) shows **baked-in black voids and banding** and **discontinuous composition** in the raster itself — not only mask or premask behavior in `index.html`.
 
-**Goal:** Establish an **end-to-end contract** so scenic plates and unified shells are **continuous under the walkable footprint**, **free of prompt-induced black wedges**, and **runtime composition** only applies **masking / ordering** that assumes coherent alpha and interior fill — with **automated rejection** before bad assets are saved.
+**Goal:** Establish an **end-to-end contract** so scenic plates and unified shells are **continuous under the walkable footprint**, **free of prompt-induced black wedges**, and **runtime composition** only applies **masking / ordering** that assumes coherent alpha and interior fill. **Strict automated rejection** is a later phase (§206: avoid over-tight validation now; use prompts + regen + manual review first).
 
 **Non-goals (initial slices):** Replacing Gemini with another model; full v3 planner rewrite; changing game physics or room graph schema.
 
@@ -50,7 +52,7 @@
 2. Acceptable **maximum** near-black pixel ratio inside chamber bbox before auto-reject? (Calibrate on one golden + one bad example.)
 3. Is a **theme-color underfill** in runtime an acceptable **safety net** when alpha is correct but art is dark — or forbidden as masking the problem?
 
-**Recommended next step:** Implement **Slice A (asset QA + regen loop)** in Python before further runtime tweaks.
+**Recommended next step:** **Prompt / regen** and manual gates on QA R1; **Slice A** (automated void/collage reject) only when thresholds are **conservative** and founder agrees — see §206 (avoid over-tight validation now).
 
 ---
 
@@ -110,9 +112,9 @@ Grouped by layer (any slice may touch only a subset).
 
 | Slice | Inputs | Outputs | Done when | Out of scope |
 |-------|--------|---------|-----------|--------------|
-| **A — Asset QA gates** | Current validators, sample bad/good PNGs | New validation functions + error codes + retries in `room_environment_system.py` | Unit tests fail on synthetic “void band” fixtures; live regen **rejects** bad plates with explicit code | Automatic inpainting / external tools |
+| **A — Asset QA gates (deferred strictness)** | Current validators; §206 | Optional **light** checks or metrics only until calibration matures; **no** broad auto-reject tightening without founder signoff | Any new code is conservative (warn / log / narrow fixtures), not “fail closed” on borderline art | Strict ratio / collage hard-fail in this phase |
 | **B — Prompt contract** | Slice A error codes | Tightened prompts: **single coherent interior**, **no black separator bands**, explicit **full-bleed** language for plate | Prompt unit tests updated; one manual Gemini regen documents new attempt metadata | Changing model ID |
-| **C — Runtime safety net (optional)** | Founder approval | If approved: underfill tint layer OR starfield-behind-only tweak **behind flag** | `game-logic.test.js` documents flag; visual gate cites artifact | Default-on without signoff |
+| **C — Runtime safety net** | §205.3 | **Off** — no underfill per founder | N/A | Any underfill before clean PNGs |
 | **D — Editor surfacing** | Slice A codes | Build summary / slot row shows **void/collage** failures clearly | Manual: user can see why regen fired | Full redesign of Results UI |
 | **E — Close the loop** | Slices A–D | Regenerate calibration room pack; update decision log § | `runtime-review.png` + bespoke PNGs pass honesty gate; decision log entry | Expanding to all biomes |
 
@@ -137,7 +139,7 @@ Grouped by layer (any slice may touch only a subset).
 2. **Pits:** Should intentional floor holes be **only** in dedicated hazard slots so the plate validator can be strict?
 3. **Runtime underfill:** Allow **optional** flagged underfill, or **forbidden** until assets are clean?
 4. **Golden room:** Which project/room id is the **contract** room for signoff (e.g. `room-ai-helpfulness-qa-67562113` R1 vs `RG-R1`)?
-5. **Default compositor:** After assets are clean, should **minimal** become default (`docs/plans/room-bespoke-compositor-minimal.md` S3)?
+5. **Default compositor:** **Resolved in §206** — **do not use** minimal for QA/product path; keep §202b default stack.
 
 Capture answers in `decisions/2026-03-31-room-environment-quality-pass.md` (new subsection) so slices do not re-litigate.
 

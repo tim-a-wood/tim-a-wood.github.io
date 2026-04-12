@@ -1139,5 +1139,13 @@ This log records decisions for the room environment and bespoke asset quality pa
   2. **Pits / floor holes:** Intentional holes belong **only** in dedicated hazard slots; the main scenic **plate** validator may assume a **strict** interior fill contract.
   3. **Runtime underfill:** **Not allowed** as a workaround until bespoke PNGs themselves are clean (no theme-tint safety net behind the plate to hide void defects).
   4. **Contract / golden room for pipeline signoff:** **`room-ai-helpfulness-qa-67562113` — room `R1`** (QA project R1).
-  5. **Minimal compositor as default:** **Undecided** until visual gate on that room; see plain-English tradeoff in orchestration replies and `docs/plans/room-bespoke-compositor-minimal.md` §4 vs §202b.
+  5. **Minimal compositor as default:** **Superseded by §206** — founder does **not** use minimal; stay on default compositor (§202b premask + feathers).
 - Rejected: deterministic non-crop repair of bad plates; optional runtime underfill before asset quality passes; ambiguous golden room id.
+
+### 206. Bespoke pipeline: no minimal compositor; keep validation from over-tightening (2026-04-12)
+- Status: Accepted
+- Why: Founder wants a single runtime story for QA and playtest without the minimal branch; aggressive new auto-reject validators risk blocking iteration while prompts and assets are still stabilizing.
+- Consequence:
+  1. **Do not use** `MINIMAL_BESPOKE_COMPOSITOR` / `?minimalBespokeCompositor=1` for **QA project R1**, calibration, or founder-facing playtest — use the **default** stack (footprint mask, background feathers where applicable, **`getOrCreatePremaskedShellTexture`** per §202b). The opt-in flag may remain in code for isolated engineering experiments but is **out of product scope** until re-opened.
+  2. **Validation stance:** Do **not** add or tighten **strict** automated gates (e.g. hard void-band / collage / near-black ratio auto-reject) in this phase. Prefer **prompt and regen** and manual inspection on **`room-ai-helpfulness-qa-67562113` R1**; any future validators should start **conservative** (warn, metrics, or narrow synthetic fixtures) before “fail closed” expansion. This does **not** repeal §205.2 **authoring intent** (pits in hazard slots); it defers **machine enforcement** strictness.
+- Rejected: adopting minimal compositor for signoff; validator tightening that blocks the room on borderline legitimate dark interior reads.
