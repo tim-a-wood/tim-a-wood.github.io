@@ -1130,3 +1130,14 @@ This log records decisions for the room environment and bespoke asset quality pa
 - Status: Accepted
 - Why: Stacking feather fades, midground tricks, and Canvas shell premask on top of footprint masks increased processing and founder distrust; a **narrow** runtime path (mask scenic to polygon, shell on top, raw shell texture) should be validated before replacing §202b defaults.
 - Consequence: `MINIMAL_BESPOKE_COMPOSITOR` when `?minimalBespokeCompositor=1` or `window.__MV_MINIMAL_BESPOKE_COMPOSITOR`: skip background feather sprites for bespoke+unified-shell rooms; unified shell uses base `env-bespoke-{slotId}` without `getOrCreatePremaskedShellTexture`. Default remains premask + feathers (existing behavior). Plan and QA gates: `docs/plans/room-bespoke-compositor-minimal.md`. **Rejected without evidence:** flipping minimal to default without inspecting saved `runtime-review.png` (honesty gate).
+
+### 205. Bespoke void/alignment pipeline — founder policy (2026-04-12)
+- Status: Accepted
+- Why: `docs/plans/room-bespoke-pipeline-void-and-alignment.md` Phase 6 checkpoints needed explicit founder answers so implementation does not invent deterministic “heals” or relax plate strictness.
+- Consequence:
+  1. **Deterministic fixes:** Allowed **only cropping** (and existing policy elsewhere: no shell-definition restore into plates per §195). No other deterministic inpaint/fill/heal for failed void-band or collage checks — **retry/regen** (e.g. Gemini) instead.
+  2. **Pits / floor holes:** Intentional holes belong **only** in dedicated hazard slots; the main scenic **plate** validator may assume a **strict** interior fill contract.
+  3. **Runtime underfill:** **Not allowed** as a workaround until bespoke PNGs themselves are clean (no theme-tint safety net behind the plate to hide void defects).
+  4. **Contract / golden room for pipeline signoff:** **`room-ai-helpfulness-qa-67562113` — room `R1`** (QA project R1).
+  5. **Minimal compositor as default:** **Undecided** until visual gate on that room; see plain-English tradeoff in orchestration replies and `docs/plans/room-bespoke-compositor-minimal.md` §4 vs §202b.
+- Rejected: deterministic non-crop repair of bad plates; optional runtime underfill before asset quality passes; ambiguous golden room id.
