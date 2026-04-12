@@ -4880,11 +4880,13 @@
         const usableHeight = viewport.height;
         const scaleX = (usableWidth / roomSize.width) * state.roomZoom;
         const scaleY = (usableHeight / roomSize.height) * state.roomZoom;
+        /* Uniform scale + letterboxing so room pixels stay square and match Environment layout overlay SVG (single viewBox aspect). */
+        const scaleUniform = Math.min(scaleX, scaleY);
         return {
-          x: scaleX,
-          y: scaleY,
-          offsetX: viewport.x + ((usableWidth - (roomSize.width * scaleX)) / 2) + state.roomPan.x,
-          offsetY: viewport.y + ((usableHeight - (roomSize.height * scaleY)) / 2) + state.roomPan.y,
+          x: scaleUniform,
+          y: scaleUniform,
+          offsetX: viewport.x + ((usableWidth - (roomSize.width * scaleUniform)) / 2) + state.roomPan.x,
+          offsetY: viewport.y + ((usableHeight - (roomSize.height * scaleUniform)) / 2) + state.roomPan.y,
           viewport
         };
       }
@@ -7603,17 +7605,37 @@
         return humanizeRoomWizardLabel(value || 'pending');
       }
 
-      function roomWizardOverlayBounds(envState) {
+      function roomWizardOverlayBounds(envState, roomHint) {
         const assemblyOverlay = envState?.assembly_plan?.overlay_geometry || {};
         const semanticsOverlay = envState?.room_semantics?.overlay_geometry || {};
+        const semanticsRoomSize = envState?.room_semantics?.room_size || {};
         const size = assemblyOverlay.size || {};
         const polygon = Array.isArray(semanticsOverlay.room_polygon) && semanticsOverlay.room_polygon.length
           ? semanticsOverlay.room_polygon
           : Array.isArray(assemblyOverlay.room_polygon) ? assemblyOverlay.room_polygon : [];
         const xs = polygon.map((point) => Number(Array.isArray(point) ? point[0] : point?.x || 0)).filter(Number.isFinite);
         const ys = polygon.map((point) => Number(Array.isArray(point) ? point[1] : point?.y || 0)).filter(Number.isFinite);
-        const width = Math.max(1, Number(size.width || (xs.length ? Math.max(...xs) : 1600)) || 1600);
-        const height = Math.max(1, Number(size.height || (ys.length ? Math.max(...ys) : 1200)) || 1200);
+        const hinted = roomHint && typeof roomHint === 'object' ? roomHint : null;
+        if (hinted) ensureRoomShape(hinted);
+        const dim = (axisSize, semanticKey, hintKey, arr, fallback) => {
+          const fromAssembly = Number(axisSize?.[semanticKey] || 0);
+          if (Number.isFinite(fromAssembly) && fromAssembly > 0) return fromAssembly;
+          const fromSemantics = Number(semanticsRoomSize?.[semanticKey] || 0);
+          if (Number.isFinite(fromSemantics) && fromSemantics > 0) return fromSemantics;
+          const fromHint = Number(hinted?.size?.[hintKey] || 0);
+          if (Number.isFinite(fromHint) && fromHint > 0) return fromHint;
+          if (arr.length >= 2) {
+            const span = Math.max(...arr) - Math.min(...arr);
+            if (Number.isFinite(span) && span > 0) return span;
+          }
+          if (arr.length) {
+            const m = Math.max(...arr);
+            if (Number.isFinite(m) && m > 0) return m;
+          }
+          return fallback;
+        };
+        const width = Math.max(1, Math.round(dim(size, 'width', 'width', xs, 1600)));
+        const height = Math.max(1, Math.round(dim(size, 'height', 'height', ys, 1200)));
         return { width, height, polygon };
       }
 
@@ -7641,7 +7663,7 @@
       function roomWizardLineSvg(line, stroke, label) {
         if (!line || !line.start || !line.end) return '';
         const title = label ? `<title>${escapeHtml(label)}</title>` : '';
-        return `<line x1="${Number(line.start.x || 0)}" y1="${Number(line.start.y || 0)}" x2="${Number(line.end.x || 0)}" y2="${Number(line.end.y || 0)}" stroke="${stroke}" stroke-width="10" stroke-linecap="round">${title}</line>`;
+        return `<line x1="${Number(line.start.x || 0)}" y1="${Number(line.start.y || 0)}" x2="${Number(line.end.x || 0)}" y2="${Number(line.end.y || 0)}" stroke="${stroke}" stroke-width="6" stroke-linecap="round">${title}</line>`;
       }
 
       function roomWizardPointSvg(point, fill, radius, label) {
@@ -7690,7 +7712,7 @@
           : Array.isArray(sceneSchema?.setDressing)
             ? sceneSchema.setDressing
             : [];
-        const bounds = roomWizardOverlayBounds(envState);
+        const bounds = roomWizardOverlayBounds(envState, getRoomWizardRoom());
         const polygon = bounds.polygon || [];
         const hasRoomShape = polygon.length >= 3;
         const controlsMarkup = renderRoomWizardResultsToggleControls(toggleState);
@@ -7700,7 +7722,7 @@
 
         const polygonPoints = polygon.map((point) => `${Number(point[0] || 0)},${Number(point[1] || 0)}`).join(' ');
         const svgParts = [
-          `<polygon points="${polygonPoints}" fill="rgba(157,221,242,0.06)" stroke="#9dddf2" stroke-width="10"></polygon>`
+          `<polygon points="${polygonPoints}" fill="rgba(157,221,242,0.06)" stroke="#9dddf2" stroke-width="4"></polygon>`
         ];
         const legend = ['<span class="rw-environment-overlay-pill rw-environment-overlay-pill--room">Room shell</span>'];
         const meta = [];
@@ -7786,7 +7808,7 @@
               </div>
               <span class="rw-stage-pill">${escapeHtml(`${bounds.width} × ${bounds.height}`)}</span>
             </div>
-            <p class="rw-environment-stage-copy">Use these controls to compare placements, semantics, safe zones, and validation highlights against the authored room footprint.</p>
+            <p class="rw-environment-stage-copy">Compare layers against the Layout footprint: the cyan outline matches your polygon; green lines are boundary edges. Gold structural boxes follow planned asset slots (often a chamber rectangle for unified shell)—they may differ from concave outlines on purpose.</p>
             ${controlsMarkup}
             <div class="rw-environment-overlay-shell">
               <svg viewBox="0 0 ${bounds.width} ${bounds.height}" role="img" aria-label="Room environment overlay view">
