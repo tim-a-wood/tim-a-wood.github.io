@@ -2768,6 +2768,36 @@ def _normalize_single_component_schema(
             continue
         text = str(value or "").strip()
         out[field] = text or fallback[field]
+    if schema_key == "background":
+        # Older saved room specs described the background as a shell-bearing frame.
+        # That stale wording can override newer defaults and leak a "second shell"
+        # back into bespoke prompts even after planner/schema fixes landed.
+        stale_tokens = (
+            "stone shell",
+            "enclosing hall shell",
+            "enclosing shell",
+            "must read as enclosing shell",
+        )
+        joined_lists = {
+            field: " ".join(_coerce_string_list(out.get(field))).lower()
+            for field in ("silhouette_rules", "readability_constraints", "negative_constraints")
+        }
+        scalar_fields = {
+            field: str(out.get(field) or "").lower()
+            for field in ("material_family", "enclosure_architecture")
+        }
+        if any(token in scalar_fields["material_family"] for token in ("stone shell",)):
+            out["material_family"] = fallback["material_family"]
+        if any(token in scalar_fields["enclosure_architecture"] for token in stale_tokens):
+            out["enclosure_architecture"] = fallback["enclosure_architecture"]
+        if any(token in joined_lists["silhouette_rules"] for token in stale_tokens):
+            out["silhouette_rules"] = list(fallback["silhouette_rules"])
+        if any(token in joined_lists["readability_constraints"] for token in stale_tokens):
+            out["readability_constraints"] = list(fallback["readability_constraints"])
+        negatives = _coerce_string_list(out.get("negative_constraints"))
+        if "duplicate perimeter shell" not in " ".join(negatives).lower():
+            negatives = list(fallback["negative_constraints"])
+        out["negative_constraints"] = negatives
     return out
 
 
@@ -6618,6 +6648,8 @@ def _build_bespoke_prompt(
     component_rules = {
         "background_far_plate": (
             "Build ONLY the far INTERIOR DEPTH — atmospheric hall space, rear vaults, distant arches, fog, and stone mass seen through the walkable opening. "
+            "Perspective: 2D side-scroller / gameplay orthographic read — keep verticals near-parallel, no one-point perspective tunnel, no strong vanishing-point corridor matting toward a single centered gate. "
+            "Depth is layered tone and overlap (parallax-style), not camera perspective convergence. "
             "NOT a second chamber shell: a separate `room_shell_foreground` asset renders the masonry border, rim, and outer frame. "
             "Do NOT paint a duplicate perimeter frame, thick enclosing border band, postcard surround, nested picture-frame, or stage skirting that reads as a second shell inside this plate. "
             "Do NOT repeat top/side/bottom structural bands meant for the unified shell layer — this image is depth-only inside the void, not a second copy of the rim. "
@@ -6769,6 +6801,7 @@ def _build_bespoke_prompt(
             "\nRoom footprint conditioning: A footprint silhouette map is included in the reference images at exact output resolution. "
             "Black marks the outer shell-adjacent band; neutral-dark marks the interior void (walkable footprint opening). "
             "Do not invert that encoding. "
+            "The silhouette is a layout key only: do NOT reproduce its black outer band as opaque matte black stone, gutters, or a painted second rim in the final plate — translate void vs band into atmospheric depth, not a copy of the mask geometry. "
             "Far hall depth, vaulting, and recesses must follow the interior void shape—including L-shapes, steps, re-entrant corners, and diagonal edges—"
             "not a substitute centered rectangle or generic nave. "
             "Paint depth and atmosphere inside the void only — do not add a second masonry rim, outer border frame, or duplicate chamber shell; the unified shell layer owns the perimeter. "
@@ -6818,6 +6851,12 @@ def _build_bespoke_prompt(
             "Composition contract: this prompt defines a structural shell component only. "
             "Do not introduce new scene composition, landmarks, or decorative set-pieces beyond what the template role and technical constraints require."
         )
+    if component_type == "background_far_plate":
+        composition_contract = (
+            "Composition contract: this must read as a playable room built in depth, not scenic concept art with gameplay layered on top. "
+            "Treat attached references as material/depth guidance only, not as a composition to preserve. "
+            "Do not keep an inherited framed chamber, rim band, or centered nave just because it appears in a template or prior preview; the room shell is authored separately."
+        )
     prompt_opening = (
         "Create a single 2D metroidvania environment component that is a tightly matched equivalent adaptation "
         "of the attached template."
@@ -6827,11 +6866,18 @@ def _build_bespoke_prompt(
             "Create a single 2D metroidvania environment shell component from the attached references "
             "(silhouette geometry guide + approved room preview)."
         )
+    elif component_type == "background_far_plate":
+        prompt_opening = (
+            "Create a single 2D metroidvania far-depth background component from the attached references "
+            "(footprint silhouette + flat depth/layout guide). "
+            "Use a side-scroller orthographic depth read, not a one-point perspective 3D corridor."
+        )
     return textwrap.dedent(
         f"""\
         {prompt_opening}
         Preserve the same biome family, silhouette role, and composition discipline.
-        Do not redesign the piece. Do not invent a new scene. Only adapt it to the requested fit, dimensions, orientation, and subtle local wear.
+        Do not redesign the piece. Do not invent a new scene.
+        {"Use the references to match material family, depth language, and room fit only — do not preserve a framed shell composition from the source template." if component_type == "background_far_plate" else "Only adapt it to the requested fit, dimensions, orientation, and subtle local wear."}
         {silhouette_clause}
         Component type: {component_type}
         Variant family: {template.get('variant_family')}
@@ -7445,20 +7491,19 @@ def _structural_slot_reference_guide(
         draw.rectangle((0, 0, width, max(10, int(height * 0.18))), fill=accent_fill)
         draw.rectangle((0, height - max(10, int(height * 0.2)), width, height), fill=dark_fill)
     elif component_type == "background_far_plate":
-        draw.rectangle((0, 0, width, height), fill=(30, 38, 46, 255))
-        top_h = max(28, int(height * 0.16))
-        floor_h = max(34, int(height * 0.2))
-        side_w = max(40, int(width * 0.11))
-        draw.rectangle((0, 0, width, top_h), fill=(40, 48, 56, 255))
-        draw.rectangle((0, height - floor_h, width, height), fill=(26, 32, 38, 255))
-        draw.rectangle((0, top_h, side_w, height - floor_h), fill=(36, 44, 52, 255))
-        draw.rectangle((width - side_w, top_h, width, height - floor_h), fill=(36, 44, 52, 255))
-        center_left = int(width * 0.22)
-        center_right = int(width * 0.78)
-        center_top = int(height * 0.2)
-        center_bottom = int(height * 0.82)
-        draw.rectangle((center_left, center_top, center_right, center_bottom), fill=(52, 62, 70, 255))
-        draw.rectangle((int(width * 0.44), int(height * 0.28), int(width * 0.56), int(height * 0.8)), fill=(62, 72, 80, 255))
+        # 2D side-scroller depth cue only: soft horizontal bands inside a wide central field.
+        # Avoid vertical side slabs + center "tunnel" portal — those teach a second perimeter frame that
+        # stacks badly with footprint silhouette + unified shell (duplicate shell read in Gemini output).
+        draw.rectangle((0, 0, width, height), fill=(30, 36, 42, 255))
+        n_bands = 6
+        inset_l = int(width * 0.08)
+        inset_r = int(width * 0.92)
+        for i in range(n_bands):
+            y0 = int((height * i) / n_bands)
+            y1 = int((height * (i + 1)) / n_bands)
+            shade = 36 + i * 5
+            fill = (shade, shade + 3, min(255, shade + 10), 255)
+            draw.rectangle((inset_l, y0, inset_r, y1), fill=fill)
     return _save_reference_image(image, output_path, transparent)
 
 
@@ -7530,7 +7575,7 @@ def _bespoke_reference_images_for_component(
         refs: List[Path] = []
         if room is not None and _write_bespoke_room_silhouette_reference(_room_geometry(room), silhouette_path, expected_size):
             refs.append(silhouette_path)
-        refs.extend([template_path, guide_path])
+        refs.append(guide_path)
         return refs
     if component_type in {
         "hero_platform_top",
@@ -8107,7 +8152,7 @@ def _validation_reference_for_component(
     template_path: Optional[Path],
     refs_for_job: Optional[List[Path]] = None,
 ) -> Optional[Path]:
-    if component_type in {"background_far_plate", "midground_side_frame", "room_shell_foreground"} and template_path and template_path.exists():
+    if component_type in {"midground_side_frame", "room_shell_foreground"} and template_path and template_path.exists():
         return template_path
     if refs_for_job and refs_for_job[0].exists():
         return refs_for_job[0]
@@ -8600,15 +8645,16 @@ def _composite_runtime_review_image(
             continue
         sprite, (x, y) = composed
         canvas.alpha_composite(sprite, (x, y))
-    occlusion = Image.new("RGBA", (width, height), (0, 0, 0, 0))
-    occlusion_draw = ImageDraw.Draw(occlusion)
-    if left_mass_width >= 24:
-        occlusion_draw.rectangle((0, 0, chamber_left, height), fill=(10, 12, 16, 236))
-    if right_mass_width >= 24:
-        occlusion_draw.rectangle((chamber_right, 0, width, height), fill=(10, 12, 16, 236))
-    if chamber_bottom < height:
-        occlusion_draw.rectangle((chamber_left, chamber_bottom, chamber_right, height), fill=(14, 18, 22, 236))
-    canvas.alpha_composite(occlusion)
+    if not has_unified_shell:
+        occlusion = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+        occlusion_draw = ImageDraw.Draw(occlusion)
+        if left_mass_width >= 24:
+            occlusion_draw.rectangle((0, 0, chamber_left, height), fill=(10, 12, 16, 236))
+        if right_mass_width >= 24:
+            occlusion_draw.rectangle((chamber_right, 0, width, height), fill=(10, 12, 16, 236))
+        if chamber_bottom < height:
+            occlusion_draw.rectangle((chamber_left, chamber_bottom, chamber_right, height), fill=(14, 18, 22, 236))
+        canvas.alpha_composite(occlusion)
     overlay = Image.new("RGBA", (width, height), (0, 0, 0, 0))
     overlay_draw = ImageDraw.Draw(overlay)
     overlay_draw.rectangle((0, floor_y, width, height), fill=(10, 12, 16, 24))

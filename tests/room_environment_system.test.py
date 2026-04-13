@@ -2138,9 +2138,9 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
 
         self.assertNotIn(preview, background_refs)
         self.assertTrue(background_refs[-1].exists())
-        self.assertEqual(len(background_refs), 2)
-        self.assertEqual(background_refs[0], template)
-        self.assertNotEqual(background_refs[-1], template)
+        self.assertEqual(len(background_refs), 1)
+        self.assertIn("background_far_plate", background_refs[0].name)
+        self.assertNotEqual(background_refs[0], template)
         self.assertLess(envsys._region_alpha_ratio(midground_refs[-1], (0.36, 0.18, 0.64, 0.82)), 0.15)
         self.assertEqual(len(floor_refs), 2)
         self.assertEqual(floor_refs[0], template)
@@ -2201,10 +2201,9 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
             False,
             room=l_room,
         )
-        self.assertEqual(len(bg), 3)
+        self.assertEqual(len(bg), 2)
         self.assertTrue(str(bg[0]).endswith("-silhouette.png"))
-        self.assertEqual(bg[1], template)
-        self.assertTrue(str(bg[2]).endswith("-guide.png"))
+        self.assertTrue(str(bg[1]).endswith("-guide.png"))
         self.assertEqual(len(mg), 3)
         self.assertTrue(str(mg[0]).endswith("-silhouette.png"))
         self.assertEqual(mg[1], template)
@@ -2544,8 +2543,12 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.assertIn("interior void", low)
         self.assertIn("do not add a second masonry rim", low)
         self.assertIn("chamber bounds", low)
+        self.assertIn("footprint silhouette + flat depth/layout guide", low)
+        self.assertIn("side-scroller orthographic", low)
+        self.assertIn("do not preserve a framed shell composition", low)
         # Shell-only masonry wording must not leak into background prompts.
         self.assertNotIn("black pixels mark allowed border masonry occupancy", low)
+        self.assertNotIn("tightly matched equivalent adaptation", low)
 
     def test_build_bespoke_prompt_room_shell_uses_contract_map_and_biome_neutral_topology_language(self):
         l_room = {
@@ -2783,9 +2786,9 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
             room=room,
         )
 
-        self.assertEqual(len(refs), 3)
+        self.assertEqual(len(refs), 2)
         self.assertIn("silhouette", refs[0].name)
-        self.assertEqual(refs[1], template)
+        self.assertIn("guide", refs[1].name)
 
 
     def test_midground_template_family_check_uses_edge_similarity(self):
@@ -3437,6 +3440,60 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         valid, errors = envsys._validate_bespoke_component(candidate, "background_far_plate", (160, 120), "opaque", template)
         self.assertFalse(valid)
         self.assertIn("background_shell_definition_low", errors)
+
+    def test_normalize_background_schema_replaces_stale_shell_language(self):
+        raw = {
+            "design_intent": "Legacy prompt",
+            "visual_role": "far_depth",
+            "material_family": "far-depth architectural stone shell",
+            "silhouette_rules": ["enclosing hall shell", "open center lane"],
+            "detail_density": "medium",
+            "value_contrast": "muted far-depth values",
+            "damage_profile": "aged architecture without focal props",
+            "readability_constraints": ["must read as enclosing shell", "center lane stays calm"],
+            "negative_constraints": ["no altar", "no brazier", "no center dais", "no near framing"],
+            "variation_rules": ["vary arch spacing and recess depth"],
+            "enclosure_architecture": "enclosing hall shell with rear arches",
+            "center_openness": "fully open and calm center lane",
+            "far_depth_layers": "at least two depth bands",
+            "focal_suppression": "explicitly suppress altar, brazier, shrine, and dais imagery",
+            "floor_plane_suppression": "no near floor strip or scenic floor carryover",
+            "atmospheric_falloff": "soft haze into distance without bright focal hotspots",
+        }
+        normalized = envsys._normalize_single_component_schema("background", raw, "test room")
+        self.assertEqual(normalized["material_family"], "far-depth architectural stone interior")
+        self.assertIn("interior depth only", " ".join(normalized["silhouette_rules"]).lower())
+        self.assertIn("subordinate to the shell layer", " ".join(normalized["readability_constraints"]).lower())
+        self.assertIn("duplicate perimeter shell", " ".join(normalized["negative_constraints"]).lower())
+        self.assertIn("inside the opening only", normalized["enclosure_architecture"].lower())
+
+    def test_background_bespoke_references_skip_template_image(self):
+        template = self.root / "background-template.png"
+        template.write_bytes(b"fake")
+        preview = self.root / "preview.png"
+        preview.write_bytes(b"fake")
+        ref_root = self.root / "refs"
+        room = {
+            "id": "RX",
+            "size": {"width": 320, "height": 240},
+            "polygon": [[0, 0], [320, 0], [320, 240], [0, 240]],
+        }
+
+        refs = envsys._bespoke_reference_images_for_component(
+            "background_far_plate",
+            template,
+            preview,
+            [],
+            ref_root,
+            (320, 240),
+            False,
+            room=room,
+        )
+
+        self.assertEqual(len(refs), 2)
+        self.assertTrue(str(refs[0]).endswith("background_far_plate-silhouette.png"))
+        self.assertTrue(str(refs[1]).endswith("background_far_plate-guide.png"))
+        self.assertNotIn(template, refs)
 
     def test_background_validation_flags_vertical_bar_artifacts(self):
         template = self.root / "background-template-bars.png"
