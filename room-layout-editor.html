@@ -3652,7 +3652,39 @@
       const API_LAYOUT_URL = '/api/layout';
       const API_COPILOT_URL = '/api/copilot';
       const PAGE_PARAMS = new URLSearchParams(window.location.search);
-      const PROJECT_ID = (PAGE_PARAMS.get('project_id') || '').trim();
+      const ROOM_EDITOR_SESSION_PROJECT_KEY = 'room-editor:last-project-id';
+
+      function sanitizeLocalSlot(raw) {
+        const s = String(raw ?? '')
+          .trim()
+          .slice(0, 64);
+        if (!/^[a-zA-Z0-9][a-zA-Z0-9_-]*$/.test(s)) return '';
+        return s;
+      }
+
+      let PROJECT_ID = (PAGE_PARAMS.get('project_id') || '').trim();
+      const localSlotFromUrl = sanitizeLocalSlot(PAGE_PARAMS.get('local_slot') || '');
+      /** If the URL drops ?project_id= (refresh/bookmark), restore last workbench project for this tab so storage keys and /api/projects/... stay aligned. */
+      if (!PROJECT_ID && !localSlotFromUrl && PAGE_PARAMS.get('no_session_project') !== '1') {
+        try {
+          const recovered = (sessionStorage.getItem(ROOM_EDITOR_SESSION_PROJECT_KEY) || '').trim();
+          if (recovered && /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,127}$/.test(recovered)) {
+            const url = new URL(window.location.href);
+            url.searchParams.set('project_id', recovered);
+            window.history.replaceState({}, '', url.toString());
+            PROJECT_ID = recovered;
+          }
+        } catch (_) {}
+      }
+
+      /** Separate browser projects for workflow testing; does not touch default scratch storage when unset. */
+      const LOCAL_SLOT = !PROJECT_ID ? localSlotFromUrl : '';
+      if (PROJECT_ID) {
+        try {
+          sessionStorage.setItem(ROOM_EDITOR_SESSION_PROJECT_KEY, PROJECT_ID);
+        } catch (_) {}
+      }
+
       const PROJECT_ART_DIRECTION_URL = PROJECT_ID
         ? `/api/projects/${encodeURIComponent(PROJECT_ID)}/art-direction`
         : '';
@@ -3666,17 +3698,6 @@
         ? `/api/projects/${encodeURIComponent(PROJECT_ID)}/art-direction/templates`
         : '';
       const ROOM_ENV_ARCHETYPES_URL = '/api/room-environment/archetypes';
-
-      function sanitizeLocalSlot(raw) {
-        const s = String(raw ?? '')
-          .trim()
-          .slice(0, 64);
-        if (!/^[a-zA-Z0-9][a-zA-Z0-9_-]*$/.test(s)) return '';
-        return s;
-      }
-
-      /** Separate browser projects for workflow testing; does not touch default scratch storage when unset. */
-      const LOCAL_SLOT = !PROJECT_ID ? sanitizeLocalSlot(PAGE_PARAMS.get('local_slot') || '') : '';
       const LOCAL_STORAGE_PREFIX = 'ashen-hollow-room-layout-v1:local:';
       const SIDEBAR_KEY = 'roomCreator.sidebarCollapsed';
       const WORKBENCH_URL = new URL('./tools/2d-sprite-and-animation/index.html', window.location.href);
@@ -4129,7 +4150,7 @@
             <div class="project-card ${active}" data-room-url="${escapeHtml(roomEditorProjectUrl(project.project_id))}" data-sprite-url="${escapeHtml(spriteWorkbenchProjectUrl(project.project_id))}">
               <strong>${escapeHtml(project.project_name || project.project_id)}</strong>
               <small>${escapeHtml(project.current_stage || 'Sprite Creation')} · Last modified ${escapeHtml(formatDate(project.updated_at))}</small>
-              <div class="small-note">Open this project’s room layout without leaving the shared workbench project structure.</div>
+              <div class="small-note">Open this project’s room layout without leaving the shared workbench project structure. After a refresh, keep <code>?project_id=…</code> in the address bar (reopen via <strong>Load Room</strong> here if it dropped) so platforms and doors load from the same workbench file.</div>
               <div class="project-actions">
                 <button class="secondary" data-action="open-room">Load Room</button>
                 <button class="secondary" data-action="open-sprite">Sprite Creation</button>
@@ -10689,7 +10710,6 @@
           } catch (_) {}
         }
 
-        initializeData(structuredClone(SEED_DATA), 'Loaded embedded seed data.');
         const apiLayout = await loadCanonicalLayoutFromApi();
         if (apiLayout) {
           state.apiAvailable = true;
@@ -10719,6 +10739,17 @@
         state.apiAvailable = false;
         updateSyncButtonState();
 
+        const savedOffline = !forceDisk ? loadSavedLayout() : null;
+        if (savedOffline && Array.isArray(savedOffline.rooms) && savedOffline.rooms.length > 0) {
+          initializeData(
+            savedOffline,
+            PROJECT_ID
+              ? `Workbench layout API unavailable — restored ${savedOffline.rooms.length} rooms from your last browser save. Reconnect and use Sync canonical when the server is back.`
+              : `Canonical layout API unavailable — restored ${savedOffline.rooms.length} rooms from your last browser save.`
+          );
+          return;
+        }
+
         try {
           const response = await fetch(DATA_URL, { cache: 'no-store' });
           if (!response.ok) throw new Error(`Failed to load ${DATA_URL}`);
@@ -10736,9 +10767,12 @@
             initializeData(saved, `Loaded ${saved.rooms.length} rooms from browser scratch save.`);
             return;
           }
-          setStatus(forceDisk
-            ? `Disk reload unavailable under file:// (${error.message})`
-            : `Using embedded seed data. Canonical file unavailable and no scratch save found (${error.message})`);
+          initializeData(
+            structuredClone(SEED_DATA),
+            forceDisk
+              ? `Disk reload unavailable under file:// (${error.message}) — showing embedded seed layout.`
+              : `Using embedded seed data. Canonical file unavailable and no scratch save found (${error.message})`
+          );
         }
       }
 
@@ -10944,6 +10978,9 @@
             throw new Error(`HTTP ${response.status}`);
           }
           setDirty(false);
+          try {
+            window.localStorage.setItem(LAYOUT_STORAGE_KEY, serialized);
+          } catch (_) {}
           try {
             window.localStorage.removeItem(getLayoutPreferBrowserKey());
           } catch (_) {}
@@ -11531,6 +11568,15 @@
         window.addEventListener('pointercancel', endDrag);
         window.addEventListener('touchend', endDrag, { passive: false });
         window.addEventListener('touchcancel', endDrag, { passive: false });
+        window.addEventListener('pagehide', () => {
+          if (!state.data || !state.isDirty) return;
+          try {
+            window.localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(state.data, null, 2));
+            if (!LOCAL_SLOT || PROJECT_ID) {
+              window.localStorage.setItem(getLayoutPreferBrowserKey(), '1');
+            }
+          } catch (_) {}
+        });
         window.addEventListener('error', () => {
           const room = getRoomWizardRoom();
           if (state.roomWizard.aiRequestPending && room) {
