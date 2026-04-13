@@ -56,6 +56,12 @@ const DISABLE_UNIFIED_SHELL_RUNTIME_OVERLAYS = true;
  */
 const MINIMAL_BESPOKE_COMPOSITOR = /(?:[?#&])minimalBespokeCompositor=1(?:[&#]|$)/.test(window.location.href)
     || (typeof window.__MV_MINIMAL_BESPOKE_COMPOSITOR === 'boolean' && window.__MV_MINIMAL_BESPOKE_COMPOSITOR);
+/**
+ * Unified shell footprint premask (§202b): Canvas punch so the shell opening tracks the layout polygon exactly.
+ * Default off: on concave / L-shaped footprints the punch often erodes real masonry (mis-registration vs the PNG inner edge),
+ * which reads as a "cut up" shell in playtest. Opt in with ?shellFootprintPremask=1 when you need polygon-perfect holes.
+ */
+const UNIFIED_SHELL_FOOTPRINT_PREMASK = /(?:[?#&])shellFootprintPremask=1(?:[&#]|$)/.test(window.location.href);
 function setPageBootState(message, state = 'info') {
     if (bootDebugEl) {
         bootDebugEl.textContent = message;
@@ -3067,10 +3073,11 @@ class AshenHollow extends Phaser.Scene {
         const roomBounds = support.roomBounds;
         const { dw, dh, ox, oy, localX, localY } = computeUnifiedShellWorldPlacement(asset, support);
         const baseTexKey = `env-bespoke-${asset.slot_id}`;
-        /* Minimal stack: trust PNG alpha; no Canvas premask. Default: §202b premask for polygon-accurate opening. */
-        const textureKey = (MINIMAL_BESPOKE_COMPOSITOR && this.textures.exists(baseTexKey))
-            ? baseTexKey
-            : getOrCreatePremaskedShellTexture(this, asset.slot_id, roomId);
+        /* Trust PNG alpha by default so the full authored ring stays visible; premask only on explicit opt-in (see UNIFIED_SHELL_FOOTPRINT_PREMASK). */
+        const textureKey = (UNIFIED_SHELL_FOOTPRINT_PREMASK && !MINIMAL_BESPOKE_COMPOSITOR && this.textures.exists(baseTexKey))
+            ? getOrCreatePremaskedShellTexture(this, asset.slot_id, roomId)
+            : baseTexKey;
+        /* Above floor cap / ledge (0.08–0.11), below bespoke doors (0.18) and gate (0.22). */
         const depth = 0.16;
         const sprite = this.add.image(roomBounds.start + localX, localY, textureKey)
             .setOrigin(ox, oy)

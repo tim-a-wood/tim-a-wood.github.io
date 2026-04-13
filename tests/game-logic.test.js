@@ -1063,10 +1063,12 @@ function simulateSequenceAttempt(order) {
             && html.includes('getOrCreatePremaskedShellTexture')
             && html.includes('-masked-${fp}')
             && html.includes('destination-out')
+            && html.includes('UNIFIED_SHELL_FOOTPRINT_PREMASK')
+            && html.includes('shellFootprintPremask=1')
             && html.includes('MINIMAL_BESPOKE_COMPOSITOR')
             && html.includes('minimalBespokeCompositor=1')
             && !html.includes('getUnifiedShellOpeningCentroidTexture'),
-        'unified shell supports §202b premask by default and optional minimal compositor (§204)'
+        'unified shell uses raw PNG by default; §202b Canvas premask opt-in via ?shellFootprintPremask=1 (minimal compositor still skips premask)'
     );
 })();
 
@@ -1096,8 +1098,8 @@ function simulateSequenceAttempt(order) {
         html.includes('minimalBespokeStack')
             && html.includes('this.roomBackgroundFeatherSprites[roomId] = [];')
             && html.includes('const baseTexKey = `env-bespoke-${asset.slot_id}`')
-            && html.includes('MINIMAL_BESPOKE_COMPOSITOR && this.textures.exists(baseTexKey)'),
-        'minimal bespoke stack should skip feather sprites and branch unified shell texture (§204)'
+            && html.includes('UNIFIED_SHELL_FOOTPRINT_PREMASK && !MINIMAL_BESPOKE_COMPOSITOR && this.textures.exists(baseTexKey)'),
+        'minimal bespoke stack should skip feather sprites; unified shell premask only when opt-in and not minimal (§204)'
     );
 })();
 
