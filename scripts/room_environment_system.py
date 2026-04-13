@@ -1220,6 +1220,8 @@ def _build_art_direction_concept_prompts(direction: Dict[str, Any], count: int =
             f"Style family: {direction.get('style_family') or 'dark fantasy environment'}. "
             f"Shape language: {anchors}. Materials: {materials}. Lighting: {lighting}. Palette anchors: {palette}. "
             f"Avoid: {negative}. "
+            "Perspective: 2D side-scroller / gameplay orthographic read — verticals near-parallel, depth from layered tone and overlap, "
+            "not a one-point perspective tunnel or vanishing corridor toward a single centered gate. "
             "Make this environment concept art only, with no characters, no UI, no sprite sheet, and no text overlays."
         ).strip()
         prompts.append({"label": label, "prompt": prompt})
@@ -4249,7 +4251,7 @@ def _build_level3_variant_prompt(
     variant_index: int,
 ) -> str:
     variant_notes = [
-        "Lean into a strong focal landmark with dramatic readable depth.",
+        "Lean into a strong focal landmark with dramatic readable layering (orthographic side depth, not a perspective tunnel).",
         "Emphasize atmosphere, fog layering, and wet material response.",
         "Broaden the ambience with more background architecture and environmental storytelling.",
     ]
@@ -4270,6 +4272,7 @@ def _build_level3_variant_prompt(
         f"""\
         Create a high-detail 2D side-view game environment concept for a metroidvania room.
         This is a room environment preview, not a mood board and not abstract color treatment.
+        Perspective: strict 2D side-scroller / orthographic depth read for pixel-style metroidvanias — keep verticals near-parallel, no strong one-point perspective, no deep tunnel or nave that converges to a single vanishing-point doorway or cathedral gate. Depth comes from layered planes, value, and parallax-style overlap, not camera perspective convergence.
         The attached first image is a hard layout guide. Match the walkable floor polygon footprint exactly — every corner, diagonal edge, L-shape, step, and indent — not a substitute rectangle or centered box nave.
         Do not normalize the room to a symmetrical hall when the guide shows an irregular outline.{foot_para}
         {attachment_guide}
@@ -4302,6 +4305,7 @@ def _build_level3_variant_prompt(
         - no user interface
         - no text overlays
         - no top-down or isometric perspective
+        - no fisheye, dramatic wide-angle, or cinematic one-point corridor matting
         - no abstract graphic poster composition
         - make it look like a believable game room environment concept
 
