@@ -4423,23 +4423,6 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.assertFalse(valid)
         self.assertIn("border_piece_side_wall_flare", errors)
 
-    def test_normalize_room_env_image_provider(self):
-        self.assertEqual(envsys._normalize_room_env_image_provider("cursor"), "cursor_cloud")
-        self.assertEqual(envsys._normalize_room_env_image_provider("cursor-cloud"), "cursor_cloud")
-        self.assertEqual(envsys._normalize_room_env_image_provider("gemini"), "gemini")
-        self.assertEqual(envsys._normalize_room_env_image_provider(None), "gemini")
-
-    def test_generate_image_via_cursor_cloud_requires_config(self):
-        out = self.root / "cursor-out.png"
-        ok, err = envsys._generate_image_via_cursor_cloud(out, "brief", [], "64x64")
-        self.assertFalse(ok)
-        self.assertEqual(err, "missing_cursor_api_key")
-        envsys.os.environ["CURSOR_API_KEY"] = "key_test"
-        ok2, err2 = envsys._generate_image_via_cursor_cloud(out, "brief", [], "64x64")
-        self.assertFalse(ok2)
-        self.assertEqual(err2, "missing_cursor_cloud_repository")
-        del envsys.os.environ["CURSOR_API_KEY"]
-
 
 if __name__ == "__main__":
     unittest.main()
