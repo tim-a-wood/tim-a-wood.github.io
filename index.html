@@ -1597,10 +1597,16 @@ function getOrCreatePremaskedShellTexture(scene, slotId, roomId) {
 }
 
 /**
- * Measure the axis-aligned bbox of nearly-transparent pixels in the shell texture (interior hole).
- * Many unified shells are 1080×960 but the alpha hole only spans ~966×960 — stretching the full bitmap
- * to the chamber AABB shrinks the opening and misaligns inner masonry vs the footprint grid.
- * Cached per scene + texture key. Returns null when unreadable or hole is degenerate / nearly full frame.
+ * Measure the walkable-interior hole in a unified shell texture for placement math.
+ *
+ * Why not a single alpha envelope? R1-room-shell.png has disconnected transparent regions: a
+ * partial-width band y=0..105, then opaque stone y=106..114, then the main void. A naive min/max
+ * bbox of all alpha<th pixels forces minY=0 and ignores the stone bridge; vertical scale is wrong and the
+ * inner bevel sits above the polygon top (shell reads shifted up/left vs the grid).
+ *
+ * Derived fix: 4-connected flood on pixels with alpha < threshold; keep the largest component
+ * only; return its axis-aligned bbox (x,y,w,h) in source pixels plus sw,sh.
+ * Cached per scene + texture key.
  */
 function measureShellInteriorHoleBBoxFromTexture(scene, textureKey) {
     if (!scene || !textureKey || !scene.textures.exists(textureKey)) return null;
@@ -1622,28 +1628,80 @@ function measureShellInteriorHoleBBoxFromTexture(scene, textureKey) {
         ctx.drawImage(src, 0, 0);
         const data = ctx.getImageData(0, 0, sw, sh).data;
         const threshold = 8;
-        let minX = sw;
-        let minY = sh;
-        let maxX = -1;
-        let maxY = -1;
-        for (let y = 0; y < sh; y += 1) {
-            const row = y * sw * 4;
-            for (let x = 0; x < sw; x += 1) {
-                if (data[row + x * 4 + 3] < threshold) {
-                    if (x < minX) minX = x;
-                    if (y < minY) minY = y;
-                    if (x > maxX) maxX = x;
-                    if (y > maxY) maxY = y;
+        const frameArea = sw * sh;
+        const visited = new Uint8Array(frameArea);
+        let bestArea = 0;
+        let minX = 0;
+        let minY = 0;
+        let maxX = 0;
+        let maxY = 0;
+        const stack = [];
+        for (let sy = 0; sy < sh; sy += 1) {
+            const rowBase = sy * sw;
+            for (let sx = 0; sx < sw; sx += 1) {
+                const si = rowBase + sx;
+                if (visited[si]) continue;
+                if (data[si * 4 + 3] >= threshold) continue;
+                let compMinX = sx;
+                let compMinY = sy;
+                let compMaxX = sx;
+                let compMaxY = sy;
+                let area = 0;
+                visited[si] = 1;
+                stack.length = 0;
+                stack.push(sx, sy);
+                while (stack.length) {
+                    const cy = stack.pop();
+                    const cx = stack.pop();
+                    area += 1;
+                    if (cx < compMinX) compMinX = cx;
+                    if (cy < compMinY) compMinY = cy;
+                    if (cx > compMaxX) compMaxX = cx;
+                    if (cy > compMaxY) compMaxY = cy;
+                    if (cx + 1 < sw) {
+                        const i = cy * sw + cx + 1;
+                        if (!visited[i] && data[i * 4 + 3] < threshold) {
+                            visited[i] = 1;
+                            stack.push(cx + 1, cy);
+                        }
+                    }
+                    if (cx > 0) {
+                        const i = cy * sw + cx - 1;
+                        if (!visited[i] && data[i * 4 + 3] < threshold) {
+                            visited[i] = 1;
+                            stack.push(cx - 1, cy);
+                        }
+                    }
+                    if (cy + 1 < sh) {
+                        const i = (cy + 1) * sw + cx;
+                        if (!visited[i] && data[i * 4 + 3] < threshold) {
+                            visited[i] = 1;
+                            stack.push(cx, cy + 1);
+                        }
+                    }
+                    if (cy > 0) {
+                        const i = (cy - 1) * sw + cx;
+                        if (!visited[i] && data[i * 4 + 3] < threshold) {
+                            visited[i] = 1;
+                            stack.push(cx, cy - 1);
+                        }
+                    }
+                }
+                if (area > bestArea) {
+                    bestArea = area;
+                    minX = compMinX;
+                    minY = compMinY;
+                    maxX = compMaxX;
+                    maxY = compMaxY;
                 }
             }
         }
-        if (maxX < 0) {
+        if (bestArea < 64) {
             scene.shellInteriorHoleBBoxCache[textureKey] = { empty: true };
             return null;
         }
         const w = maxX - minX + 1;
         const h = maxY - minY + 1;
-        const frameArea = sw * sh;
         if (w < 8 || h < 8 || w * h > frameArea * 0.97) {
             scene.shellInteriorHoleBBoxCache[textureKey] = { empty: true };
             return null;

@@ -1058,6 +1058,7 @@ function simulateSequenceAttempt(order) {
             && html.includes('UNIFIED_SHELL_PLACEMENT_CHAMBER_BBOX')
             && html.includes('computeUnifiedShellWorldPlacement(roomId, asset, support, options = {})')
             && html.includes('measureShellInteriorHoleBBoxFromTexture')
+            && html.includes('bestArea')
             && html.includes('hole.sw * chamberW / hole.w')
             && html.includes('setRoundPixels(true)')
             && html.includes('SHELL_TEXTURE_PREMASK')
