@@ -2501,6 +2501,8 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         low = prompt.lower()
         self.assertIn("silhouette mask hygiene", low)
         self.assertIn("crop", low)
+        self.assertIn("room_shell_foreground", low)
+        self.assertIn("duplicate room shell", low)
         self.assertIn("frozen concept images (1)", low)
         self.assertIn("do not copy their camera", low)
         self.assertIn("schematic diagram", low)
@@ -2671,6 +2673,12 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         px2 = int(round(gx2 - box[0]))
         py2 = int(round(gy2 - box[1]))
         self.assertGreater(out.getpixel((px2, py2))[3], 240)
+
+    def test_level3_mask_erode_reverts_when_it_would_wipe_mask(self):
+        m = envsys.Image.new("L", (32, 32), 0)
+        envsys.ImageDraw.Draw(m).rectangle((14, 14, 18, 18), fill=255)
+        wiped = envsys._erode_l_mask_minfilter(m, 50)
+        self.assertEqual(wiped.tobytes(), m.tobytes())
 
     def test_level1_fallback_preview_has_no_accent_cyan_outline(self):
         out = self.root / "lvl1-fallback.png"

@@ -4349,6 +4349,32 @@ def _level3_preview_polygon_mask_enabled() -> bool:
     return raw not in ("0", "false", "no", "off")
 
 
+def _level3_preview_mask_erode_passes() -> int:
+    """Shrink the footprint mask slightly inward so Gemini's mask-hugging 'shell rim' is cropped transparent.
+
+    Each pass is ~1px erosion (3×3 min). Default trims duplicate perimeter read without changing prompts only.
+    Set MV_LEVEL3_PREVIEW_MASK_ERODE_PX=0 to disable.
+    """
+    raw = str(os.environ.get("MV_LEVEL3_PREVIEW_MASK_ERODE_PX") or "2").strip()
+    try:
+        v = int(raw)
+    except ValueError:
+        v = 2
+    return max(0, min(12, v))
+
+
+def _erode_l_mask_minfilter(mask: Image.Image, passes: int) -> Image.Image:
+    if passes <= 0:
+        return mask
+    m = mask
+    for _ in range(passes):
+        m = m.filter(ImageFilter.MinFilter(3))
+    lo, hi = m.getextrema()
+    if hi == 0:
+        return mask
+    return m
+
+
 def _postprocess_level3_gemini_output(image: Image.Image, geometry: Dict[str, Any]) -> Image.Image:
     """Crop to footprint AABB, then punch transparent alpha outside the walkable polygon (concave/L shapes).
 
@@ -4383,6 +4409,7 @@ def _postprocess_level3_gemini_output(image: Image.Image, geometry: Dict[str, An
         poly_crop.append((max(0, min(cropped.size[0] - 1, px)), max(0, min(cropped.size[1] - 1, py))))
     mask = Image.new("L", cropped.size, 0)
     ImageDraw.Draw(mask).polygon(poly_crop, fill=255)
+    mask = _erode_l_mask_minfilter(mask, _level3_preview_mask_erode_passes())
     out = cropped.convert("RGBA")
     alpha = out.split()[-1]
     alpha = ImageChops.multiply(alpha, mask)
@@ -4437,6 +4464,7 @@ def _build_level3_footprint_coordinate_block(geometry: Dict[str, Any]) -> str:
         f"Closed walkable polygon vertex loop (same coordinate system as the layout editor, in order): {loop}. "
         f"Platform anchors (x,y,tile-len): {plat_line}. Door anchors (x,y): {door_line}. "
         "The final environment must preserve this exact walkable opening shape (every re-entrant corner and indent), not a substitute rectangle or smoothed cathedral portal. "
+        "Do not render perimeter masonry, shell rim, or a stone frame that tracks this polygon edge — that is a separate shell layer; keep this image as interior depth inset from the boundary. "
         "If the first image and this list disagree, follow this vertex list and chamber bounds."
     )
 
@@ -4469,6 +4497,8 @@ def _build_level3_variant_prompt(
         "Silhouette mask hygiene (first image): it is a two-tone mask, not a render. "
         "Near-black pixels are OUTSIDE the playable room — keep that margin solid void (no architecture, sky, or scenery). "
         "The bright filled region is the exact walkable footprint — place the full environment there and match its boundary shape (every corner, indent, and re-entrant). "
+        "CRITICAL: do NOT paint a thick masonry ring, buttress frame, tunnel mouth, or room-shell border that hugs or traces the bright outline — at runtime a dedicated `room_shell_foreground` layer owns perimeter stone. "
+        "This preview is interior scenic depth only: let walls/vaults begin **inset** from the mask edge (soft airgap / atmospheric falloff), not a second shell duplicated onto the background read. "
         "Faint platform/door tints inside the bright region are placement hints only — do not redraw them as schematic/UI lines. "
         "The pipeline crops to the bright footprint; do not put important content in the black margin."
     )
@@ -4527,6 +4557,7 @@ def _build_level3_variant_prompt(
         - no visible schematic diagram, wireframe, or editor-overlay lines of any color
         - keep near-black mask margins uniform void (no detail outside the bright footprint)
         - note: concave footprints are alpha-punched to the exact polygon after generation — any art that leaks into notch/outside-bbox voids becomes transparent
+        - no duplicate room shell on this plate: no perimeter stone band tracing the mask, no enclosing rim meant to be composited as `room_shell_foreground`
         - make it look like a believable game room environment concept
 
         Variant direction:
@@ -6877,6 +6908,7 @@ def _build_bespoke_prompt(
             "Depth is layered tone and overlap (parallax-style), not camera perspective convergence. "
             "NOT a second chamber shell: a separate `room_shell_foreground` asset renders the masonry border, rim, and outer frame. "
             "Do NOT paint a duplicate perimeter frame, thick enclosing border band, postcard surround, nested picture-frame, or stage skirting that reads as a second shell inside this plate. "
+            "Do NOT trace or hug the footprint void outline with a stone lip, arch mouth, or masonry ring that mirrors the silhouette — push first readable wall mass inward from that edge. "
             "Do NOT repeat top/side/bottom structural bands meant for the unified shell layer — this image is depth-only inside the void, not a second copy of the rim. "
             "When a footprint silhouette reference is attached, the walkable opening shape (including L-shapes and concave outlines) is locked — do not substitute a generic centered rectangular nave. "
             "Treat the approved room preview as context only and explicitly reject carryover of any altar, brazier energy, shrine focal landmark, center dais, near framing, "
@@ -7030,6 +7062,7 @@ def _build_bespoke_prompt(
             "Far hall depth, vaulting, and recesses must follow the interior void shape—including L-shapes, steps, re-entrant corners, and diagonal edges—"
             "not a substitute centered rectangle or generic nave. "
             "Paint depth and atmosphere inside the void only — do not add a second masonry rim, outer border frame, or duplicate chamber shell; the unified shell layer owns the perimeter. "
+            "If stone masses approach the void boundary, they must read as interior walls/vaults set back from the crop line — not a shell band that follows the L-shape step-for-step. "
             "The interior void should read as continuous atmospheric depth; avoid tall near-black vertical slats, matte poster bars, or hard occluder strips there.\n"
             f"{_chamber_bounds_line}"
         )
