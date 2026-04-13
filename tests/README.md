@@ -2,6 +2,8 @@
 
 Unit tests for the metroidvania PWA. Game logic lives in `index.html`; these tests duplicate deterministic algorithms to verify behavior without loading Phaser.
 
+**Unified shell placement (R1 baseline):** `tests/unified_shell_hole_baseline.test.py` — synthetic disconnected-hole raster plus optional check against local `R1-room-shell.png` when `tools/2d-sprite-and-animation/projects-data/` is present (gitignored). Golden numbers: `tests/fixtures/unified_shell_r1_placement_baseline.json`. Doc: `docs/baselines/unified-shell-placement-r1.md`.
+
 **Current coverage:**
 - Room wizard **footprint helper** (`room-layout-wizard-footprint.js`) — see `tests/room-wizard-footprint.test.js`
 - Room layout **runtime export package** (`room-layout-export-package.js`): manifest, per-room runtime slice, `movingPlatforms` key — see `tests/room-editor-export.test.js`

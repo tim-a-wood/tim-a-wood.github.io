@@ -21,6 +21,9 @@ jobs:
       - name: Room environment system (Python)
         run: python3 tests/room_environment_system.test.py
 
+      - name: Unified shell hole baseline (Python)
+        run: python3 tests/unified_shell_hole_baseline.test.py
+
       - name: Email digest theme (Python)
         run: python3 tests/send_weekly_digest_email_theme_test.py
 
