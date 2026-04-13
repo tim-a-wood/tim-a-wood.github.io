@@ -4344,7 +4344,17 @@ def _scale_level3_crop_box_to_image(
     return (dl, dt, dr, db)
 
 
-def _crop_level3_gemini_output_to_footprint(image: Image.Image, geometry: Dict[str, Any]) -> Image.Image:
+def _level3_preview_polygon_mask_enabled() -> bool:
+    raw = str(os.environ.get("MV_LEVEL3_PREVIEW_POLYGON_MASK") or "1").strip().lower()
+    return raw not in ("0", "false", "no", "off")
+
+
+def _postprocess_level3_gemini_output(image: Image.Image, geometry: Dict[str, Any]) -> Image.Image:
+    """Crop to footprint AABB, then punch transparent alpha outside the walkable polygon (concave/L shapes).
+
+    Cropping alone leaves a rectangle; R1 and similar rooms need pixels inside the bbox but outside
+    the polygon (notches) forced to transparent so the preview silhouette matches the editor footprint.
+    """
     gw, gh = _LEVEL3_GUIDE_SIZE
     pad = _LEVEL3_GUIDE_PAD
     box = _level3_footprint_pil_crop_box(
@@ -4358,7 +4368,31 @@ def _crop_level3_gemini_output_to_footprint(image: Image.Image, geometry: Dict[s
     t = max(0, min(oh - 2, t))
     r = max(l + 2, min(ow, r))
     b = max(t + 2, min(oh, b))
-    return image.crop((l, t, r, b))
+    cropped = image.crop((l, t, r, b))
+    if not _level3_preview_polygon_mask_enabled():
+        return cropped
+    poly_guide = _geometry_footprint_polygon_output_pixels(geometry, gw, gh, pad)
+    if len(poly_guide) < 3:
+        return cropped.convert("RGBA")
+    sx = ow / float(gw)
+    sy = oh / float(gh)
+    poly_crop: List[Tuple[int, int]] = []
+    for gx, gy in poly_guide:
+        px = int(round(float(gx) * sx - float(l)))
+        py = int(round(float(gy) * sy - float(t)))
+        poly_crop.append((max(0, min(cropped.size[0] - 1, px)), max(0, min(cropped.size[1] - 1, py))))
+    mask = Image.new("L", cropped.size, 0)
+    ImageDraw.Draw(mask).polygon(poly_crop, fill=255)
+    out = cropped.convert("RGBA")
+    alpha = out.split()[-1]
+    alpha = ImageChops.multiply(alpha, mask)
+    out.putalpha(alpha)
+    return out
+
+
+def _crop_level3_gemini_output_to_footprint(image: Image.Image, geometry: Dict[str, Any]) -> Image.Image:
+    """Backward-compatible name: crop + concave polygon alpha mask."""
+    return _postprocess_level3_gemini_output(image, geometry)
 
 
 def _build_level3_footprint_coordinate_block(geometry: Dict[str, Any]) -> str:
@@ -4492,6 +4526,7 @@ def _build_level3_variant_prompt(
         - no abstract graphic poster composition
         - no visible schematic diagram, wireframe, or editor-overlay lines of any color
         - keep near-black mask margins uniform void (no detail outside the bright footprint)
+        - note: concave footprints are alpha-punched to the exact polygon after generation — any art that leaks into notch/outside-bbox voids becomes transparent
         - make it look like a believable game room environment concept
 
         Variant direction:

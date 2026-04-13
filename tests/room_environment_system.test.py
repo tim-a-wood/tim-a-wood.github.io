@@ -2630,6 +2630,48 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
             (scaled[2] - scaled[0], scaled[3] - scaled[1]),
         )
 
+    def test_level3_postprocess_punches_concave_notch_outside_walkable_polygon(self):
+        """R1-style L footprint: a point inside the chamber AABB but above the left leg must be transparent."""
+        geom = {
+            "left": 160.0,
+            "top": 120.0,
+            "right": 1240.0,
+            "bottom": 1080.0,
+            "chamber_width": 1080.0,
+            "chamber_height": 960.0,
+            "width": 1600.0,
+            "height": 1200.0,
+            "polygon": [
+                [160, 260],
+                [900, 260],
+                [900, 120],
+                [1240, 120],
+                [1240, 1080],
+                [980, 1080],
+                [980, 860],
+                [160, 860],
+            ],
+        }
+        gw, gh = envsys._LEVEL3_GUIDE_SIZE
+        pad = envsys._LEVEL3_GUIDE_PAD
+        gx, gy = envsys._chamber_point_to_output_pixel(500, 150, 160, 120, 1080, 960, gw, gh, pad)
+        box = envsys._level3_footprint_pil_crop_box(
+            geom,
+            canvas_w=gw,
+            canvas_h=gh,
+            pad=pad,
+            margin_px=envsys._level3_preview_crop_margin_px(),
+        )
+        src = envsys.Image.new("RGBA", (gw, gh), (255, 255, 255, 255))
+        out = envsys._postprocess_level3_gemini_output(src, geom)
+        px = int(round(gx - box[0]))
+        py = int(round(gy - box[1]))
+        self.assertLess(out.getpixel((px, py))[3], 32)
+        gx2, gy2 = envsys._chamber_point_to_output_pixel(500, 400, 160, 120, 1080, 960, gw, gh, pad)
+        px2 = int(round(gx2 - box[0]))
+        py2 = int(round(gy2 - box[1]))
+        self.assertGreater(out.getpixel((px2, py2))[3], 240)
+
     def test_level1_fallback_preview_has_no_accent_cyan_outline(self):
         out = self.root / "lvl1-fallback.png"
         envsys._render_level1_image(
