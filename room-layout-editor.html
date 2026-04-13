@@ -2665,14 +2665,6 @@
                 <button type="button" class="phase-back-btn" id="roomWizardBackToLayoutFromEnv">← Layout</button>
               </div>
               <div class="rw-env-shell" id="roomWizardEnvShell">
-                <div class="rw-env-ai-provider rw-env-ai-provider--bar" role="group" aria-labelledby="roomWizardAiProviderLabel">
-                  <p class="field-label" id="roomWizardAiProviderLabel">PNG previews and bespoke tiles</p>
-                  <div class="rw-seg-control" role="presentation">
-                    <button type="button" class="rw-seg-btn" id="roomWizardAiProviderGemini" aria-pressed="true">Gemini</button>
-                    <button type="button" class="rw-seg-btn" id="roomWizardAiProviderCursor" aria-pressed="false">Cursor cloud</button>
-                  </div>
-                  <p class="small-note" id="roomWizardAiProviderHint"></p>
-                </div>
                 <div class="rw-env-wizard-rail" role="tablist" aria-label="Environment workflow">
                   <button type="button" class="rw-env-step-btn rw-env-step-btn--active" role="tab" id="rwEnvStepDescribe" data-rw-env-step="describe" aria-selected="true">
                     <strong>1 · Describe</strong>
@@ -2860,6 +2852,14 @@
                           <p class="rw-env-flow-step"><span class="rw-env-flow-num" aria-hidden="true">3</span><span>Click <strong>Build final room assets</strong> when you are happy with the approved card (this saves the full room kit).</span></p>
                         </div>
                         <p class="small-note rw-env-intro-after-flow">Layout: preview and buttons first; build summary and checklist below (scroll the page if the section is long).</p>
+                        <div class="rw-env-ai-provider" role="group" aria-labelledby="roomWizardAiProviderLabel">
+                          <p class="field-label" id="roomWizardAiProviderLabel">PNG previews and bespoke tiles</p>
+                          <div class="rw-seg-control" role="presentation">
+                            <button type="button" class="rw-seg-btn" id="roomWizardAiProviderGemini" aria-pressed="true">Gemini</button>
+                            <button type="button" class="rw-seg-btn" id="roomWizardAiProviderCursor" aria-pressed="false">Cursor cloud</button>
+                          </div>
+                          <p class="small-note" id="roomWizardAiProviderHint"></p>
+                        </div>
                       </div>
                       <div class="rw-env-review-layout">
                       <div class="rw-env-column rw-env-column--review-primary">
