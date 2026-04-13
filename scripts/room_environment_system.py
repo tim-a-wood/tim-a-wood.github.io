@@ -4087,14 +4087,14 @@ def _render_room_layout_conditioning_image(geometry: Dict[str, Any], spec: Dict[
     canvas_size = (1344, 768)
     image = Image.new("RGBA", canvas_size, (8, 12, 16, 255))
     draw = ImageDraw.Draw(image)
-    # Keep conditioning guides neutral; bright cyan UI-like strokes can leak into generated biome art.
-    draw.rounded_rectangle((36, 36, canvas_size[0] - 36, canvas_size[1] - 36), radius=28, outline=(88, 96, 104, 136), width=2)
+    # Soft footprint-only guide: avoid high-contrast strokes, labels, and gold UI accents — they leak as "weird lines" in Gemini output.
+    draw.rounded_rectangle((36, 36, canvas_size[0] - 36, canvas_size[1] - 36), radius=28, outline=(48, 54, 60, 72), width=1)
     polygon = _fit_points(geometry.get("polygon") or [], canvas_size, padding=72)
     if polygon:
         poly_fill = Image.new("RGBA", canvas_size, (0, 0, 0, 0))
         poly_draw = ImageDraw.Draw(poly_fill)
-        poly_draw.polygon(polygon, fill=(28, 38, 48, 220), outline=(118, 128, 138, 255), width=3)
-        poly_fill = poly_fill.filter(ImageFilter.GaussianBlur(radius=0.6))
+        poly_draw.polygon(polygon, fill=(32, 40, 48, 198), outline=(48, 56, 64, 90), width=1)
+        poly_fill = poly_fill.filter(ImageFilter.GaussianBlur(radius=1.0))
         image.alpha_composite(poly_fill)
     draw = ImageDraw.Draw(image)
     for idx, platform in enumerate(geometry.get("platforms") or []):
@@ -4106,23 +4106,20 @@ def _render_room_layout_conditioning_image(geometry: Dict[str, Any], spec: Dict[
             sy = (py / max(float(geometry["height"]), 1.0)) * (canvas_size[1] - 168) + 66
         else:
             sx, sy = 180 + (idx * 120), 480
-        draw.rounded_rectangle((sx, sy, sx + width, sy + 14), radius=7, fill=(22, 26, 30, 240), outline=(255, 214, 122, 220))
+        draw.rounded_rectangle((sx, sy, sx + width, sy + 14), radius=7, fill=(38, 42, 48, 228), outline=(62, 68, 74, 100))
     for idx, door in enumerate(geometry.get("door_positions") or []):
         sx = (float(door.get("x") or 0) / max(float(geometry.get("width") or 1), 1.0)) * (canvas_size[0] - 140) + 70
         sy = (float(door.get("y") or 0) / max(float(geometry.get("height") or 1), 1.0)) * (canvas_size[1] - 140) + 56
         h = 62 + (idx % 2) * 10
-        draw.rounded_rectangle((sx - 12, sy - h, sx + 12, sy), radius=6, fill=(255, 214, 122, 220), outline=(108, 98, 82, 130))
+        draw.rounded_rectangle((sx - 12, sy - h, sx + 12, sy), radius=6, fill=(72, 64, 56, 210), outline=(90, 84, 78, 95))
     focus_x = int(canvas_size[0] * (0.3 + (variant_index * 0.2)))
     focus_y = int(canvas_size[1] * 0.34)
     glow = Image.new("RGBA", canvas_size, (0, 0, 0, 0))
     glow_draw = ImageDraw.Draw(glow)
-    for radius, alpha in ((180, 24), (122, 38), (76, 52)):
-        glow_draw.ellipse((focus_x - radius, focus_y - radius, focus_x + radius, focus_y + radius), fill=(255, 214, 122, alpha))
-    glow = glow.filter(ImageFilter.GaussianBlur(radius=24))
+    for radius, alpha in ((180, 10), (122, 14), (76, 18)):
+        glow_draw.ellipse((focus_x - radius, focus_y - radius, focus_x + radius, focus_y + radius), fill=(64, 72, 80, alpha))
+    glow = glow.filter(ImageFilter.GaussianBlur(radius=28))
     image.alpha_composite(glow)
-    draw = ImageDraw.Draw(image)
-    draw.text((72, 58), f"layout guide · {spec.get('theme_id', 'custom')} · variant {variant_index + 1}", fill=(232, 240, 238, 255))
-    draw.text((72, 92), ", ".join((spec.get("tags") or [])[:6]) or "room guide", fill=(188, 202, 198, 220))
     out = io.BytesIO()
     image.save(out, format="PNG")
     return out.getvalue()
@@ -4263,9 +4260,23 @@ def _build_level3_variant_prompt(
     )
     landmarks = ", ".join(spec.get("landmarks") or []) or "architectural focal points"
     hazards = ", ".join(spec.get("hazards") or []) or "none"
+    n_extra = 0
+    for _fc in (frozen_concepts or [])[:3]:
+        if str((_fc or {}).get("image_path") or "").strip():
+            n_extra += 1
     attachment_guide = (
-        "Additional attached images are frozen art direction anchors. Match their style language and world identity closely."
+        "Layout guide hygiene (first image): it encodes footprint + platform/door placement only. "
+        "Do NOT trace or repaint its edges, strokes, rectangles, glow blobs, frame box, or any diagram-like marks as linework in the final scene — translate into real stone/architecture only. "
+        "The output must contain zero overlay lines that look like a layout editor or schematic."
     )
+    if n_extra > 0:
+        attachment_guide += (
+            f" Frozen concept images ({n_extra}): use for palette, material family, surface detail, and atmosphere only — "
+            "do NOT copy their camera, perspective, tunnel composition, or full-scene layout. "
+            "If a concept looks like a one-point corridor or hero keyframe, ignore that geometry and keep this room orthographic side-scroller."
+        )
+    else:
+        attachment_guide += " No separate concept references — rely on text art direction and the footprint guide only."
     foot_hint = _geometry_footprint_shape_hint(geometry)
     foot_para = f"\n        {foot_hint}\n" if foot_hint else ""
     return textwrap.dedent(
@@ -4273,7 +4284,7 @@ def _build_level3_variant_prompt(
         Create a high-detail 2D side-view game environment concept for a metroidvania room.
         This is a room environment preview, not a mood board and not abstract color treatment.
         Perspective: strict 2D side-scroller / orthographic depth read for pixel-style metroidvanias — keep verticals near-parallel, no strong one-point perspective, no deep tunnel or nave that converges to a single vanishing-point doorway or cathedral gate. Depth comes from layered planes, value, and parallax-style overlap, not camera perspective convergence.
-        The attached first image is a hard layout guide. Match the walkable floor polygon footprint exactly — every corner, diagonal edge, L-shape, step, and indent — not a substitute rectangle or centered box nave.
+        The attached first image is a non-photographic footprint guide (not a render to copy). Match the walkable void shape and platform/door intent exactly — every corner, diagonal edge, L-shape, step, and indent — not a substitute rectangle or centered box nave.
         Do not normalize the room to a symmetrical hall when the guide shows an irregular outline.{foot_para}
         {attachment_guide}
 
@@ -4307,6 +4318,7 @@ def _build_level3_variant_prompt(
         - no top-down or isometric perspective
         - no fisheye, dramatic wide-angle, or cinematic one-point corridor matting
         - no abstract graphic poster composition
+        - no visible schematic diagram, wireframe, or editor-overlay lines of any color
         - make it look like a believable game room environment concept
 
         Variant direction:

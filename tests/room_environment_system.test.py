@@ -2468,6 +2468,69 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         cyan_like = sum(1 for r, g, b, a in pixels if a > 0 and g >= 210 and b >= 180 and r <= 50)
         self.assertEqual(cyan_like, 0)
 
+    def test_build_level3_variant_prompt_warns_against_schematic_lines_and_concept_perspective(self):
+        direction = {
+            "style_family": "dark fantasy",
+            "high_level_direction": "",
+            "negative_direction": "",
+            "palette": {},
+            "material_rules": [],
+            "lighting_rules": [],
+            "shape_language": [],
+        }
+        geometry = {
+            "width": 1600,
+            "height": 1200,
+            "polygon": [],
+            "platform_count": 1,
+            "door_count": 0,
+        }
+        spec = {
+            "theme_id": "ruins",
+            "mood": "m",
+            "lighting": "l",
+            "fog": "f",
+            "landmarks": [],
+            "hazards": [],
+            "description": "d",
+            "tags": [],
+            "readability_notes": [],
+        }
+        frozen = [{"label": "K", "prompt": "concept", "image_path": "art_direction_concepts/k.png"}]
+        prompt = envsys._build_level3_variant_prompt(direction, geometry, spec, frozen, 0)
+        low = prompt.lower()
+        self.assertIn("layout guide hygiene", low)
+        self.assertIn("frozen concept images (1)", low)
+        self.assertIn("do not copy their camera", low)
+        self.assertIn("schematic diagram", low)
+
+    def test_build_level3_variant_prompt_without_concept_paths_skips_frozen_clause(self):
+        direction = {
+            "style_family": "dark fantasy",
+            "high_level_direction": "",
+            "negative_direction": "",
+            "palette": {},
+            "material_rules": [],
+            "lighting_rules": [],
+            "shape_language": [],
+        }
+        geometry = {"width": 800, "height": 600, "polygon": [], "platform_count": 0, "door_count": 0}
+        spec = {
+            "theme_id": "ruins",
+            "mood": "m",
+            "lighting": "l",
+            "fog": "f",
+            "landmarks": [],
+            "hazards": [],
+            "description": "d",
+            "tags": [],
+            "readability_notes": [],
+        }
+        prompt = envsys._build_level3_variant_prompt(direction, geometry, spec, [{"label": "X", "prompt": "p"}], 0)
+        low = prompt.lower()
+        self.assertIn("no separate concept references", low)
+        self.assertNotIn("frozen concept images", low)
+
     def test_level1_fallback_preview_has_no_accent_cyan_outline(self):
         out = self.root / "lvl1-fallback.png"
         envsys._render_level1_image(
