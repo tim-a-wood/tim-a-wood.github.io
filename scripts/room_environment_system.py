@@ -4087,39 +4087,54 @@ def _render_room_layout_conditioning_image(geometry: Dict[str, Any], spec: Dict[
     canvas_size = (1344, 768)
     image = Image.new("RGBA", canvas_size, (8, 12, 16, 255))
     draw = ImageDraw.Draw(image)
+    # Must match _chamber_point_to_output_pixel / bespoke shell: polygon was using _fit_points (polygon-only bbox)
+    # while platforms used full room width/height — L-shaped or inset chambers were misaligned in the guide.
+    pad = 84
+    inner_w = max(1, canvas_size[0] - 2 * pad)
+    inner_h = max(1, canvas_size[1] - 2 * pad)
+    left = float(geometry.get("left") or 0.0)
+    top_g = float(geometry.get("top") or 0.0)
+    cw = float(geometry.get("chamber_width") or 0.0)
+    ch = float(geometry.get("chamber_height") or 0.0)
     # Soft footprint-only guide: avoid high-contrast strokes, labels, and gold UI accents — they leak as "weird lines" in Gemini output.
-    draw.rounded_rectangle((36, 36, canvas_size[0] - 36, canvas_size[1] - 36), radius=28, outline=(48, 54, 60, 72), width=1)
-    polygon = _fit_points(geometry.get("polygon") or [], canvas_size, padding=72)
-    if polygon:
+    draw.rounded_rectangle((pad, pad, canvas_size[0] - pad, canvas_size[1] - pad), radius=28, outline=(48, 54, 60, 72), width=1)
+    poly_px = _geometry_footprint_polygon_output_pixels(geometry, canvas_size[0], canvas_size[1], pad)
+    if len(poly_px) >= 3:
+        polygon = [(float(p[0]), float(p[1])) for p in poly_px]
         poly_fill = Image.new("RGBA", canvas_size, (0, 0, 0, 0))
         poly_draw = ImageDraw.Draw(poly_fill)
         poly_draw.polygon(polygon, fill=(32, 40, 48, 198), outline=(48, 56, 64, 90), width=1)
         poly_fill = poly_fill.filter(ImageFilter.GaussianBlur(radius=1.0))
         image.alpha_composite(poly_fill)
     draw = ImageDraw.Draw(image)
+    plat_face_h = max(12, int(14.0 / max(ch, 1.0) * inner_h))
     for idx, platform in enumerate(geometry.get("platforms") or []):
-        width = max(84, int(float(platform.get("len") or 0) * 22))
         px = float(platform.get("x") or 0)
         py = float(platform.get("y") or 0)
-        if geometry.get("width") and geometry.get("height"):
-            sx = (px / max(float(geometry["width"]), 1.0)) * (canvas_size[0] - 168) + 84
-            sy = (py / max(float(geometry["height"]), 1.0)) * (canvas_size[1] - 168) + 66
+        if cw > 1.0 and ch > 1.0:
+            sx, sy = _chamber_point_to_output_pixel(px, py, left, top_g, cw, ch, canvas_size[0], canvas_size[1], pad)
+            plat_len_room = max(8.0, float(platform.get("len") or 1) * 32.0)
+            width = max(48, int(plat_len_room / cw * inner_w))
         else:
-            sx, sy = 180 + (idx * 120), 480
-        draw.rounded_rectangle((sx, sy, sx + width, sy + 14), radius=7, fill=(38, 42, 48, 228), outline=(62, 68, 74, 100))
+            sx, sy = float(180 + (idx * 120)), 480.0
+            width = max(84, int(float(platform.get("len") or 0) * 22))
+        sx_i, sy_i = int(round(sx)), int(round(sy))
+        draw.rounded_rectangle((sx_i, sy_i, sx_i + width, sy_i + plat_face_h), radius=7, fill=(38, 42, 48, 228), outline=(62, 68, 74, 100))
+    door_w = max(20, int(24.0 / max(cw, 1.0) * inner_w))
+    door_half = int(round(door_w / 2))
     for idx, door in enumerate(geometry.get("door_positions") or []):
-        sx = (float(door.get("x") or 0) / max(float(geometry.get("width") or 1), 1.0)) * (canvas_size[0] - 140) + 70
-        sy = (float(door.get("y") or 0) / max(float(geometry.get("height") or 1), 1.0)) * (canvas_size[1] - 140) + 56
-        h = 62 + (idx % 2) * 10
-        draw.rounded_rectangle((sx - 12, sy - h, sx + 12, sy), radius=6, fill=(72, 64, 56, 210), outline=(90, 84, 78, 95))
-    focus_x = int(canvas_size[0] * (0.3 + (variant_index * 0.2)))
-    focus_y = int(canvas_size[1] * 0.34)
-    glow = Image.new("RGBA", canvas_size, (0, 0, 0, 0))
-    glow_draw = ImageDraw.Draw(glow)
-    for radius, alpha in ((180, 10), (122, 14), (76, 18)):
-        glow_draw.ellipse((focus_x - radius, focus_y - radius, focus_x + radius, focus_y + radius), fill=(64, 72, 80, alpha))
-    glow = glow.filter(ImageFilter.GaussianBlur(radius=28))
-    image.alpha_composite(glow)
+        dpx = float(door.get("x") or 0)
+        dpy = float(door.get("y") or 0)
+        if cw > 1.0 and ch > 1.0:
+            sx, sy = _chamber_point_to_output_pixel(dpx, dpy, left, top_g, cw, ch, canvas_size[0], canvas_size[1], pad)
+            h = max(48, int(96.0 / max(ch, 1.0) * inner_h)) + (idx % 2) * 8
+        else:
+            sx = (dpx / max(float(geometry.get("width") or 1), 1.0)) * (canvas_size[0] - 140) + 70
+            sy = (dpy / max(float(geometry.get("height") or 1), 1.0)) * (canvas_size[1] - 140) + 56
+            h = 62 + (idx % 2) * 10
+        sx_i, sy_i = int(round(sx)), int(round(sy))
+        draw.rounded_rectangle((sx_i - door_half, sy_i - h, sx_i + door_half, sy_i), radius=6, fill=(72, 64, 56, 210), outline=(90, 84, 78, 95))
+    # No variant "hero glow" — it biased composition away from the true footprint and encouraged tunnel focal art.
     out = io.BytesIO()
     image.save(out, format="PNG")
     return out.getvalue()
@@ -4240,6 +4255,52 @@ def _gemini_generate_content_rest(
 _LEVEL3_MAX_REFERENCE_IMAGES = 5
 
 
+def _build_level3_footprint_coordinate_block(geometry: Dict[str, Any]) -> str:
+    """Numeric footprint contract so Gemini cannot substitute a generic nave when the guide is subtle."""
+    if not isinstance(geometry, dict):
+        return ""
+    left = int(round(float(geometry.get("left") or 0.0)))
+    top = int(round(float(geometry.get("top") or 0.0)))
+    right = int(round(float(geometry.get("right") or 0.0)))
+    bottom = int(round(float(geometry.get("bottom") or 0.0)))
+    verts = geometry.get("polygon") or []
+    if not isinstance(verts, list) or len(verts) < 3:
+        rw = int(round(float(geometry.get("width") or 0.0)))
+        rh = int(round(float(geometry.get("height") or 0.0)))
+        return (
+            f"Authoritative layout bounds in editor pixel space: rectangle from (0,0) to ({rw},{rh}). "
+            "Match the first-image guide frame; do not shrink to a centered portal."
+        )
+    coords: List[str] = []
+    for p in verts:
+        if isinstance(p, (list, tuple)) and len(p) == 2:
+            coords.append(f"[{int(round(float(p[0])))},{int(round(float(p[1])))}]")
+    if len(coords) < 3:
+        return ""
+    loop = ",".join(coords)
+    plat_bits: List[str] = []
+    for pl in (geometry.get("platforms") or [])[:12]:
+        if not isinstance(pl, dict):
+            continue
+        plat_bits.append(
+            f"({int(round(float(pl.get('x') or 0)))},{int(round(float(pl.get('y') or 0)))},len={int(pl.get('len') or 0)})"
+        )
+    door_bits: List[str] = []
+    for dr in (geometry.get("door_positions") or [])[:8]:
+        if not isinstance(dr, dict):
+            continue
+        door_bits.append(f"({int(round(float(dr.get('x') or 0)))},{int(round(float(dr.get('y') or 0)))})")
+    plat_line = "; ".join(plat_bits) if plat_bits else "none"
+    door_line = "; ".join(door_bits) if door_bits else "none"
+    return (
+        f"Chamber axis-aligned bounds in editor pixels: left={left}, top={top}, right={right}, bottom={bottom}. "
+        f"Closed walkable polygon vertex loop (same coordinate system as the layout editor, in order): {loop}. "
+        f"Platform anchors (x,y,tile-len): {plat_line}. Door anchors (x,y): {door_line}. "
+        "The final environment must preserve this exact walkable opening shape (every re-entrant corner and indent), not a substitute rectangle or smoothed cathedral portal. "
+        "If the first image and this list disagree, follow this vertex list and chamber bounds."
+    )
+
+
 def _build_level3_variant_prompt(
     direction: Dict[str, Any],
     geometry: Dict[str, Any],
@@ -4283,10 +4344,13 @@ def _build_level3_variant_prompt(
         f"""\
         Create a high-detail 2D side-view game environment concept for a metroidvania room.
         This is a room environment preview, not a mood board and not abstract color treatment.
-        Perspective: strict 2D side-scroller / orthographic depth read for pixel-style metroidvanias — keep verticals near-parallel, no strong one-point perspective, no deep tunnel or nave that converges to a single vanishing-point doorway or cathedral gate. Depth comes from layered planes, value, and parallax-style overlap, not camera perspective convergence.
+        Perspective: strict 2D side-scroller / orthographic depth read for pixel-style metroidvanias — treat the scene as projected onto a single vertical picture plane (like layered flats), not a 3D camera in a corridor. Keep verticals near-parallel; no strong one-point perspective; no deep tunnel or nave converging to one vanishing-point gate. Depth comes from layered planes, value, and parallax-style overlap only — not floor planes rushing to a horizon, not wide-angle “hero corridor” framing.
         The attached first image is a non-photographic footprint guide (not a render to copy). Match the walkable void shape and platform/door intent exactly — every corner, diagonal edge, L-shape, step, and indent — not a substitute rectangle or centered box nave.
         Do not normalize the room to a symmetrical hall when the guide shows an irregular outline.{foot_para}
         {attachment_guide}
+
+        Footprint contract (editor / layout coordinate space — obey exactly):
+        {_build_level3_footprint_coordinate_block(geometry)}
 
         Art direction:
         - style family: {direction.get('style_family') or 'dark fantasy environment'}

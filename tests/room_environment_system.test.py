@@ -2531,6 +2531,70 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.assertIn("no separate concept references", low)
         self.assertNotIn("frozen concept images", low)
 
+    def test_build_level3_variant_prompt_includes_numeric_footprint_contract(self):
+        direction = {
+            "style_family": "dark fantasy",
+            "high_level_direction": "",
+            "negative_direction": "",
+            "palette": {},
+            "material_rules": [],
+            "lighting_rules": [],
+            "shape_language": [],
+        }
+        geometry = {
+            "left": 160.0,
+            "top": 160.0,
+            "right": 1440.0,
+            "bottom": 1040.0,
+            "chamber_width": 1280.0,
+            "chamber_height": 880.0,
+            "width": 1600.0,
+            "height": 1200.0,
+            "polygon": [[160, 160], [1440, 160], [1440, 1040], [160, 1040]],
+            "platforms": [{"x": 192, "y": 1024, "len": 38}],
+            "door_positions": [{"x": 800, "y": 200}],
+            "platform_count": 1,
+            "door_count": 1,
+        }
+        spec = {
+            "theme_id": "ruins",
+            "mood": "m",
+            "lighting": "l",
+            "fog": "f",
+            "landmarks": [],
+            "hazards": [],
+            "description": "d",
+            "tags": [],
+            "readability_notes": [],
+        }
+        prompt = envsys._build_level3_variant_prompt(direction, geometry, spec, [], 0)
+        self.assertIn("Chamber axis-aligned bounds", prompt)
+        self.assertIn("[160,160]", prompt.replace(" ", ""))
+        self.assertIn("picture plane", prompt.lower())
+
+    def test_layout_conditioning_maps_polygon_with_chamber_not_polygon_only_bbox(self):
+        geom = {
+            "left": 160.0,
+            "top": 160.0,
+            "right": 1440.0,
+            "bottom": 1040.0,
+            "chamber_width": 1280.0,
+            "chamber_height": 880.0,
+            "width": 1600.0,
+            "height": 1200.0,
+            "polygon": [[160, 160], [1440, 160], [1440, 1040], [160, 1040]],
+            "platforms": [],
+            "door_positions": [],
+        }
+        pts = envsys._geometry_footprint_polygon_output_pixels(geom, 1344, 768, 84)
+        self.assertGreaterEqual(len(pts), 4)
+        self.assertLess(abs(pts[0][0] - 84), 4)
+        self.assertLess(abs(pts[0][1] - 84), 4)
+        png = envsys._render_room_layout_conditioning_image(geom, {"theme_id": "t", "tags": []}, 0)
+        img = envsys.Image.open(io.BytesIO(png)).convert("RGBA")
+        cyan_like = sum(1 for r, g, b, a in img.getdata() if a > 0 and g >= 210 and b >= 180 and r <= 50)
+        self.assertEqual(cyan_like, 0)
+
     def test_level1_fallback_preview_has_no_accent_cyan_outline(self):
         out = self.root / "lvl1-fallback.png"
         envsys._render_level1_image(
