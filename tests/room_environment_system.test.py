@@ -2499,7 +2499,8 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         frozen = [{"label": "K", "prompt": "concept", "image_path": "art_direction_concepts/k.png"}]
         prompt = envsys._build_level3_variant_prompt(direction, geometry, spec, frozen, 0)
         low = prompt.lower()
-        self.assertIn("layout guide hygiene", low)
+        self.assertIn("silhouette mask hygiene", low)
+        self.assertIn("crop", low)
         self.assertIn("frozen concept images (1)", low)
         self.assertIn("do not copy their camera", low)
         self.assertIn("schematic diagram", low)
@@ -2594,6 +2595,40 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         img = envsys.Image.open(io.BytesIO(png)).convert("RGBA")
         cyan_like = sum(1 for r, g, b, a in img.getdata() if a > 0 and g >= 210 and b >= 180 and r <= 50)
         self.assertEqual(cyan_like, 0)
+        # Mask: void outside the footprint, bright fill inside (not the old mid-gray slab).
+        self.assertEqual(img.getpixel((24, 24))[:3], envsys._LEVEL3_MASK_VOID_RGB)
+        self.assertGreater(img.getpixel((400, 400))[0], 200)
+
+    def test_level3_footprint_crop_scales_when_output_resolution_differs(self):
+        geom = {
+            "left": 0.0,
+            "top": 0.0,
+            "right": 320.0,
+            "bottom": 240.0,
+            "chamber_width": 320.0,
+            "chamber_height": 240.0,
+            "width": 320.0,
+            "height": 240.0,
+            "polygon": [[0, 0], [320, 0], [320, 240], [0, 240]],
+        }
+        margin = envsys._level3_preview_crop_margin_px()
+        box = envsys._level3_footprint_pil_crop_box(
+            geom,
+            canvas_w=1344,
+            canvas_h=768,
+            pad=84,
+            margin_px=margin,
+        )
+        scaled = envsys._scale_level3_crop_box_to_image(box, 1344, 768, 672, 384)
+        src = envsys.Image.new("RGBA", (1344, 768), (10, 20, 30, 255))
+        cropped = envsys._crop_level3_gemini_output_to_footprint(src, geom)
+        self.assertEqual(cropped.size, (box[2] - box[0], box[3] - box[1]))
+        half = envsys.Image.new("RGBA", (672, 384), (10, 20, 30, 255))
+        ch = envsys._crop_level3_gemini_output_to_footprint(half, geom)
+        self.assertEqual(
+            ch.size,
+            (scaled[2] - scaled[0], scaled[3] - scaled[1]),
+        )
 
     def test_level1_fallback_preview_has_no_accent_cyan_outline(self):
         out = self.root / "lvl1-fallback.png"

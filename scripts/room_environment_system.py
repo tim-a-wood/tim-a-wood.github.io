@@ -4084,57 +4084,71 @@ def _render_level3_image(path: Path, direction: Dict[str, Any], geometry: Dict[s
 
 
 def _render_room_layout_conditioning_image(geometry: Dict[str, Any], spec: Dict[str, Any], variant_index: int) -> bytes:
-    canvas_size = (1344, 768)
-    image = Image.new("RGBA", canvas_size, (8, 12, 16, 255))
-    draw = ImageDraw.Draw(image)
-    # Must match _chamber_point_to_output_pixel / bespoke shell: polygon was using _fit_points (polygon-only bbox)
-    # while platforms used full room width/height — L-shaped or inset chambers were misaligned in the guide.
-    pad = 84
-    inner_w = max(1, canvas_size[0] - 2 * pad)
-    inner_h = max(1, canvas_size[1] - 2 * pad)
+    """Two-tone silhouette mask: void outside the walkable polygon, bright fill inside (Gemini paints only the fill).
+
+    Reference #1 for level-3 previews is intentionally **not** a scenic layout sketch — it is a cut-out mask so the
+    model can respect concave footprints; the server then **crops** the render to the footprint AABB.
+    """
+    canvas_w, canvas_h = _LEVEL3_GUIDE_SIZE
+    canvas_size = (canvas_w, canvas_h)
+    pad = _LEVEL3_GUIDE_PAD
+    inner_w = max(1, canvas_w - 2 * pad)
+    inner_h = max(1, canvas_h - 2 * pad)
     left = float(geometry.get("left") or 0.0)
     top_g = float(geometry.get("top") or 0.0)
     cw = float(geometry.get("chamber_width") or 0.0)
     ch = float(geometry.get("chamber_height") or 0.0)
-    # Soft footprint-only guide: avoid high-contrast strokes, labels, and gold UI accents — they leak as "weird lines" in Gemini output.
-    draw.rounded_rectangle((pad, pad, canvas_size[0] - pad, canvas_size[1] - pad), radius=28, outline=(48, 54, 60, 72), width=1)
-    poly_px = _geometry_footprint_polygon_output_pixels(geometry, canvas_size[0], canvas_size[1], pad)
+    void = _LEVEL3_MASK_VOID_RGB + (255,)
+    fill = _LEVEL3_MASK_FILL_RGB + (255,)
+    image = Image.new("RGBA", canvas_size, void)
+    draw = ImageDraw.Draw(image)
+    poly_px = _geometry_footprint_polygon_output_pixels(geometry, canvas_w, canvas_h, pad)
     if len(poly_px) >= 3:
         polygon = [(float(p[0]), float(p[1])) for p in poly_px]
-        poly_fill = Image.new("RGBA", canvas_size, (0, 0, 0, 0))
-        poly_draw = ImageDraw.Draw(poly_fill)
-        poly_draw.polygon(polygon, fill=(32, 40, 48, 198), outline=(48, 56, 64, 90), width=1)
-        poly_fill = poly_fill.filter(ImageFilter.GaussianBlur(radius=1.0))
-        image.alpha_composite(poly_fill)
-    draw = ImageDraw.Draw(image)
+        draw.polygon(polygon, fill=fill)
+    elif cw > 1.0 and ch > 1.0:
+        draw.rectangle((pad, pad, canvas_w - pad, canvas_h - pad), fill=fill)
+    else:
+        rw = float(geometry.get("width") or 0.0)
+        rh = float(geometry.get("height") or 0.0)
+        if rw > 1.0 and rh > 1.0:
+            draw.rectangle((pad, pad, canvas_w - pad, canvas_h - pad), fill=fill)
+    # Subtle platform/door tint *inside* the mask only (no outlines — schematic strokes leak into Gemini output).
     plat_face_h = max(12, int(14.0 / max(ch, 1.0) * inner_h))
+    plat_tint = (220, 224, 230, 235)
+    door_tint = (210, 206, 200, 230)
     for idx, platform in enumerate(geometry.get("platforms") or []):
         px = float(platform.get("x") or 0)
         py = float(platform.get("y") or 0)
         if cw > 1.0 and ch > 1.0:
-            sx, sy = _chamber_point_to_output_pixel(px, py, left, top_g, cw, ch, canvas_size[0], canvas_size[1], pad)
+            sx, sy = _chamber_point_to_output_pixel(px, py, left, top_g, cw, ch, canvas_w, canvas_h, pad)
             plat_len_room = max(8.0, float(platform.get("len") or 1) * 32.0)
             width = max(48, int(plat_len_room / cw * inner_w))
         else:
             sx, sy = float(180 + (idx * 120)), 480.0
             width = max(84, int(float(platform.get("len") or 0) * 22))
         sx_i, sy_i = int(round(sx)), int(round(sy))
-        draw.rounded_rectangle((sx_i, sy_i, sx_i + width, sy_i + plat_face_h), radius=7, fill=(38, 42, 48, 228), outline=(62, 68, 74, 100))
+        layer = Image.new("RGBA", canvas_size, (0, 0, 0, 0))
+        ld = ImageDraw.Draw(layer)
+        ld.rounded_rectangle((sx_i, sy_i, sx_i + width, sy_i + plat_face_h), radius=7, fill=plat_tint)
+        image = Image.alpha_composite(image, layer)
     door_w = max(20, int(24.0 / max(cw, 1.0) * inner_w))
     door_half = int(round(door_w / 2))
     for idx, door in enumerate(geometry.get("door_positions") or []):
         dpx = float(door.get("x") or 0)
         dpy = float(door.get("y") or 0)
         if cw > 1.0 and ch > 1.0:
-            sx, sy = _chamber_point_to_output_pixel(dpx, dpy, left, top_g, cw, ch, canvas_size[0], canvas_size[1], pad)
+            sx, sy = _chamber_point_to_output_pixel(dpx, dpy, left, top_g, cw, ch, canvas_w, canvas_h, pad)
             h = max(48, int(96.0 / max(ch, 1.0) * inner_h)) + (idx % 2) * 8
         else:
-            sx = (dpx / max(float(geometry.get("width") or 1), 1.0)) * (canvas_size[0] - 140) + 70
-            sy = (dpy / max(float(geometry.get("height") or 1), 1.0)) * (canvas_size[1] - 140) + 56
+            sx = (dpx / max(float(geometry.get("width") or 1), 1.0)) * (canvas_w - 140) + 70
+            sy = (dpy / max(float(geometry.get("height") or 1), 1.0)) * (canvas_h - 140) + 56
             h = 62 + (idx % 2) * 10
         sx_i, sy_i = int(round(sx)), int(round(sy))
-        draw.rounded_rectangle((sx_i - door_half, sy_i - h, sx_i + door_half, sy_i), radius=6, fill=(72, 64, 56, 210), outline=(90, 84, 78, 95))
-    # No variant "hero glow" — it biased composition away from the true footprint and encouraged tunnel focal art.
+        layer = Image.new("RGBA", canvas_size, (0, 0, 0, 0))
+        ld = ImageDraw.Draw(layer)
+        ld.rounded_rectangle((sx_i - door_half, sy_i - h, sx_i + door_half, sy_i), radius=6, fill=door_tint)
+        image = Image.alpha_composite(image, layer)
     out = io.BytesIO()
     image.save(out, format="PNG")
     return out.getvalue()
@@ -4254,6 +4268,98 @@ def _gemini_generate_content_rest(
 
 _LEVEL3_MAX_REFERENCE_IMAGES = 5
 
+# Level-3 preview: Gemini conditioning canvas and deterministic footprint crop (keep in sync).
+_LEVEL3_GUIDE_SIZE: Tuple[int, int] = (1344, 768)
+_LEVEL3_GUIDE_PAD = 84
+# Outside the walkable polygon: near-black void (model keeps this empty; we crop it away).
+_LEVEL3_MASK_VOID_RGB = (0, 0, 0)
+# Inside the walkable polygon: bright fill = “paint the room here”.
+_LEVEL3_MASK_FILL_RGB = (242, 244, 248)
+
+
+def _level3_preview_crop_margin_px() -> int:
+    raw = str(os.environ.get("MV_LEVEL3_PREVIEW_CROP_MARGIN") or "8").strip()
+    try:
+        v = int(raw)
+    except ValueError:
+        return 8
+    return max(0, min(64, v))
+
+
+def _level3_footprint_pil_crop_box(
+    geometry: Dict[str, Any],
+    *,
+    canvas_w: int,
+    canvas_h: int,
+    pad: int,
+    margin_px: int,
+) -> Tuple[int, int, int, int]:
+    """Axis-aligned crop in guide/Gemini pixel space. PIL box: (left, upper, right, lower) with right/lower exclusive."""
+    poly_px = _geometry_footprint_polygon_output_pixels(geometry, canvas_w, canvas_h, pad)
+    m = max(0, int(margin_px))
+    if len(poly_px) >= 3:
+        xs = [int(p[0]) for p in poly_px]
+        ys = [int(p[1]) for p in poly_px]
+        l0, t0 = min(xs), min(ys)
+        r0, b0 = max(xs), max(ys)
+    else:
+        l0, t0 = pad, pad
+        r0, b0 = max(pad, canvas_w - 1 - pad), max(pad, canvas_h - 1 - pad)
+    l = max(0, l0 - m)
+    t = max(0, t0 - m)
+    r_excl = min(canvas_w, r0 + m + 1)
+    b_excl = min(canvas_h, b0 + m + 1)
+    if r_excl - l < 48:
+        r_excl = min(canvas_w, l + 48)
+    if b_excl - t < 48:
+        b_excl = min(canvas_h, t + 48)
+    if r_excl > canvas_w:
+        r_excl = canvas_w
+    if b_excl > canvas_h:
+        b_excl = canvas_h
+    return (l, t, r_excl, b_excl)
+
+
+def _scale_level3_crop_box_to_image(
+    box: Tuple[int, int, int, int],
+    src_w: int,
+    src_h: int,
+    dst_w: int,
+    dst_h: int,
+) -> Tuple[int, int, int, int]:
+    """Map crop box from conditioning/guide resolution to actual model output size."""
+    if src_w <= 0 or src_h <= 0 or dst_w <= 0 or dst_h <= 0:
+        return (0, 0, dst_w, dst_h)
+    sl, st, sr, sb = box
+    sx = float(dst_w) / float(src_w)
+    sy = float(dst_h) / float(src_h)
+    dl = int(math.floor(sl * sx))
+    dt = int(math.floor(st * sy))
+    dr = int(math.ceil(sr * sx))
+    db = int(math.ceil(sb * sy))
+    dl = max(0, min(dst_w - 2, dl))
+    dt = max(0, min(dst_h - 2, dt))
+    dr = max(dl + 2, min(dst_w, dr))
+    db = max(dt + 2, min(dst_h, db))
+    return (dl, dt, dr, db)
+
+
+def _crop_level3_gemini_output_to_footprint(image: Image.Image, geometry: Dict[str, Any]) -> Image.Image:
+    gw, gh = _LEVEL3_GUIDE_SIZE
+    pad = _LEVEL3_GUIDE_PAD
+    box = _level3_footprint_pil_crop_box(
+        geometry, canvas_w=gw, canvas_h=gh, pad=pad, margin_px=_level3_preview_crop_margin_px()
+    )
+    ow, oh = image.size
+    if (ow, oh) != (gw, gh):
+        box = _scale_level3_crop_box_to_image(box, gw, gh, ow, oh)
+    l, t, r, b = box
+    l = max(0, min(ow - 2, l))
+    t = max(0, min(oh - 2, t))
+    r = max(l + 2, min(ow, r))
+    b = max(t + 2, min(oh, b))
+    return image.crop((l, t, r, b))
+
 
 def _build_level3_footprint_coordinate_block(geometry: Dict[str, Any]) -> str:
     """Numeric footprint contract so Gemini cannot substitute a generic nave when the guide is subtle."""
@@ -4326,9 +4432,11 @@ def _build_level3_variant_prompt(
         if str((_fc or {}).get("image_path") or "").strip():
             n_extra += 1
     attachment_guide = (
-        "Layout guide hygiene (first image): it encodes footprint + platform/door placement only. "
-        "Do NOT trace or repaint its edges, strokes, rectangles, glow blobs, frame box, or any diagram-like marks as linework in the final scene — translate into real stone/architecture only. "
-        "The output must contain zero overlay lines that look like a layout editor or schematic."
+        "Silhouette mask hygiene (first image): it is a two-tone mask, not a render. "
+        "Near-black pixels are OUTSIDE the playable room — keep that margin solid void (no architecture, sky, or scenery). "
+        "The bright filled region is the exact walkable footprint — place the full environment there and match its boundary shape (every corner, indent, and re-entrant). "
+        "Faint platform/door tints inside the bright region are placement hints only — do not redraw them as schematic/UI lines. "
+        "The pipeline crops to the bright footprint; do not put important content in the black margin."
     )
     if n_extra > 0:
         attachment_guide += (
@@ -4345,8 +4453,8 @@ def _build_level3_variant_prompt(
         Create a high-detail 2D side-view game environment concept for a metroidvania room.
         This is a room environment preview, not a mood board and not abstract color treatment.
         Perspective: strict 2D side-scroller / orthographic depth read for pixel-style metroidvanias — treat the scene as projected onto a single vertical picture plane (like layered flats), not a 3D camera in a corridor. Keep verticals near-parallel; no strong one-point perspective; no deep tunnel or nave converging to one vanishing-point gate. Depth comes from layered planes, value, and parallax-style overlap only — not floor planes rushing to a horizon, not wide-angle “hero corridor” framing.
-        The attached first image is a non-photographic footprint guide (not a render to copy). Match the walkable void shape and platform/door intent exactly — every corner, diagonal edge, L-shape, step, and indent — not a substitute rectangle or centered box nave.
-        Do not normalize the room to a symmetrical hall when the guide shows an irregular outline.{foot_para}
+        The attached first image is a silhouette mask: near-black = outside the room (leave empty void); bright fill = the exact walkable chamber to paint. Match that bright silhouette exactly — every corner, diagonal edge, L-shape, step, and indent — not a substitute rectangle or centered nave. Do not normalize to a symmetrical hall when the mask is irregular.
+        After this render we crop away everything outside the bright silhouette, so keep the black margin free of meaningful content.{foot_para}
         {attachment_guide}
 
         Footprint contract (editor / layout coordinate space — obey exactly):
@@ -4383,6 +4491,7 @@ def _build_level3_variant_prompt(
         - no fisheye, dramatic wide-angle, or cinematic one-point corridor matting
         - no abstract graphic poster composition
         - no visible schematic diagram, wireframe, or editor-overlay lines of any color
+        - keep near-black mask margins uniform void (no detail outside the bright footprint)
         - make it look like a believable game room environment concept
 
         Variant direction:
@@ -4448,6 +4557,7 @@ def _generate_level3_image_with_gemini(
                 if data:
                     image = Image.open(io.BytesIO(base64.b64decode(data))).convert("RGBA")
                     path.parent.mkdir(parents=True, exist_ok=True)
+                    image = _crop_level3_gemini_output_to_footprint(image, geometry)
                     image.save(path)
                     return True
     except Exception:
