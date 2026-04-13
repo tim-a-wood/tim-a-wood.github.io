@@ -1597,33 +1597,127 @@ function getOrCreatePremaskedShellTexture(scene, slotId, roomId) {
 }
 
 /**
- * UNIFIED_SHELL_PLACEMENT_CHAMBER_BBOX — display size = live footprint polygon AABB (room-local);
- * anchor texture top-left to that AABB so (0,0) in the shell PNG maps to the same corner as the
- * editor footprint / generation protected zone. Ignores saved manifest x/y when layout drift would
- * desync the frame from the polygon. Optional §202b Canvas premask still maps the punch from this frame.
+ * Measure the axis-aligned bbox of nearly-transparent pixels in the shell texture (interior hole).
+ * Many unified shells are 1080×960 but the alpha hole only spans ~966×960 — stretching the full bitmap
+ * to the chamber AABB shrinks the opening and misaligns inner masonry vs the footprint grid.
+ * Cached per scene + texture key. Returns null when unreadable or hole is degenerate / nearly full frame.
  */
-function computeUnifiedShellWorldPlacement(roomId, asset, support) {
+function measureShellInteriorHoleBBoxFromTexture(scene, textureKey) {
+    if (!scene || !textureKey || !scene.textures.exists(textureKey)) return null;
+    scene.shellInteriorHoleBBoxCache = scene.shellInteriorHoleBBoxCache || {};
+    const cached = scene.shellInteriorHoleBBoxCache[textureKey];
+    if (cached !== undefined) return cached.empty ? null : cached;
+    try {
+        const src = scene.textures.get(textureKey).getSourceImage();
+        const sw = Number(src?.naturalWidth || src?.width || 0);
+        const sh = Number(src?.naturalHeight || src?.height || 0);
+        if (!sw || !sh) {
+            scene.shellInteriorHoleBBoxCache[textureKey] = { empty: true };
+            return null;
+        }
+        const cvs = document.createElement('canvas');
+        cvs.width = sw;
+        cvs.height = sh;
+        const ctx = cvs.getContext('2d');
+        ctx.drawImage(src, 0, 0);
+        const data = ctx.getImageData(0, 0, sw, sh).data;
+        const threshold = 8;
+        let minX = sw;
+        let minY = sh;
+        let maxX = -1;
+        let maxY = -1;
+        for (let y = 0; y < sh; y += 1) {
+            const row = y * sw * 4;
+            for (let x = 0; x < sw; x += 1) {
+                if (data[row + x * 4 + 3] < threshold) {
+                    if (x < minX) minX = x;
+                    if (y < minY) minY = y;
+                    if (x > maxX) maxX = x;
+                    if (y > maxY) maxY = y;
+                }
+            }
+        }
+        if (maxX < 0) {
+            scene.shellInteriorHoleBBoxCache[textureKey] = { empty: true };
+            return null;
+        }
+        const w = maxX - minX + 1;
+        const h = maxY - minY + 1;
+        const frameArea = sw * sh;
+        if (w < 8 || h < 8 || w * h > frameArea * 0.97) {
+            scene.shellInteriorHoleBBoxCache[textureKey] = { empty: true };
+            return null;
+        }
+        const result = { x: minX, y: minY, w, h, sw, sh };
+        scene.shellInteriorHoleBBoxCache[textureKey] = result;
+        return result;
+    } catch (_) {
+        scene.shellInteriorHoleBBoxCache[textureKey] = { empty: true };
+        return null;
+    }
+}
+
+/**
+ * UNIFIED_SHELL_PLACEMENT_CHAMBER_BBOX — map the shell texture so the raster interior hole matches the
+ * live polygon AABB (room-local). Raw PNG: scale = chamber span / measured hole span; offset top-left so
+ * hole (x,y) lands on chamber (left,top). Canvas premask (§202b): keep 1:1 chamber AABB in texture space
+ * (polygon punch is authored in that mapping). Ignores manifest placement.x/y.
+ */
+function computeUnifiedShellWorldPlacement(roomId, asset, support, options = {}) {
     const pl = asset?.placement || {};
     const roomBounds = support.roomBounds;
+    const scene = options.scene || null;
+    const usePremask = Boolean(options.usePremask);
     const b = getRoomPolygonBounds(roomId);
     const curLeft = Math.round(Number(b.left || 0));
     const curRight = Math.round(Number(b.right || roomBounds.width));
     const curTop = Math.round(Number(b.top || 0));
     const curBottom = Math.round(Number(b.bottom || CONFIG.WORLD_HEIGHT));
-    let dw = Math.max(1, curRight - curLeft);
-    let dh = Math.max(1, curBottom - curTop);
+    const chamberW = Math.max(1, curRight - curLeft);
+    const chamberH = Math.max(1, curBottom - curTop);
+    let dw = chamberW;
+    let dh = chamberH;
+    let localX = curLeft;
+    let localY = curTop;
 
-    const pdw = Number(pl.display_width || 0);
-    const pdh = Number(pl.display_height || 0);
-    const eps = 3;
-    if (Number.isFinite(pdw) && pdw > 0 && Number.isFinite(pdh) && pdh > 0
-        && Math.abs(Math.round(pdw) - dw) <= eps && Math.abs(Math.round(pdh) - dh) <= eps) {
-        dw = Math.round(pdw);
-        dh = Math.round(pdh);
+    if (usePremask) {
+        const pdw = Number(pl.display_width || 0);
+        const pdh = Number(pl.display_height || 0);
+        const eps = 3;
+        if (Number.isFinite(pdw) && pdw > 0 && Number.isFinite(pdh) && pdh > 0
+            && Math.abs(Math.round(pdw) - chamberW) <= eps && Math.abs(Math.round(pdh) - chamberH) <= eps) {
+            dw = Math.round(pdw);
+            dh = Math.round(pdh);
+        }
+        return { dw, dh, ox: 0, oy: 0, localX, localY };
     }
 
-    /* Top-left anchor only: same mapping as editor footprint (polygon AABB) and shell contract (0,0)=chamber TL). */
-    return { dw, dh, ox: 0, oy: 0, localX: curLeft, localY: curTop };
+    const baseKey = asset?.slot_id ? `env-bespoke-${asset.slot_id}` : null;
+    const hole = baseKey && scene ? measureShellInteriorHoleBBoxFromTexture(scene, baseKey) : null;
+    if (hole && hole.w > 0 && hole.h > 0 && hole.sw > 0 && hole.sh > 0) {
+        dw = hole.sw * chamberW / hole.w;
+        dh = hole.sh * chamberH / hole.h;
+        localX = curLeft - hole.x * (dw / hole.sw);
+        localY = curTop - hole.y * (dh / hole.sh);
+    } else {
+        const pdw = Number(pl.display_width || 0);
+        const pdh = Number(pl.display_height || 0);
+        const eps = 3;
+        if (Number.isFinite(pdw) && pdw > 0 && Number.isFinite(pdh) && pdh > 0
+            && Math.abs(Math.round(pdw) - chamberW) <= eps && Math.abs(Math.round(pdh) - chamberH) <= eps) {
+            dw = Math.round(pdw);
+            dh = Math.round(pdh);
+        }
+    }
+
+    return {
+        dw: Math.max(1, Math.round(dw)),
+        dh: Math.max(1, Math.round(dh)),
+        ox: 0,
+        oy: 0,
+        localX: Math.round(localX),
+        localY: Math.round(localY)
+    };
 }
 
 function getRoomEnvironmentBespokeHeroPlatformAsset(roomId, platform) {
@@ -3075,10 +3169,14 @@ class AshenHollow extends Phaser.Scene {
         const asset = getRoomEnvironmentBespokeAsset(roomId, 'room_shell_foreground');
         if (!asset?.url || !this.textures.exists(`env-bespoke-${asset.slot_id}`)) return false;
         const roomBounds = support.roomBounds;
-        const { dw, dh, ox, oy, localX, localY } = computeUnifiedShellWorldPlacement(roomId, asset, support);
         const baseTexKey = `env-bespoke-${asset.slot_id}`;
+        const useShellPremask = UNIFIED_SHELL_FOOTPRINT_PREMASK && !MINIMAL_BESPOKE_COMPOSITOR && this.textures.exists(baseTexKey);
+        const { dw, dh, ox, oy, localX, localY } = computeUnifiedShellWorldPlacement(roomId, asset, support, {
+            scene: this,
+            usePremask: useShellPremask
+        });
         /* Trust PNG alpha by default so the full authored ring stays visible; premask only on explicit opt-in (see UNIFIED_SHELL_FOOTPRINT_PREMASK). */
-        const textureKey = (UNIFIED_SHELL_FOOTPRINT_PREMASK && !MINIMAL_BESPOKE_COMPOSITOR && this.textures.exists(baseTexKey))
+        const textureKey = useShellPremask
             ? getOrCreatePremaskedShellTexture(this, asset.slot_id, roomId)
             : baseTexKey;
         /* Above floor cap / ledge (0.08–0.11), below bespoke doors (0.18) and gate (0.22). */
