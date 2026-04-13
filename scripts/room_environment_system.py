@@ -9270,7 +9270,11 @@ def _write_runtime_review_capture_page(
 """
     capture_page = review_root / "runtime-capture.html"
     capture_page.write_text(capture_html, encoding="utf-8")
-    return f"{scheme}://{netloc}/tools/2d-sprite-and-animation/projects-data/{project.get('project_id')}/room_environment_assets/{room_id}/review/runtime-capture.html"
+    # Headless Page.captureScreenshot captures the *top* document only. The wrapper
+    # page is mostly black (#000) with the game in an iframe, which yields a
+    # near-uniform dark PNG and trips _runtime_review_capture_is_usable. Open
+    # the game URL directly so the canvas fills the captured frame.
+    return iframe_src
 
 
 def _run_runtime_review(

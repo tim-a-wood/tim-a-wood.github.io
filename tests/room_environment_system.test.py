@@ -3087,10 +3087,14 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         layout_json = output.parent / "runtime-layout.json"
         html = capture_page.read_text(encoding="utf-8")
 
-        self.assertEqual(
-            url,
-            f"http://127.0.0.1:8766/tools/2d-sprite-and-animation/projects-data/{self.project_id}/room_environment_assets/R1/review/runtime-capture.html",
-        )
+        # Returned URL is the game document so headless captureScreenshot sees the canvas.
+        self.assertTrue(url.startswith("http://127.0.0.1:8766/index.html#"))
+        self.assertIn("preview=embed", url)
+        self.assertIn("capture=runtime-review", url)
+        self.assertIn("layout_url=", url)
+        self.assertIn("&start=R1", url)
+        self.assertNotIn("runtime-capture.html", url)
+        self.assertTrue(capture_page.exists())
         self.assertTrue(layout_json.exists())
         self.assertIn("/index.html#preview=embed&capture=runtime-review&layout_url=", html)
         self.assertIn("&start=R1", html)

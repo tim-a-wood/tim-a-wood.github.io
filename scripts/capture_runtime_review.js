@@ -134,7 +134,9 @@ async function main() {
   try {
     await delay(800);
     const targets = await fetchJson(`http://127.0.0.1:${port}/json/list`);
-    const target = targets.find((item) => item.url.includes('runtime-capture.html')) || targets[0];
+    const target = targets.find((item) => /index\.html/i.test(item.url))
+      || targets.find((item) => item.url.includes('runtime-capture.html'))
+      || targets[0];
     if (!target?.webSocketDebuggerUrl) {
       throw new Error('Runtime capture target not available');
     }
@@ -156,15 +158,15 @@ async function main() {
       const result = await client.send('Runtime.evaluate', {
         expression: `(() => {
           const iframe = document.querySelector('#preview');
-          const win = iframe && iframe.contentWindow;
-          const doc = iframe && iframe.contentDocument;
-          const canvas = doc && doc.querySelector('canvas');
+          const win = iframe && iframe.contentWindow ? iframe.contentWindow : window;
+          const doc = iframe && iframe.contentDocument ? iframe.contentDocument : document;
+          const canvas = doc.querySelector('canvas');
           const rect = canvas ? canvas.getBoundingClientRect() : null;
           return {
-            bootState: win ? win.__ASHEN_HOLLOW_BOOT_STATE || null : null,
-            bootError: win ? win.__ASHEN_HOLLOW_LAST_BOOT_ERROR || null : null,
-            pageBoot: win ? win.__ASHEN_HOLLOW_PAGE_BOOT_STATE || null : null,
-            canvasCount: doc ? doc.querySelectorAll('canvas').length : 0,
+            bootState: win.__ASHEN_HOLLOW_BOOT_STATE || null,
+            bootError: win.__ASHEN_HOLLOW_LAST_BOOT_ERROR || null,
+            pageBoot: win.__ASHEN_HOLLOW_PAGE_BOOT_STATE || null,
+            canvasCount: doc.querySelectorAll('canvas').length,
             canvasVisible: Boolean(rect && rect.width > 0 && rect.height > 0),
           };
         })()`,
