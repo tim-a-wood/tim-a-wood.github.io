@@ -8659,19 +8659,6 @@
       function roomWizardEstimateBespokeAssetWaitMs(room, opts) {
         const options = opts || {};
         const geminiSlots = roomWizardEstimateBespokeGeminiSlotCount(room, options);
-        if (getRoomEnvImageProvider() === 'cursor_cloud') {
-          // Cursor Cloud Agents are slow (serial jobs, repo spin-up), but the old
-          // approach multiplied the *Gemini* bespoke formula by 10× — e.g. 2 slots
-          // became ~53 minutes of waitbar budget while real time is unrelated.
-          const RW_CURSOR_MIN_PER_IMAGE_JOB_MIN = 10;
-          const RW_CURSOR_TAIL_MIN = 5;
-          const RW_CURSOR_MIN_TOTAL_MIN = 15;
-          const totalMin = Math.max(
-            RW_CURSOR_MIN_TOTAL_MIN,
-            geminiSlots * RW_CURSOR_MIN_PER_IMAGE_JOB_MIN + RW_CURSOR_TAIL_MIN
-          );
-          return Math.round(totalMin * 60 * 1000);
-        }
         const RW_GEMINI_LIGHT_REQUEST_UPPER_SEC = 8;
         const RW_GEMINI_BESPOKE_MULTIREF_RESOLUTION_FACTOR = 12;
         const RW_GEMINI_EXPECTED_ATTEMPTS = 1.45;
@@ -8681,7 +8668,11 @@
           RW_GEMINI_BESPOKE_MULTIREF_RESOLUTION_FACTOR *
           RW_GEMINI_EXPECTED_ATTEMPTS;
         const totalSec = geminiSlots * secPerSlot + RW_BESPOKE_TAIL_SEC;
-        return Math.round(Math.max(45000, totalSec * 1000));
+        let ms = Math.round(Math.max(45000, totalSec * 1000));
+        if (getRoomEnvImageProvider() === 'cursor_cloud') {
+          ms = Math.round(ms * 10);
+        }
+        return ms;
       }
 
       function startRoomWizardWaitbar(slot, detail, estimatedDurationMs) {
