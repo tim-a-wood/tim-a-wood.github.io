@@ -1654,6 +1654,51 @@
   color: var(--text);
 }
 
+/* Environment: Gemini vs Cursor Cloud Agents (PNG path) */
+.room-wizard-dock .rw-env-ai-provider {
+  margin-top: 12px;
+  margin-bottom: 12px;
+}
+
+.room-wizard-dock .rw-env-ai-provider .rw-seg-control {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.room-wizard-dock .rw-env-ai-provider .rw-seg-btn {
+  min-height: 36px;
+  padding: 8px 12px;
+  border: none;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 200ms ease, border-color 200ms ease, color 200ms ease;
+}
+
+.room-wizard-dock .rw-env-ai-provider .rw-seg-btn + .rw-seg-btn {
+  border-left: 1px solid var(--line);
+}
+
+.room-wizard-dock .rw-env-ai-provider .rw-seg-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.room-wizard-dock .rw-env-ai-provider .rw-seg-btn:focus-visible {
+  outline: 2px solid rgba(0, 232, 200, 0.35);
+  outline-offset: 2px;
+}
+
+.room-wizard-dock .rw-env-ai-provider .rw-seg-btn[aria-pressed="true"] {
+  background: rgba(0, 232, 200, 0.12);
+  color: var(--accent);
+  box-shadow: inset 0 0 0 1px rgba(0, 232, 200, 0.08);
+}
+
 @media (max-width: 960px) {
   .room-wizard-dock .rw-env-setup-grid,
   .room-wizard-dock .rw-component-grid {

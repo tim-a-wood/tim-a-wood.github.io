@@ -140,11 +140,19 @@ def copilot_ping_payload(image_probe: bool = False) -> dict:
     """GET /api/ping — optional image_probe runs one real image API call (uses quota)."""
     from scripts import room_environment_system as res
 
+    cursor_key = bool((os.environ.get("CURSOR_API_KEY") or "").strip())
+    cursor_repo = bool((os.environ.get("CURSOR_CLOUD_REPOSITORY") or "").strip())
     copilot: dict = {
         "geminiConfigured": gemini_configured(),
         "geminiTextModel": (os.environ.get("GEMINI_MODEL") or "gemini-2.5-flash").strip() or "gemini-2.5-flash",
         "geminiImageModel": (os.environ.get("GEMINI_IMAGE_MODEL") or "gemini-2.5-flash-image").strip() or "gemini-2.5-flash-image",
         "lastGeminiImageError": res.gemini_last_error_snapshot(),
+        "cursorCloudAgents": {
+            "apiKeyPresent": cursor_key,
+            "repositoryConfigured": cursor_repo,
+            "ready": cursor_key and cursor_repo,
+            "agentModel": (os.environ.get("CURSOR_CLOUD_AGENT_MODEL") or "composer-2").strip() or "composer-2",
+        },
     }
     if image_probe:
         copilot["geminiImageProbe"] = res.gemini_image_probe()

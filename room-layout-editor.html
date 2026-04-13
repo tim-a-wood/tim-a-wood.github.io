@@ -2852,6 +2852,14 @@
                           <p class="rw-env-flow-step"><span class="rw-env-flow-num" aria-hidden="true">3</span><span>Click <strong>Build final room assets</strong> when you are happy with the approved card (this saves the full room kit).</span></p>
                         </div>
                         <p class="small-note rw-env-intro-after-flow">Layout: preview and buttons first; build summary and checklist below (scroll the page if the section is long).</p>
+                        <div class="rw-env-ai-provider" role="group" aria-labelledby="roomWizardAiProviderLabel">
+                          <p class="field-label" id="roomWizardAiProviderLabel">PNG previews and bespoke tiles</p>
+                          <div class="rw-seg-control" role="presentation">
+                            <button type="button" class="rw-seg-btn" id="roomWizardAiProviderGemini" aria-pressed="true">Gemini</button>
+                            <button type="button" class="rw-seg-btn" id="roomWizardAiProviderCursor" aria-pressed="false">Cursor cloud</button>
+                          </div>
+                          <p class="small-note" id="roomWizardAiProviderHint"></p>
+                        </div>
                       </div>
                       <div class="rw-env-review-layout">
                       <div class="rw-env-column rw-env-column--review-primary">
@@ -3649,6 +3657,48 @@
     (() => {
       const DATA_URL = './room-layout-data.json';
       const API_PING_URL = '/api/ping';
+      const RW_ENV_AI_PROVIDER_KEY = 'mv-room-env-image-provider';
+
+      function getRoomEnvImageProvider() {
+        try {
+          const v = localStorage.getItem(RW_ENV_AI_PROVIDER_KEY);
+          if (v === 'cursor_cloud' || v === 'gemini') return v;
+        } catch (_) {}
+        return 'gemini';
+      }
+
+      function roomWizardPngBackendLabel() {
+        return getRoomEnvImageProvider() === 'cursor_cloud' ? 'Cursor cloud' : 'Gemini';
+      }
+
+      function setRoomEnvImageProvider(next) {
+        const v = next === 'cursor_cloud' ? 'cursor_cloud' : 'gemini';
+        try {
+          localStorage.setItem(RW_ENV_AI_PROVIDER_KEY, v);
+        } catch (_) {}
+        syncRoomWizardAiProviderButtons();
+      }
+
+      function syncRoomWizardAiProviderButtons() {
+        const cur = getRoomEnvImageProvider();
+        const g = document.getElementById('roomWizardAiProviderGemini');
+        const c = document.getElementById('roomWizardAiProviderCursor');
+        if (g) g.setAttribute('aria-pressed', cur === 'gemini' ? 'true' : 'false');
+        if (c) c.setAttribute('aria-pressed', cur === 'cursor_cloud' ? 'true' : 'false');
+        const hint = document.getElementById('roomWizardAiProviderHint');
+        if (!hint) return;
+        const rdy = !!(state.copilot && state.copilot.cursorCloudReady);
+        if (cur === 'cursor_cloud' && !rdy) {
+          hint.textContent =
+            'Cursor cloud needs CURSOR_API_KEY and CURSOR_CLOUD_REPOSITORY in .env.local (see example). Default Cloud Agent model is composer-2 (set CURSOR_CLOUD_AGENT_MODEL to override). Each preview or tile launches one Cloud Agent — expect long runtimes. Describe / Build spec still uses Gemini for JSON.';
+        } else if (cur === 'cursor_cloud') {
+          hint.textContent =
+            'Using Cursor Cloud Agents for PNGs (slow; GitHub repo must be connected in Cursor). Describe / Build spec still uses Gemini text API.';
+        } else {
+          hint.textContent =
+            'Gemini: default image API for previews and bespoke tiles. Switch to Cursor cloud when Google image quota is exhausted.';
+        }
+      }
       const API_LAYOUT_URL = '/api/layout';
       const API_COPILOT_URL = '/api/copilot';
       const PAGE_PARAMS = new URLSearchParams(window.location.search);
@@ -4062,7 +4112,8 @@
           serverReachable: false,
           geminiConfigured: false,
           geminiImageModel: '',
-          geminiLastError: null
+          geminiLastError: null,
+          cursorCloudReady: false
         },
         artDirection: null,
         artDirectionTemplates: [],
@@ -8617,7 +8668,11 @@
           RW_GEMINI_BESPOKE_MULTIREF_RESOLUTION_FACTOR *
           RW_GEMINI_EXPECTED_ATTEMPTS;
         const totalSec = geminiSlots * secPerSlot + RW_BESPOKE_TAIL_SEC;
-        return Math.round(Math.max(45000, totalSec * 1000));
+        let ms = Math.round(Math.max(45000, totalSec * 1000));
+        if (getRoomEnvImageProvider() === 'cursor_cloud') {
+          ms = Math.round(ms * 10);
+        }
+        return ms;
       }
 
       function startRoomWizardWaitbar(slot, detail, estimatedDurationMs) {
@@ -9084,21 +9139,25 @@
             ? `Project direction is locked${frozenCount ? ` with ${frozenCount} frozen concept anchor${frozenCount === 1 ? '' : 's'}` : ''}. Generate room-aware previews from a room template or your own room draft.`
             : 'Lock a project art direction first so room drafts and previews stay consistent.';
           updateRoomWizardBiomePackSummary();
+          syncRoomWizardAiProviderButtons();
           return;
         }
         if (!serverReachable) {
           hint.innerHTML =
             'Run the <strong>Sprite Workbench</strong> server (e.g. <code>./scripts/start_sprite_workbench_with_env.sh</code> or <code>python3 scripts/sprite_workbench_server.py</code>) and open this page from that server so Copilot and Sync Canonical can use your <code>.env.local</code> key.';
+          syncRoomWizardAiProviderButtons();
           return;
         }
         if (!geminiConfigured) {
           hint.innerHTML =
             'Server is up, but <code>GEMINI_API_KEY</code> was not found. Add it to <code>.env.local</code> in the project root and restart the Sprite Workbench server.';
+          syncRoomWizardAiProviderButtons();
           return;
         }
         hint.innerHTML =
           'Gemini is configured. Describe the room and click <strong>Generate</strong>.';
         updateRoomWizardBiomePackSummary();
+        syncRoomWizardAiProviderButtons();
       }
 
       async function refreshCopilotStatus() {
@@ -9110,13 +9169,16 @@
           state.copilot.geminiConfigured = !!(j.copilot && j.copilot.geminiConfigured);
           state.copilot.geminiImageModel = (j.copilot && j.copilot.geminiImageModel) || '';
           state.copilot.geminiLastError = (j.copilot && j.copilot.lastGeminiImageError) || null;
+          state.copilot.cursorCloudReady = !!(j.copilot && j.copilot.cursorCloudAgents && j.copilot.cursorCloudAgents.ready);
         } catch (_) {
           state.copilot.serverReachable = false;
           state.copilot.geminiConfigured = false;
           state.copilot.geminiImageModel = '';
           state.copilot.geminiLastError = null;
+          state.copilot.cursorCloudReady = false;
         }
         updateRoomWizardCopilotHintUi();
+        syncRoomWizardAiProviderButtons();
       }
 
       function renderRoomWizardCopilotPreview(payload) {
@@ -9792,6 +9854,13 @@
 
       function wireRoomWizardEvents() {
         initRoomWizardEnvTabs();
+        document.getElementById('roomWizardAiProviderGemini')?.addEventListener('click', () => {
+          setRoomEnvImageProvider('gemini');
+        });
+        document.getElementById('roomWizardAiProviderCursor')?.addEventListener('click', () => {
+          setRoomEnvImageProvider('cursor_cloud');
+        });
+        syncRoomWizardAiProviderButtons();
         document.getElementById('roomWizardClose')?.addEventListener('click', requestCloseRoomWizard);
         document.getElementById('workflowScopeWorld')?.addEventListener('click', () => setWorkflowScope('world'));
         document.getElementById('workflowScopeRoom')?.addEventListener('click', () => setWorkflowScope('room'));
@@ -10089,12 +10158,19 @@
               replaceRoomWizardEnvironmentPreservingAuthoring(room, specJson.environment || room.environment);
               syncRoomWizardEnvironmentFromRoom();
               if (st) st.textContent = 'Rendering previews…';
-              startRoomWizardWaitbar('copilot', 'Rendering room-aware environment previews.');
+              const previewEst =
+                getRoomEnvImageProvider() === 'cursor_cloud' ? 45 * 60 * 1000 : undefined;
+              startRoomWizardWaitbar(
+                'copilot',
+                `Rendering room-aware environment previews (${roomWizardPngBackendLabel()})…`,
+                previewEst
+              );
               const previewRes = await fetch(projectRoomEnvironmentApiUrl(room.id, 'previews'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                   spec: room.environment?.spec || {},
+                  ai_provider: getRoomEnvImageProvider(),
                   ...roomWizardAnalyticsContext(room, { request_kind: 'generate' }),
                 })
               });
@@ -10228,11 +10304,19 @@
             if (!specRes.ok || !specJson.ok) throw new Error(specJson.error || 'Could not build revised room spec');
             replaceRoomWizardEnvironmentPreservingAuthoring(room, specJson.environment || room.environment);
             if (st) st.textContent = 'Rendering revised previews…';
+            const revisePreviewEst =
+              getRoomEnvImageProvider() === 'cursor_cloud' ? 45 * 60 * 1000 : undefined;
+            startRoomWizardWaitbar(
+              'copilot',
+              `Rendering revised previews (${roomWizardPngBackendLabel()})…`,
+              revisePreviewEst
+            );
             const previewRes = await fetch(projectRoomEnvironmentApiUrl(room.id, 'previews'), {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 spec: room.environment?.spec || {},
+                ai_provider: getRoomEnvImageProvider(),
                 ...roomWizardAnalyticsContext(room, { request_kind: 'revise' }),
               })
             });
@@ -10282,15 +10366,16 @@
             const iterate = action === 'iterate';
             const waitMs = roomWizardEstimateBespokeAssetWaitMs(room, { slotId });
             const waitMin = Math.max(1, Math.round(waitMs / 60000));
+            const back = roomWizardPngBackendLabel();
             startRoomWizardWaitbar(
               'copilot',
-              `${iterate ? 'Iterating one asset' : 'Regenerating one asset'} (~${waitMin} min est., Gemini)…`,
+              `${iterate ? 'Iterating one asset' : 'Regenerating one asset'} (~${waitMin} min est., ${back})…`,
               waitMs
             );
             if (st) {
               st.textContent = iterate
-                ? `Iterating with Gemini… about ${waitMin} min typical for one slot.`
-                : `Regenerating with Gemini… about ${waitMin} min typical for one slot.`;
+                ? `Iterating with ${back}… about ${waitMin} min typical for one slot.`
+                : `Regenerating with ${back}… about ${waitMin} min typical for one slot.`;
             }
             try {
               const res = await fetch(projectRoomEnvironmentApiUrl(room.id, 'generate-assets'), {
@@ -10301,6 +10386,7 @@
                   environment_pipeline_version: room.environment?.environment_pipeline_version || 'v2',
                   slot_id: slotId,
                   iterate_from_current: iterate,
+                  ai_provider: getRoomEnvImageProvider(),
                 }),
               });
               const json = await res.json().catch(() => ({}));
@@ -10370,13 +10456,14 @@
           const fullWaitMs = roomWizardEstimateBespokeAssetWaitMs(room, { forFullBuild: true });
           const fullWaitMin = Math.max(1, Math.round(fullWaitMs / 60000));
           const geminiSlots = roomWizardEstimateBespokeGeminiSlotCount(room, { forFullBuild: true });
+          const kitBack = roomWizardPngBackendLabel();
           startRoomWizardWaitbar(
             'copilot',
-            `Building bespoke kit (~${fullWaitMin} min est., ~${geminiSlots} Gemini slots)…`,
+            `Building bespoke kit (~${fullWaitMin} min est., ~${geminiSlots} slots · ${kitBack})…`,
             fullWaitMs
           );
           if (st) {
-            st.textContent = `Building bespoke production assets… about ${fullWaitMin} min estimated (${geminiSlots} Gemini slots × multi-reference image time).`;
+            st.textContent = `Building bespoke production assets… about ${fullWaitMin} min estimated (${geminiSlots} slots via ${kitBack}).`;
           }
           try {
             const res = await fetch(projectRoomEnvironmentApiUrl(room.id, 'generate-assets'), {
@@ -10384,7 +10471,8 @@
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 preview_id: room.environment.preview.approved_image_id,
-                environment_pipeline_version: room.environment?.environment_pipeline_version || 'v2'
+                environment_pipeline_version: room.environment?.environment_pipeline_version || 'v2',
+                ai_provider: getRoomEnvImageProvider(),
               })
             });
             const json = await res.json().catch(() => ({}));

@@ -4,6 +4,7 @@ import copy
 import base64
 import hashlib
 import threading
+from contextvars import ContextVar
 import io
 import json
 import logging
@@ -24,6 +25,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageOps, ImageStat
 from scripts import room_environment_v3 as envv3
+from scripts.cursor_cloud_agent_client import run_cloud_agent_png_task
 
 PROJECTS_ROOT: Path
 ROOT: Path
@@ -39,6 +41,123 @@ def configure(**kwargs: Any) -> None:
 
 
 logger = logging.getLogger(__name__)
+
+_ROOM_ENV_IMAGE_PROVIDER_CTX: ContextVar[Optional[str]] = ContextVar("room_env_image_provider", default=None)
+
+
+def _normalize_room_env_image_provider(raw: Optional[str]) -> str:
+    v = (raw or "").strip().lower().replace("-", "_")
+    if v in ("cursor", "cursor_cloud", "cursor_cloud_agents", "cursoragents"):
+        return "cursor_cloud"
+    return "gemini"
+
+
+def _room_env_image_provider_effective() -> str:
+    override = _ROOM_ENV_IMAGE_PROVIDER_CTX.get()
+    if override is not None:
+        return _normalize_room_env_image_provider(override)
+    return _normalize_room_env_image_provider(os.environ.get("MV_ROOM_ENV_IMAGE_PROVIDER"))
+
+
+def _room_env_provider_apply_payload(payload: Optional[Dict[str, Any]]) -> Any:
+    if not payload or payload.get("ai_provider") is None:
+        return None
+    return _ROOM_ENV_IMAGE_PROVIDER_CTX.set(_normalize_room_env_image_provider(str(payload.get("ai_provider"))))
+
+
+def _room_env_provider_reset(token: Any) -> None:
+    if token is not None:
+        _ROOM_ENV_IMAGE_PROVIDER_CTX.reset(token)
+
+
+def _parse_size_hint_wh(size_hint: str, fallback: Tuple[int, int]) -> Tuple[int, int]:
+    s = (size_hint or "").strip().lower().replace(" ", "")
+    if "x" in s:
+        a, _, b = s.partition("x")
+        try:
+            w, h = int(a), int(b)
+            if w > 0 and h > 0:
+                return w, h
+        except ValueError:
+            pass
+    return fallback
+
+
+def _cursor_env_config() -> Tuple[str, str, str, str]:
+    api_key = (os.environ.get("CURSOR_API_KEY") or "").strip()
+    repo = (os.environ.get("CURSOR_CLOUD_REPOSITORY") or "").strip()
+    ref = (os.environ.get("CURSOR_CLOUD_REPOSITORY_REF") or "main").strip()
+    model = (os.environ.get("CURSOR_CLOUD_AGENT_MODEL") or "composer-2").strip() or "composer-2"
+    return api_key, repo, ref, model
+
+
+def _build_cursor_cloud_image_prompt(prompt: str, size_hint: str, w: int, h: int) -> str:
+    return textwrap.dedent(
+        f"""\
+        You are generating exactly ONE PNG for a 2D metroidvania-style environment tile.
+
+        Requirements:
+        - Final deliverable: one PNG raster, target dimensions {w}×{h} pixels (scale once if needed to match).
+        - Side-scroller readable architecture and materials; no characters; no UI text or watermark.
+        - If the brief implies void / negative space, keep those regions cleanly transparent in the PNG.
+
+        Deliverable:
+        - Export the PNG as a Cloud Agent artifact (the platform lists artifacts such as under /opt/cursor/artifacts/).
+          The pipeline downloads the largest .png artifact from this agent run.
+
+        --- Image brief ---
+        {prompt}
+        --- End brief ---
+
+        Size intent from editor: {size_hint or f'{w}x{h}'}.
+        """
+    ).strip()
+
+
+def _reference_png_tuples_from_paths(reference_paths: List[Path]) -> List[Tuple[bytes, int, int]]:
+    out: List[Tuple[bytes, int, int]] = []
+    for ref_path in reference_paths:
+        if not ref_path.exists():
+            continue
+        try:
+            blob = ref_path.read_bytes()
+            with Image.open(io.BytesIO(blob)) as im:
+                w, h = im.size
+            out.append((blob, int(w), int(h)))
+        except OSError:
+            continue
+    return out
+
+
+def _generate_image_via_cursor_cloud(
+    path: Path, prompt: str, reference_paths: List[Path], size_hint: str = ""
+) -> Tuple[bool, Optional[str]]:
+    api_key, repo, repo_ref, model = _cursor_env_config()
+    if not api_key:
+        return False, "missing_cursor_api_key"
+    if not repo:
+        return False, "missing_cursor_cloud_repository"
+    wb = _parse_size_hint_wh(size_hint, (1024, 1024))
+    prompt_full = _build_cursor_cloud_image_prompt(prompt, size_hint, wb[0], wb[1])
+    ref_tuples = _reference_png_tuples_from_paths(reference_paths)
+    data, err = run_cloud_agent_png_task(
+        api_key=api_key,
+        repository=repo,
+        repository_ref=repo_ref,
+        model=model,
+        prompt_text=prompt_full,
+        reference_pngs=ref_tuples,
+    )
+    if err or not data:
+        return False, err or "cursor_cloud_no_bytes"
+    try:
+        image = Image.open(io.BytesIO(data)).convert("RGBA")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        image.save(path)
+        return True, None
+    except Exception as exc:
+        return False, _gemini_safe_error_snippet(str(exc))
+
 
 # Temporary founder-approved isolation switch while we verify whether midground is
 # contaminating runtime shell/border reads.
@@ -4567,6 +4686,48 @@ def _build_level3_variant_prompt(
     ).strip()
 
 
+def _generate_level3_image_via_cursor_cloud(
+    path: Path,
+    project_dir: Path,
+    direction: Dict[str, Any],
+    geometry: Dict[str, Any],
+    spec: Dict[str, Any],
+    variant_index: int,
+    frozen_concepts: Optional[List[Dict[str, Any]]] = None,
+) -> bool:
+    effective_frozen = list(frozen_concepts) if frozen_concepts is not None else (direction.get("frozen_concepts") or [])
+    cond_path = path.parent / f"_level3_cond_{variant_index}_{os.getpid()}.png"
+    try:
+        cond_path.write_bytes(_render_room_layout_conditioning_image(geometry, spec, variant_index))
+        refs: List[Path] = [cond_path]
+        for item in effective_frozen[:3]:
+            rel_path = str(item.get("image_path") or "").strip()
+            if not rel_path:
+                continue
+            concept_path = project_dir / rel_path
+            if concept_path.exists():
+                refs.append(concept_path)
+        prompt = _build_level3_variant_prompt(direction, geometry, spec, effective_frozen, variant_index)
+        w = int(geometry.get("width") or 1600)
+        h = int(geometry.get("height") or 1200)
+        ok, _err = _generate_image_from_references(path, prompt, refs, size_hint=f"{w}x{h}")
+        if not ok:
+            return False
+        try:
+            image = Image.open(path).convert("RGBA")
+            image = _crop_level3_gemini_output_to_footprint(image, geometry)
+            image.save(path)
+            return True
+        except Exception:
+            return False
+    finally:
+        try:
+            if cond_path.exists():
+                cond_path.unlink()
+        except OSError:
+            pass
+
+
 def _generate_level3_image_with_gemini(
     path: Path,
     project_dir: Path,
@@ -4576,6 +4737,10 @@ def _generate_level3_image_with_gemini(
     variant_index: int,
     frozen_concepts: Optional[List[Dict[str, Any]]] = None,
 ) -> bool:
+    if _room_env_image_provider_effective() == "cursor_cloud":
+        return _generate_level3_image_via_cursor_cloud(
+            path, project_dir, direction, geometry, spec, variant_index, frozen_concepts
+        )
     if not _gemini_api_key():
         return False
     effective_frozen = list(frozen_concepts) if frozen_concepts is not None else (direction.get("frozen_concepts") or [])
@@ -4634,6 +4799,8 @@ def _generate_level3_image_with_gemini(
 def _generate_image_from_references(
     path: Path, prompt: str, reference_paths: List[Path], size_hint: str = ""
 ) -> Tuple[bool, Optional[str]]:
+    if _room_env_image_provider_effective() == "cursor_cloud":
+        return _generate_image_via_cursor_cloud(path, prompt, reference_paths, size_hint=size_hint)
     if not _gemini_api_key():
         return False, "missing_gemini_api_key"
     parts: List[Dict[str, Any]] = []
@@ -6259,6 +6426,14 @@ def _attach_default_biome_pack(project: Dict[str, Any], direction: Dict[str, Any
 
 
 def generate_room_environment_previews(project_id: str, room_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    _tok = _room_env_provider_apply_payload(payload)
+    try:
+        return _generate_room_environment_previews_impl(project_id, room_id, payload)
+    finally:
+        _room_env_provider_reset(_tok)
+
+
+def _generate_room_environment_previews_impl(project_id: str, room_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
     started = time.perf_counter()
     project = load_project(project_id)
     room = _find_room(project, room_id)
@@ -9340,6 +9515,15 @@ def _run_runtime_review(
 
 
 def generate_room_environment_asset_pack(project_id: str, room_id: str, payload: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    payload = dict(payload or {})
+    _tok = _room_env_provider_apply_payload(payload)
+    try:
+        return _generate_room_environment_asset_pack_impl(project_id, room_id, payload)
+    finally:
+        _room_env_provider_reset(_tok)
+
+
+def _generate_room_environment_asset_pack_impl(project_id: str, room_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
     project = load_project(project_id)
     room = _find_room(project, room_id)
     env = _ensure_room_environment(room)
@@ -9347,7 +9531,6 @@ def generate_room_environment_asset_pack(project_id: str, room_id: str, payload:
     spec = env["spec"]
     direction = normalize_art_direction(project.get("art_direction"), project.get("art_direction"))
     direction = _attach_default_biome_pack(project, direction)
-    payload = dict(payload or {})
     slot_filter = str(payload.get("slot_id") or "").strip()
     iterate_from_current = bool(payload.get("iterate_from_current"))
     if iterate_from_current and not slot_filter:
