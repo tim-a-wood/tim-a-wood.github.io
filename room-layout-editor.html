@@ -8084,8 +8084,9 @@
         const reviewBlockedSlots = Array.isArray(runtimeReview?.fail_reasons) && runtimeReview.fail_reasons.includes('slot_generation_failed');
         const slotGenFailed = reviewBlockedSlots;
         const browserCaptureReviewTip =
-          Array.isArray(runtimeReview?.fail_reasons) && runtimeReview.fail_reasons.includes('browser_capture_required')
-            ? ' Tip: headless Chrome/Chromium must be available (see ROOM_ENVIRONMENT_REVIEW_BROWSER) and the game URL must load at ROOM_ENVIRONMENT_REVIEW_BASE_URL (default matches the workbench server, e.g. port 8766); otherwise the pipeline uses a static composite PNG and marks this reason.'
+          (Array.isArray(runtimeReview?.fail_reasons) && runtimeReview.fail_reasons.includes('browser_capture_required'))
+          || (Array.isArray(runtimeReview?.warning_reasons) && runtimeReview.warning_reasons.includes('browser_capture_degraded'))
+            ? ' Tip: true runtime screenshots need headless Chrome/Chromium (ROOM_ENVIRONMENT_REVIEW_BROWSER) and the game reachable at ROOM_ENVIRONMENT_REVIEW_BASE_URL (workbench port, e.g. 8766). If capture fails, the workbench falls back to a static composite — check the server log for capture_runtime_review errors.'
             : '';
         const reviewText = runtimeReview?.status
           ? (slotGenFailed

@@ -9062,6 +9062,19 @@ def _runtime_review_metrics(screenshot_path: Path, assets: Dict[str, Any]) -> Di
     }
 
 
+def _pick_free_tcp_port() -> int:
+    """Ephemeral localhost port for Chrome remote debugging (avoid collisions with stale Chrome on 9236)."""
+    import socket as _socket
+
+    try:
+        with _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM) as sock:
+            sock.bind(("127.0.0.1", 0))
+            return int(sock.getsockname()[1])
+    except OSError:
+        # Sandboxed CI / hardened environments may forbid bind(0); use a pid-scoped high port.
+        return 9300 + (os.getpid() % 700)
+
+
 def _find_headless_browser() -> Optional[str]:
     candidates = [
         os.environ.get("ROOM_ENVIRONMENT_REVIEW_BROWSER"),
@@ -9135,8 +9148,10 @@ def _capture_runtime_review_screenshot(
                     str(width),
                     "--height",
                     str(height),
+                    "--port",
+                    str(_pick_free_tcp_port()),
                     "--timeout",
-                    "30000",
+                    "60000",
                 ]
             else:
                 cmd = [
@@ -9149,7 +9164,23 @@ def _capture_runtime_review_screenshot(
                     "--virtual-time-budget=20000",
                     target,
                 ]
-            subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=60, cwd=run_cwd)
+            proc = subprocess.run(
+                cmd,
+                check=False,
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.PIPE,
+                timeout=120,
+                cwd=run_cwd,
+            )
+            if proc.returncode != 0:
+                err_tail = (proc.stderr or b"").decode("utf-8", "replace").strip()
+                logger.warning(
+                    "Runtime review headless capture failed (exit %s): %s",
+                    proc.returncode,
+                    err_tail[:2000] or "(no stderr)",
+                )
+                raise RuntimeError(err_tail or f"capture_exit_{proc.returncode}")
             if output_path.exists() and _runtime_review_capture_is_usable(output_path):
                 return "headless_browser", None
             if output_path.exists():
@@ -9157,8 +9188,7 @@ def _capture_runtime_review_screenshot(
             browser_error = "headless_browser_invalid_frame"
         except Exception as exc:
             browser_error = f"headless_browser_failed:{type(exc).__name__}"
-        else:
-            browser_error = "headless_browser_failed"
+            logger.warning("Runtime review headless capture raised %s: %s", type(exc).__name__, exc)
     else:
         browser_error = "headless_browser_unavailable"
     _composite_runtime_review_image(room, assets, output_path)
@@ -9256,7 +9286,10 @@ def _run_runtime_review(
     fail_reasons: List[str] = []
     warning_reasons: List[str] = []
     if review_mode != "headless_browser":
-        fail_reasons.append("browser_capture_required")
+        if screenshot_path.exists() and _runtime_review_capture_is_usable(screenshot_path):
+            warning_reasons.append("browser_capture_degraded")
+        else:
+            fail_reasons.append("browser_capture_required")
     if metrics["center_clutter"] > 0.08:
         fail_reasons.append("center_clutter_too_high")
     if (

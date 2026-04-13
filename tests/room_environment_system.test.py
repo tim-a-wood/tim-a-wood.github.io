@@ -3104,10 +3104,11 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         capture_helper.write_text("// test helper stub\n", encoding="utf-8")
         old_pref = envsys.os.environ.pop("ROOM_ENVIRONMENT_REVIEW_USE_BROWSER", None)
         try:
+            proc_ok = mock.Mock(returncode=0, stderr=b"")
             with mock.patch.object(envsys, "_find_headless_browser", return_value="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"), \
                  mock.patch.object(envsys, "_write_runtime_review_capture_page", return_value="http://127.0.0.1:8766/mock-runtime-capture.html"), \
                  mock.patch.object(envsys.shutil, "which", return_value="/usr/bin/node"), \
-                 mock.patch.object(envsys.subprocess, "run") as run_mock, \
+                 mock.patch.object(envsys.subprocess, "run", return_value=proc_ok) as run_mock, \
                  mock.patch.object(envsys, "_runtime_review_capture_is_usable", return_value=True):
                 output.write_bytes(b"browser-shot")
                 mode, issue = envsys._capture_runtime_review_screenshot(self.saved, "R1", {}, output)
@@ -3131,6 +3132,8 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         cmd = args[0]
         self.assertEqual(cmd[cmd.index("--width") + 1], "1280")
         self.assertEqual(cmd[cmd.index("--height") + 1], "880")
+        self.assertIn("--port", cmd)
+        self.assertEqual(cmd[cmd.index("--timeout") + 1], "60000")
 
     def test_runtime_review_capture_can_be_explicitly_disabled(self):
         output = self.projects_root / self.project_id / "room_environment_assets" / "R1" / "review" / "runtime-review.png"
@@ -3255,7 +3258,8 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
     def test_runtime_review_headless_capture_uses_longer_budget(self):
         source = Path(envsys.__file__).read_text(encoding="utf-8")
         self.assertIn("--virtual-time-budget=20000", source)
-        self.assertIn("timeout=60", source)
+        self.assertIn("timeout=120", source)
+        self.assertIn('"60000"', source)
 
     def test_composite_runtime_review_skips_non_runtime_structural_overlays(self):
         room = {
@@ -4221,6 +4225,34 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
             review = envsys._run_runtime_review(self.saved, self.project_id, "R1", {})
         self.assertEqual(review["status"], "fail")
         self.assertIn("browser_capture_required", review["fail_reasons"])
+
+    def test_runtime_review_composite_fallback_warns_when_screenshot_still_usable(self):
+        review_path = self.projects_root / self.project_id / "room_environment_assets" / "R1" / "review" / "runtime-review.png"
+        review_path.parent.mkdir(parents=True, exist_ok=True)
+        img = envsys.Image.new("RGBA", (1600, 1200), (40, 44, 48, 255))
+        dr = envsys.ImageDraw.Draw(img)
+        dr.rectangle((200, 200, 1400, 1000), fill=(160, 150, 140, 255))
+        img.save(review_path)
+        safe_metrics = {
+            "center_clutter": 0.04,
+            "center_upper_contrast": 0.02,
+            "center_lower_contrast": 0.02,
+            "left_right_balance": 0.05,
+            "side_shell_definition": 0.05,
+            "floor_background_separation": 0.1,
+            "top_band_darkness": 0.02,
+            "top_band_contrast": 0.05,
+            "platform_top_readability": 0.1,
+            "threshold_visibility": 0.1,
+            "platform_sample_count": 0.0,
+            "door_sample_count": 0.0,
+        }
+        with mock.patch.object(envsys, "_capture_runtime_review_screenshot", return_value=("composite_fallback", "headless_browser_failed")), \
+             mock.patch.object(envsys, "_runtime_review_metrics", return_value=safe_metrics):
+            review = envsys._run_runtime_review(self.saved, self.project_id, "R1", {})
+        self.assertEqual(review["status"], "pass")
+        self.assertNotIn("browser_capture_required", review["fail_reasons"])
+        self.assertIn("browser_capture_degraded", review["warning_reasons"])
 
     def test_foreground_frame_retry_prompt_targets_band_distinction(self):
         retry = envsys._retry_prompt_for_validation_errors(

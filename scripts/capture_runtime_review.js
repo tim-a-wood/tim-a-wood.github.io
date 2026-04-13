@@ -6,6 +6,22 @@ const os = require('os');
 const path = require('path');
 const { spawn } = require('child_process');
 
+/** Node 21+ exposes global WebSocket; older releases need the optional `ws` package. */
+const WebSocketCtor = (() => {
+  if (typeof globalThis.WebSocket === 'function') return globalThis.WebSocket;
+  try {
+    return require('ws');
+  } catch (_) {
+    return null;
+  }
+})();
+if (!WebSocketCtor) {
+  process.stderr.write(
+    'capture_runtime_review.js: need Node.js 21+ (global WebSocket) or run `npm install ws` in the repo.\n',
+  );
+  process.exit(1);
+}
+
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -27,7 +43,7 @@ async function fetchJson(url, retries = 40) {
 
 class CdpClient {
   constructor(wsUrl) {
-    this.ws = new WebSocket(wsUrl);
+    this.ws = new WebSocketCtor(wsUrl);
     this.id = 0;
     this.pending = new Map();
     this.openPromise = new Promise((resolve, reject) => {
@@ -116,6 +132,7 @@ async function main() {
 
   let client = null;
   try {
+    await delay(800);
     const targets = await fetchJson(`http://127.0.0.1:${port}/json/list`);
     const target = targets.find((item) => item.url.includes('runtime-capture.html')) || targets[0];
     if (!target?.webSocketDebuggerUrl) {
