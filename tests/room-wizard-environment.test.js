@@ -12,8 +12,8 @@ const {
   buildEnvironmentPreviewModel,
   THEME_PRESETS,
   DEFAULT_THEME_ID
-} = require('../room-wizard-environment.js');
-const { buildRuntimeRoom, normalizeRuntimeEnvironment } = require('../room-layout-export-package.js');
+} = require('../js/wizard/environment.js');
+const { buildRuntimeRoom, normalizeRuntimeEnvironment } = require('../js/wizard/export-package.js');
 
 (function testParseTags() {
   assert.deepStrictEqual(parseTagsInput('a, b; c'), ['a', 'b', 'c']);

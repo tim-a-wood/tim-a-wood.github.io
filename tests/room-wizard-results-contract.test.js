@@ -6,8 +6,27 @@ const path = require('path');
 
 const html = fs.readFileSync(path.join(__dirname, '..', 'room-layout-editor.html'), 'utf8');
 
+function readRoomEditorChunkBundle() {
+  const ed = path.join(__dirname, '..', 'js/editor');
+  let s = '';
+  for (let i = 0; i < 20; i += 1) {
+    const f = path.join(ed, `chunk-${i}.js`);
+    if (!fs.existsSync(f)) break;
+    const t = fs.readFileSync(f, 'utf8');
+    const m = t.match(/push\((.*)\);\s*$/s);
+    if (!m) continue;
+    s += JSON.parse(m[1]);
+  }
+  return s;
+}
+
+const editorJs = readRoomEditorChunkBundle();
+
 function assertIncludes(snippet, message) {
-  assert.ok(html.includes(snippet), message || `Expected HTML to include: ${snippet}`);
+  assert.ok(
+    html.includes(snippet) || editorJs.includes(snippet),
+    message || `Expected HTML or editor bundle to include: ${snippet}`
+  );
 }
 
 (function testDescribeTabAuthoringFieldsExist() {
@@ -32,17 +51,11 @@ function assertIncludes(snippet, message) {
 })();
 
 (function testResultsStageOrderMatchesContract() {
-  const orderedLabels = [
-    '1. Visual style',
-    '2. Walkable layout',
-    '3. Room pieces',
-    '4. Scene layout',
-    '5. Quality check',
-  ];
+  const orderedLabels = ['Structure</label>', 'Background</label>', 'Decor</label>', 'Room overlay</label>'];
   let lastIndex = -1;
   orderedLabels.forEach((label) => {
-    const idx = html.indexOf(label);
-    assert.ok(idx > lastIndex, `Expected Results stage label in order: ${label}`);
+    const idx = editorJs.indexOf(label);
+    assert.ok(idx > lastIndex, `Expected Results overlay toggle labels in order: ${label}`);
     lastIndex = idx;
   });
 })();
@@ -113,8 +126,9 @@ function assertIncludes(snippet, message) {
     'rw-env-generated-images-surface',
     'Build summary should surface generated images in a dedicated block for quick visibility'
   );
-  const genIdx = html.indexOf('rw-env-generated-images-surface');
-  const detailsIdx = html.indexOf('Theme, pipeline, assets, and references');
+  const layout = `${html}\n${editorJs}`;
+  const genIdx = layout.indexOf('rw-env-generated-images-surface');
+  const detailsIdx = layout.indexOf('Theme, pipeline, assets, and references');
   assert.ok(
     genIdx > 0 && detailsIdx > genIdx,
     'Template source should define generated-images surface before the collapsed build-details summary copy'

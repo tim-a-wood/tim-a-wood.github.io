@@ -5,7 +5,7 @@ const {
   stripJsonFences,
   normalizeCopilotPayload,
   applyCopilotPayloadToRoom
-} = require('../room-wizard-environment-copilot.js');
+} = require('../js/wizard/environment-copilot.js');
 
 assert.strictEqual(stripJsonFences('```json\n{"a":1}\n```'), '{"a":1}');
 assert.strictEqual(stripJsonFences('{"themeId":"cave"}'), '{"themeId":"cave"}');
@@ -27,7 +27,7 @@ const room = { id: 'R1', environment: { version: 1, themeId: 'cave', tags: [] } 
 applyCopilotPayloadToRoom(
   room,
   { themeId: 'sewer', tags: ['wet'] },
-  { ensureRoomEnvironment: require('../room-wizard-environment.js').ensureRoomEnvironment }
+  { ensureRoomEnvironment: require('../js/wizard/environment.js').ensureRoomEnvironment }
 );
 assert.strictEqual(room.environment.themeId, 'sewer');
 assert.deepStrictEqual(room.environment.tags, ['wet']);

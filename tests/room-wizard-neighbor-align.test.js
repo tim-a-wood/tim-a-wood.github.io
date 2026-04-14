@@ -12,7 +12,7 @@ const {
   edgeOrientation,
   localToWorld,
   ROOM_WIZARD_NEIGHBOR_SCALE
-} = require('../room-wizard-neighbor-align.js');
+} = require('../js/wizard/neighbor-align.js');
 
 const S = ROOM_WIZARD_NEIGHBOR_SCALE;
 

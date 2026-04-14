@@ -2,7 +2,7 @@
  * Unit tests for room-layout-wizard-footprint.js
  */
 const assert = require('assert');
-const { applyAxisAlignedFootprint, ROOM_WIZARD_FOOTPRINT_MARGIN } = require('../room-layout-wizard-footprint.js');
+const { applyAxisAlignedFootprint, ROOM_WIZARD_FOOTPRINT_MARGIN } = require('../js/wizard/footprint.js');
 
 const room = { size: {}, polygon: [] };
 applyAxisAlignedFootprint(room, 1600, 1200);

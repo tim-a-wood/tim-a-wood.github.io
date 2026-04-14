@@ -7,7 +7,7 @@ const {
   generateExportPackage,
   buildRuntimeRoom,
   normalizeRuntimeEnvironment
-} = require('../room-layout-export-package.js');
+} = require('../js/wizard/export-package.js');
 
 const minimalLayout = {
   version: 1,

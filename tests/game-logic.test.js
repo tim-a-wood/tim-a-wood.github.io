@@ -822,27 +822,44 @@ function simulateSequenceAttempt(order) {
     const htmlPath = path.join(__dirname, '../room-layout-editor.html');
     if (!fs.existsSync(htmlPath)) return;
     const html = fs.readFileSync(htmlPath, 'utf8');
-    assert.ok(html.includes('function validateLayout'), 'validateLayout should exist in room-layout-editor.html');
-    assert.ok(html.includes('L1-001') && html.includes('L2-003'), 'validation rule IDs should be present');
-    assert.ok(html.includes('renderValidationResults'), 'renderValidationResults should exist');
-    assert.ok(html.includes('VALIDATION_L2'), 'VALIDATION_L2 tunable thresholds should exist');
+    function readRoomEditorChunkBundle() {
+        const ed = path.join(__dirname, '../js/editor');
+        let s = '';
+        for (let i = 0; i < 20; i += 1) {
+            const f = path.join(ed, `chunk-${i}.js`);
+            if (!fs.existsSync(f)) break;
+            const t = fs.readFileSync(f, 'utf8');
+            const m = t.match(/push\((.*)\);\s*$/s);
+            if (!m) continue;
+            s += JSON.parse(m[1]);
+        }
+        return s;
+    }
+    const editorJs = readRoomEditorChunkBundle();
+    assert.ok(editorJs.includes('function validateLayout'), 'validateLayout should exist in js/editor chunk bundle');
+    assert.ok(editorJs.includes('L1-001') && editorJs.includes('L2-003'), 'validation rule IDs should be present');
+    assert.ok(editorJs.includes('renderValidationResults'), 'renderValidationResults should exist');
+    assert.ok(editorJs.includes('VALIDATION_L2'), 'VALIDATION_L2 tunable thresholds should exist');
     assert.ok(html.includes('gamePreviewOverlay') && html.includes('gamePreviewFrame'), 'in-page playtest overlay should exist');
-    assert.ok(html.includes('ASHEN_HOLLOW_PREVIEW') && html.includes('preview=embed'), 'editor posts layout + embed hash');
+    assert.ok(editorJs.includes('ASHEN_HOLLOW_PREVIEW') && editorJs.includes('preview=embed'), 'editor posts layout + embed hash');
     assert.ok(
         html.includes('workflowRailsStack') && html.includes('worldWorkflowRail') && html.includes('workflowScopeWorld'),
         'workflow toggle + world rail'
     );
-    assert.ok(html.includes('setEditorWorkflowStep') && html.includes('editorWorkflowStep'), 'main workflow step state');
-    assert.ok(html.includes('room-wizard-neighbor-align.js'), 'RW-2 neighbor align script');
-    assert.ok(html.includes('room-wizard-terrain.js'), 'RW-3 terrain module script');
-    assert.ok(html.includes('room-wizard-environment.js'), 'RW-4 environment module script');
-    assert.ok(html.includes('local_slot') && html.includes('LOCAL_STORAGE_PREFIX'), 'local sandbox projects via local_slot');
+    assert.ok(editorJs.includes('setEditorWorkflowStep') && editorJs.includes('editorWorkflowStep'), 'main workflow step state');
+    assert.ok(html.includes('js/wizard/neighbor-align.js'), 'RW-2 neighbor align script');
+    assert.ok(html.includes('js/wizard/terrain.js'), 'RW-3 terrain module script');
+    assert.ok(html.includes('js/wizard/environment.js'), 'RW-4 environment module script');
+    assert.ok(editorJs.includes('local_slot') && editorJs.includes('LOCAL_STORAGE_PREFIX'), 'local sandbox projects via local_slot');
     assert.ok(html.includes('btnNewLocalProject'), 'New local project control');
-    assert.ok(html.includes('syncRoomWizardEdgeSelects'), 'dynamic edge dropdowns for non-quad rooms');
+    assert.ok(editorJs.includes('syncRoomWizardEdgeSelects'), 'dynamic edge dropdowns for non-quad rooms');
     assert.ok(html.includes('RoomWizardNeighborAlign') || html.includes('roomWizardBtnAlign'), 'RW-2 align UI wired');
-    assert.ok(html.includes('room-wizard-dock--compact'), 'room setup dock toggles compact class');
+    const rwCssPath = path.join(__dirname, '../css/room-wizard.css');
+    const rwCss = fs.existsSync(rwCssPath) ? fs.readFileSync(rwCssPath, 'utf8') : '';
+    assert.ok(rwCss.includes('room-wizard-dock--compact'), 'room setup dock toggles compact class (room-wizard.css)');
     assert.ok(
-        html.includes('!state.roomWizard.active') && html.includes('state.workflowScope === \'room\''),
+        editorJs.includes('!RoomEditor.State.roomWizard.active') &&
+            editorJs.includes('RoomEditor.State.workflowScope === \'room\''),
         'close dismisses room scope when wizard already inactive'
     );
 })();
@@ -1109,7 +1126,7 @@ function simulateSequenceAttempt(order) {
 (function testRoomWizardWorkbenchShellCompactCss() {
     const fs = require('fs');
     const path = require('path');
-    const cssPath = path.join(__dirname, '../room-wizard-workbench-shell.css');
+    const cssPath = path.join(__dirname, '../css/room-wizard.css');
     if (!fs.existsSync(cssPath)) return;
     const css = fs.readFileSync(cssPath, 'utf8');
     assert.ok(

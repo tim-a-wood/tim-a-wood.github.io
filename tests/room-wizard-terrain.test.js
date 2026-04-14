@@ -13,7 +13,7 @@ const {
   fitPlatformToFootprint,
   DEFAULT_TILE,
   DEFAULT_PLATFORM_H
-} = require('../room-wizard-terrain.js');
+} = require('../js/wizard/terrain.js');
 
 (function testLayoutComplete() {
   assert.strictEqual(isLayoutCompleteForTerrain(null), false);

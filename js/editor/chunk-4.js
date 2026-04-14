@@ -1,0 +1,3 @@
+'use strict';
+globalThis.__RoomEditorChunks = globalThis.__RoomEditorChunks || [];
+globalThis.__RoomEditorChunks.push("      window.validateLayout = validateLayout;\n      window.VALIDATION_L2 = VALIDATION_L2;\n\n      populateAbilityOptions();\n      initSidebarToggle();\n      installRoomWizardQaHooks();\n      document.getElementById('btnNewLocalProject')?.addEventListener('click', createNewLocalProject);\n      wireRoomWizardEvents();\n      wireGamePreview();\n      wireEvents();\n      refreshProjectList().catch(() => {});\n      loadData().catch((error) => {\n        setStatus(`Load failed: ${error.message}`, 'error');\n      });\n      refreshCopilotStatus().catch(() => {});");
