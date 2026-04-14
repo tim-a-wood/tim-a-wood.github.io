@@ -2,7 +2,12 @@ function initSidebarToggle() {
     const app = document.querySelector(".app-shell");
     const btn = document.querySelector(".rail-toggle");
     if (!app || !btn) return;
-    if (localStorage.getItem(SIDEBAR_KEY) === "1") app.classList.add("sidebar-collapsed");
+    // Do not restore the old persisted collapsed state here. It hid the entire
+    // project list and made existing projects look like they were gone.
+    app.classList.remove("sidebar-collapsed");
+    try {
+        localStorage.removeItem(SIDEBAR_KEY);
+    } catch (_) {}
     const sync = () => {
         const collapsed = app.classList.contains("sidebar-collapsed");
         btn.setAttribute("aria-label", collapsed ? "Expand project panel" : "Collapse project panel");
