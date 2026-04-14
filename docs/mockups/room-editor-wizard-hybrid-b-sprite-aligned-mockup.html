@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Room Editor Wizard — Hybrid B + Sprite Shell (founder direction)</title>
+<title>Room Editor Wizard — Option B top rail + sprite shell + left context</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -219,6 +219,201 @@ button { background: transparent; border: 0; cursor: pointer; }
   background: var(--accent-soft);
   color: var(--accent);
   box-shadow: inset 0 0 0 1px rgba(0, 232, 200, 0.08);
+}
+
+/* App shell: Option B = horizontal wizard under chrome */
+.shell-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Full-width workflow rail (matches option-b-stage-first phase-bar) */
+.workflow-rail-top {
+  flex-shrink: 0;
+  background: var(--panel);
+  border-bottom: 1px solid var(--stroke);
+  padding: var(--s3) var(--s4);
+}
+
+.top-wizard {
+  display: none;
+  align-items: center;
+  gap: var(--s3);
+  max-width: 100%;
+  flex-wrap: wrap;
+}
+
+html:not([data-mock-screen="world"]) .top-wizard-room {
+  display: flex;
+}
+
+html[data-mock-screen="world"] .top-wizard-world {
+  display: flex;
+}
+
+.phase-rail-h {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  flex: 1;
+  justify-content: center;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding-bottom: var(--s1);
+  scrollbar-width: thin;
+}
+
+.phase-pill-h {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  padding: 10px var(--s4);
+  border-radius: var(--r-full);
+  border: 1px solid var(--stroke);
+  background: var(--panel-2);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--muted);
+  min-height: 44px;
+  flex-shrink: 0;
+  text-align: left;
+  transition: background var(--transition-base), border-color var(--transition-base), color var(--transition-base), box-shadow var(--transition-base);
+}
+
+.phase-pill-h .num {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-size: var(--fs-sm);
+  background: var(--panel-3);
+  color: var(--muted);
+  border: 1px solid var(--stroke);
+  flex-shrink: 0;
+}
+
+.phase-pill-h .pill-copy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+  align-items: flex-start;
+}
+
+.phase-pill-h .pill-copy strong {
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: inherit;
+  line-height: 1.2;
+}
+
+.phase-pill-h .pill-copy small {
+  font-size: var(--fs-xs);
+  color: var(--faint);
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.phase-pill-h.done {
+  color: var(--text);
+  border-color: var(--line-strong);
+}
+
+.phase-pill-h.done .num {
+  background: var(--good-soft);
+  color: var(--good);
+  border-color: transparent;
+}
+
+.phase-pill-h.active {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: 0 0 0 3px rgba(0, 232, 200, 0.08);
+}
+
+.phase-pill-h.active .num {
+  background: var(--accent);
+  color: var(--gold-t);
+  border-color: transparent;
+}
+
+.phase-pill-h.active .pill-copy small {
+  color: var(--muted);
+}
+
+.phase-pill-h.locked {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.phase-conn {
+  width: var(--s4);
+  height: 1px;
+  background: var(--line);
+  flex-shrink: 0;
+}
+
+.phase-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  flex-shrink: 0;
+}
+
+.workflow-rail-eyebrow {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  flex-shrink: 0;
+  margin-right: var(--s2);
+}
+
+/* Compact left context: mirrors top step (no duplicate vertical wizard) */
+.active-step-card {
+  padding: var(--s3);
+  border-radius: var(--r-tight);
+  border: 1px solid var(--line-strong);
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px rgba(0, 232, 200, 0.08);
+}
+
+.active-step-card .eyebrow {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: var(--s2);
+}
+
+.active-step-card strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: var(--fs-md);
+  letter-spacing: 0.05em;
+  color: var(--accent);
+}
+
+.active-step-card p {
+  margin-top: var(--s2);
+  font-size: var(--fs-sm);
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.btn.ghost {
+  border-color: transparent;
+  background: transparent;
+}
+
+.btn.ghost:hover {
+  background: rgba(255, 255, 255, 0.06);
 }
 
 /* Workbench body */
@@ -1114,7 +1309,93 @@ html[data-mock-screen="review"] .scope-chip[data-scope="world"] {
   <button type="button" class="mock-chip" data-mock-screen="world" aria-pressed="false">World</button>
 </div>
 
-<div class="workbench">
+<div class="shell-body">
+
+  <div class="workflow-rail-top">
+    <nav class="top-wizard top-wizard-room" id="topRoomWizard" aria-label="Room setup steps">
+      <span class="workflow-rail-eyebrow">Room</span>
+      <div class="phase-rail-h" role="list">
+        <button type="button" class="phase-pill-h" data-phase="layout" role="listitem">
+          <span class="num">1</span>
+          <span class="pill-copy">
+            <strong>Layout</strong>
+            <small>Footprint and platforms</small>
+          </span>
+        </button>
+        <span class="phase-conn" aria-hidden="true"></span>
+        <button type="button" class="phase-pill-h" data-phase="environment" role="listitem">
+          <span class="num">2</span>
+          <span class="pill-copy">
+            <strong>Environment</strong>
+            <small>Components and mood</small>
+          </span>
+        </button>
+        <span class="phase-conn" aria-hidden="true"></span>
+        <button type="button" class="phase-pill-h" data-phase="objects" role="listitem">
+          <span class="num">3</span>
+          <span class="pill-copy">
+            <strong>Objects</strong>
+            <small>Later pass</small>
+          </span>
+        </button>
+        <span class="phase-conn" aria-hidden="true"></span>
+        <button type="button" class="phase-pill-h" data-phase="review" role="listitem">
+          <span class="num">4</span>
+          <span class="pill-copy">
+            <strong>Review</strong>
+            <small>Validate and export</small>
+          </span>
+        </button>
+      </div>
+      <div class="phase-bar-actions">
+        <button type="button" class="btn sm ghost">Back</button>
+        <button type="button" class="btn sm accent">Continue</button>
+      </div>
+    </nav>
+
+    <nav class="top-wizard top-wizard-world" id="topWorldWizard" aria-label="World workflow">
+      <span class="workflow-rail-eyebrow">World</span>
+      <div class="phase-rail-h" role="list">
+        <button type="button" class="phase-pill-h" data-world-step="1" role="listitem">
+          <span class="num">1</span>
+          <span class="pill-copy">
+            <strong>World layout</strong>
+            <small>Placement and links</small>
+          </span>
+        </button>
+        <span class="phase-conn" aria-hidden="true"></span>
+        <button type="button" class="phase-pill-h" data-world-step="2" role="listitem">
+          <span class="num">2</span>
+          <span class="pill-copy">
+            <strong>Placeholder</strong>
+            <small>Reserved</small>
+          </span>
+        </button>
+        <span class="phase-conn" aria-hidden="true"></span>
+        <button type="button" class="phase-pill-h" data-world-step="3" role="listitem">
+          <span class="num">3</span>
+          <span class="pill-copy">
+            <strong>Placeholder</strong>
+            <small>Reserved</small>
+          </span>
+        </button>
+        <span class="phase-conn" aria-hidden="true"></span>
+        <button type="button" class="phase-pill-h" data-world-step="4" role="listitem">
+          <span class="num">4</span>
+          <span class="pill-copy">
+            <strong>Review and export</strong>
+            <small>Validation</small>
+          </span>
+        </button>
+      </div>
+      <div class="phase-bar-actions">
+        <button type="button" class="btn sm ghost">Room scope</button>
+        <button type="button" class="btn sm accent">Next</button>
+      </div>
+    </nav>
+  </div>
+
+  <div class="workbench">
 
   <aside class="rail" aria-label="Project and workflow">
     <div class="rail-section-title">Room Creator</div>
@@ -1133,40 +1414,11 @@ html[data-mock-screen="review"] .scope-chip[data-scope="world"] {
     </div>
 
     <div class="phase-room-only">
-      <p class="uppercase" style="margin-bottom:var(--s2)">Room wizard</p>
-      <div class="phase-list" role="list" id="roomPhaseList">
-        <button type="button" class="phase-btn" data-phase="layout" role="listitem">
-          <span class="phase-num">1</span>
-          <span>
-            <strong>Layout</strong>
-            <small>Footprint and platforms</small>
-          </span>
-          <span class="phase-badge">—</span>
-        </button>
-        <button type="button" class="phase-btn" data-phase="environment" role="listitem">
-          <span class="phase-num">2</span>
-          <span>
-            <strong>Environment</strong>
-            <small>Room components and mood</small>
-          </span>
-          <span class="phase-badge">—</span>
-        </button>
-        <button type="button" class="phase-btn" data-phase="objects" role="listitem">
-          <span class="phase-num">3</span>
-          <span>
-            <strong>Objects</strong>
-            <small>Reserved — later pass</small>
-          </span>
-          <span class="phase-badge">—</span>
-        </button>
-        <button type="button" class="phase-btn" data-phase="review" role="listitem">
-          <span class="phase-num">4</span>
-          <span>
-            <strong>Review</strong>
-            <small>Validation and export</small>
-          </span>
-          <span class="phase-badge">—</span>
-        </button>
+      <p class="uppercase" style="margin-bottom:var(--s2)">Active step</p>
+      <div class="active-step-card" id="activeStepCard">
+        <div class="eyebrow">Top rail is canonical</div>
+        <strong id="activeStepTitle">Layout</strong>
+        <p id="activeStepDesc">Footprint and platforms — use the horizontal wizard above; this card stays in sync for quick context.</p>
       </div>
     </div>
 
@@ -1520,6 +1772,7 @@ html[data-mock-screen="review"] .scope-chip[data-scope="world"] {
       <button type="button" class="btn sm accent screen-only screen-world">Open room</button>
     </div>
   </div>
+  </div>
 </div>
 
 <script>
@@ -1527,37 +1780,104 @@ html[data-mock-screen="review"] .scope-chip[data-scope="world"] {
   var root = document.documentElement;
   var chips = document.querySelectorAll(".mock-chip");
 
-  function syncRoomPhases(id) {
-    var list = document.getElementById("roomPhaseList");
-    if (!list) return;
-    list.querySelectorAll(".phase-btn[data-phase]").forEach(function (btn) {
-      var badge = btn.querySelector(".phase-badge");
-      btn.classList.remove("done", "active", "locked");
-      btn.removeAttribute("disabled");
-      if (badge) badge.textContent = "\u2014";
+  var STEP_COPY = {
+    layout: {
+      title: "Layout",
+      desc: "Footprint and platforms — the horizontal rail above is the canonical wizard. Use the drawer for task-level checkpoints."
+    },
+    environment: {
+      title: "Environment",
+      desc: "Describe mood and run component builds. Copilot proposes changes; nothing applies without your confirmation."
+    },
+    objects: {
+      title: "Objects",
+      desc: "Reserved for a later pass. The rail still shows the full journey so the shell does not reshuffle when Objects ships."
+    },
+    review: {
+      title: "Review",
+      desc: "Validation gates and export — JSON or runtime bundle when checks pass."
+    }
+  };
 
-      var ph = btn.getAttribute("data-phase");
+  function syncActiveStepCard(id) {
+    var t = document.getElementById("activeStepTitle");
+    var d = document.getElementById("activeStepDesc");
+    if (!t || !d || id === "world") return;
+    var s = STEP_COPY[id];
+    if (!s) return;
+    t.textContent = s.title;
+    d.textContent = s.desc;
+  }
+
+  function syncTopRoomPills(id) {
+    var nav = document.getElementById("topRoomWizard");
+    if (!nav) return;
+    nav.querySelectorAll(".phase-pill-h[data-phase]").forEach(function (pill) {
+      var ph = pill.getAttribute("data-phase");
+      pill.classList.remove("done", "active", "locked");
+      pill.removeAttribute("disabled");
+      pill.removeAttribute("aria-current");
+      if (id === "world") return;
+
       if (id === "layout") {
-        if (ph === "layout") { btn.classList.add("active"); badge.textContent = "Active"; }
-        else if (ph === "environment" || ph === "objects") { btn.classList.add("locked"); btn.disabled = true; badge.textContent = "Locked"; }
-        else if (ph === "review") { badge.textContent = "Open"; }
+        if (ph === "layout") {
+          pill.classList.add("active");
+          pill.setAttribute("aria-current", "step");
+        } else if (ph === "environment" || ph === "objects") {
+          pill.classList.add("locked");
+          pill.disabled = true;
+        }
       } else if (id === "environment") {
-        if (ph === "layout") { btn.classList.add("done"); badge.textContent = "Done"; }
-        else if (ph === "environment") { btn.classList.add("active"); badge.textContent = "Active"; }
-        else if (ph === "objects") { btn.classList.add("locked"); btn.disabled = true; badge.textContent = "Locked"; }
-        else if (ph === "review") { badge.textContent = "Open"; }
+        if (ph === "layout") pill.classList.add("done");
+        else if (ph === "environment") {
+          pill.classList.add("active");
+          pill.setAttribute("aria-current", "step");
+        } else if (ph === "objects") {
+          pill.classList.add("locked");
+          pill.disabled = true;
+        }
       } else if (id === "objects") {
-        if (ph === "layout" || ph === "environment") { btn.classList.add("done"); badge.textContent = "Done"; }
-        else if (ph === "objects") { btn.classList.add("active"); badge.textContent = "Reserved"; }
-        else if (ph === "review") { badge.textContent = "Open"; }
+        if (ph === "layout" || ph === "environment") pill.classList.add("done");
+        else if (ph === "objects") {
+          pill.classList.add("active");
+          pill.setAttribute("aria-current", "step");
+        }
       } else if (id === "review") {
-        if (ph === "layout" || ph === "environment") { btn.classList.add("done"); badge.textContent = "Done"; }
-        else if (ph === "objects") { btn.classList.add("locked"); btn.disabled = true; badge.textContent = "Later"; }
-        else if (ph === "review") { btn.classList.add("active"); badge.textContent = "Active"; }
-      } else if (id === "world") {
-        badge.textContent = "\u2014";
+        if (ph === "layout" || ph === "environment") pill.classList.add("done");
+        else if (ph === "objects") {
+          pill.classList.add("locked");
+          pill.disabled = true;
+        } else if (ph === "review") {
+          pill.classList.add("active");
+          pill.setAttribute("aria-current", "step");
+        }
       }
     });
+  }
+
+  function syncTopWorldPills(id) {
+    var nav = document.getElementById("topWorldWizard");
+    if (!nav) return;
+    nav.querySelectorAll(".phase-pill-h[data-world-step]").forEach(function (pill) {
+      var st = pill.getAttribute("data-world-step");
+      pill.classList.remove("done", "active", "locked");
+      pill.removeAttribute("disabled");
+      pill.removeAttribute("aria-current");
+      if (id !== "world") return;
+      if (st === "1") {
+        pill.classList.add("active");
+        pill.setAttribute("aria-current", "step");
+      } else {
+        pill.classList.add("locked");
+        pill.disabled = true;
+      }
+    });
+  }
+
+  function syncWizardChrome(id) {
+    syncTopRoomPills(id);
+    syncTopWorldPills(id);
+    syncActiveStepCard(id);
   }
 
   function setScreen(id) {
@@ -1574,7 +1894,7 @@ html[data-mock-screen="review"] .scope-chip[data-scope="world"] {
       s.setAttribute("aria-selected", sel ? "true" : "false");
     });
 
-    syncRoomPhases(id);
+    syncWizardChrome(id);
 
     var panel = document.getElementById("copilotPanel");
     var fab = document.getElementById("copilotFab");
@@ -1585,6 +1905,13 @@ html[data-mock-screen="review"] .scope-chip[data-scope="world"] {
   chips.forEach(function (chip) {
     chip.addEventListener("click", function () {
       setScreen(chip.getAttribute("data-mock-screen"));
+    });
+  });
+
+  document.querySelectorAll("#topRoomWizard .phase-pill-h[data-phase]").forEach(function (pill) {
+    pill.addEventListener("click", function () {
+      if (pill.disabled || pill.classList.contains("locked")) return;
+      setScreen(pill.getAttribute("data-phase"));
     });
   });
 
