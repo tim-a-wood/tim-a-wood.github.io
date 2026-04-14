@@ -24,6 +24,7 @@
   --fs-xs:11px; --fs-sm:13px; --fs-b:14px; --fs-md:15px; --fs-lg:18px; --fs-xl:22px;
   --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px;
   --r-sm:8px; --r-md:10px; --r-tight:14px; --r-card:18px; --r-lg:20px; --r-full:999px;
+  --shadow-lg:0 12px 40px rgba(0,0,0,.38);
   --ent-platform:#4a9eff; --ent-door:#ff9750; --ent-vertex:#ff6aa3;
   --ent-key:#6ee792; --ent-ability:#a77dff; --ent-mover:#f5d54b; --ent-start:#d0b0ff;
 }
@@ -34,7 +35,8 @@ button{font:inherit;color:inherit;background:transparent;border:0;cursor:pointer
 .uppercase{font-size:var(--fs-xs);font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
 .mono{font-family:var(--font-mono)}
 
-.app{display:grid;grid-template-rows:52px 1fr;height:100vh}
+.app{display:grid;grid-template-rows:52px auto 1fr;height:100vh}
+.app[data-phase="layout"]{--center-mode:layout}
 
 /* Topbar with command bar */
 .topbar{
@@ -66,6 +68,109 @@ button{font:inherit;color:inherit;background:transparent;border:0;cursor:pointer
 .btn.primary{background:linear-gradient(180deg,rgba(245,208,116,.92),rgba(220,176,73,.92));color:var(--gold-t);border-color:rgba(245,208,116,.4)}
 .btn.accent{color:var(--accent);border-color:var(--accent);background:var(--accent-soft)}
 .btn.ghost{border-color:transparent}
+
+/* Top wizard bar (phases) */
+.wizard-bar{
+  display:flex;align-items:center;gap:var(--s3);flex-wrap:wrap;
+  padding:var(--s3) var(--s4);
+  background:var(--panel);border-bottom:1px solid var(--stroke);
+}
+.wizard-bar .bar-label{
+  font-size:var(--fs-xs);font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);
+}
+.wizard-bar .spacer{flex:1;min-width:8px}
+.wiz-pill{
+  display:inline-flex;align-items:center;gap:var(--s2);
+  padding:8px 14px;border-radius:var(--r-full);
+  border:1px solid var(--stroke);background:var(--panel-2);
+  font-size:var(--fs-sm);font-weight:600;color:var(--muted);min-height:36px;
+}
+.wiz-pill .num{
+  width:22px;height:22px;border-radius:50%;display:grid;place-items:center;
+  font-family:var(--font-display);font-size:13px;
+  background:var(--panel-3);color:var(--muted);border:1px solid var(--stroke);
+}
+.wiz-pill.done{color:var(--text);border-color:var(--line-strong)}
+.wiz-pill.done .num{background:var(--good-soft);color:var(--good);border-color:transparent}
+.wiz-pill.active{color:var(--accent);border-color:var(--accent);background:var(--accent-soft);
+  box-shadow:0 0 0 3px rgba(0,232,200,.08)}
+.wiz-pill.active .num{background:var(--accent);color:var(--gold-t);border-color:transparent}
+.wiz-conn{width:12px;height:1px;background:var(--line);align-self:center}
+
+.layout-checklist{
+  padding:var(--s3);border-top:1px solid var(--stroke);
+  display:none;flex-direction:column;gap:var(--s2);
+}
+.app[data-phase="layout"] .layout-checklist{display:flex}
+
+/* Center: full layout canvas vs focus panel */
+.stage{
+  display:flex;flex-direction:column;position:relative;min-height:0;
+}
+.stage-layout-stack{flex:1;min-height:0;display:flex;flex-direction:column}
+.stage-layout-full{
+  flex:1;min-height:0;display:grid;grid-template-rows:auto 1fr auto;
+}
+.stage-layout-full.is-hidden{display:none !important}
+.focus-block{display:none}
+.focus-block.is-on{display:block}
+.stage-focus-panel{
+  flex:1;min-height:0;display:flex;flex-direction:column;gap:var(--s4);
+  padding:var(--s5);overflow-y:auto;background:var(--panel-2);
+  border-top:1px solid var(--stroke);
+}
+.stage-focus-panel[hidden]{display:none !important}
+.stage-focus-panel h3{font-family:var(--font-display);font-size:var(--fs-lg);letter-spacing:.05em}
+.stage-focus-panel .lede{font-size:var(--fs-sm);color:var(--muted);line-height:1.55;max-width:52ch}
+.focus-preview-row{display:flex;flex-wrap:wrap;gap:var(--s4);align-items:flex-start}
+.mini-canvas{
+  width:208px;height:136px;border-radius:var(--r-tight);border:1px solid var(--stroke);
+  background:#0a0f14;overflow:hidden;position:relative;flex-shrink:0;
+}
+.mini-canvas__scalable{
+  position:absolute;left:0;top:0;width:520px;height:340px;
+  transform:scale(0.4);transform-origin:top left;
+}
+.mini-canvas--decor::after{
+  content:"";
+  position:absolute;inset:0;border-radius:var(--r-tight);pointer-events:none;
+  background:linear-gradient(160deg, rgba(0,232,200,.16), transparent 50%, rgba(167,125,255,.14));
+  box-shadow:inset 0 0 24px rgba(0,232,200,.08);
+}
+.preview-modal{
+  position:fixed;inset:0;z-index:40;padding:var(--s5);
+}
+.preview-modal:not([hidden]){
+  display:flex;align-items:center;justify-content:center;
+}
+.preview-modal__backdrop{
+  position:absolute;inset:0;background:rgba(4,6,10,.72);backdrop-filter:blur(4px);
+  border:0;cursor:pointer;padding:0;margin:0;
+}
+.preview-modal__panel{
+  position:relative;z-index:1;width:min(920px,96vw);max-height:min(640px,86vh);margin:auto;
+  display:flex;flex-direction:column;border-radius:var(--r-card);
+  border:1px solid var(--line-strong);background:var(--panel);
+  box-shadow:var(--shadow-lg);
+}
+.preview-modal__head{
+  display:flex;align-items:center;gap:var(--s3);padding:var(--s3) var(--s4);
+  border-bottom:1px solid var(--stroke);
+}
+.preview-modal__head h3{font-family:var(--font-display);font-size:var(--fs-lg);letter-spacing:.05em;flex:1}
+.preview-modal__body{
+  padding:var(--s4);overflow:auto;min-height:280px;
+  background:radial-gradient(circle at 30% 20%, rgba(0,232,200,.06), transparent 50%),#0a0f14;
+  position:relative;
+}
+.preview-modal__canvas{
+  position:relative;height:min(400px,50vh);border-radius:var(--r-tight);
+  border:1px dashed rgba(0,232,200,.25);overflow:hidden;
+}
+.preview-modal__canvas--decor::after{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(160deg, rgba(0,232,200,.12), transparent 45%, rgba(167,125,255,.1));
+}
 
 /* Main: 3 cols — phases, stage, right split */
 .main{
@@ -144,7 +249,6 @@ button{font:inherit;color:inherit;background:transparent;border:0;cursor:pointer
 .sub .tag{font-size:var(--fs-xs);padding:1px 6px;border-radius:var(--r-full);background:var(--warning-soft);color:var(--warning);font-weight:700;letter-spacing:.08em;text-transform:uppercase}
 
 /* STAGE (center) */
-.stage{display:grid;grid-template-rows:auto 1fr auto; min-height:0}
 .stage-bar{
   display:flex;align-items:center;gap:var(--s3); padding:var(--s2) var(--s4);
   border-bottom:1px solid var(--stroke); background:rgba(7,9,12,.5);
@@ -266,7 +370,7 @@ button{font:inherit;color:inherit;background:transparent;border:0;cursor:pointer
 </style>
 </head>
 <body>
-<div class="app">
+<div class="app" id="optc-app" data-phase="layout">
 
   <!-- TOPBAR -->
   <header class="topbar">
@@ -280,6 +384,24 @@ button{font:inherit;color:inherit;background:transparent;border:0;cursor:pointer
     <button class="btn primary">Save local</button>
   </header>
 
+  <nav class="wizard-bar" aria-label="Room wizard">
+    <span class="bar-label">Room wizard</span>
+    <div id="optc-wiz-pills" role="tablist" aria-label="Phases" style="display:flex;align-items:center;gap:var(--s2);flex-wrap:wrap">
+      <button type="button" class="wiz-pill done" data-phase="identity" role="tab" aria-selected="false"><span class="num">✓</span>Identity</button>
+      <span class="wiz-conn" aria-hidden="true"></span>
+      <button type="button" class="wiz-pill active" data-phase="layout" role="tab" aria-selected="true"><span class="num">1</span>Layout</button>
+      <span class="wiz-conn" aria-hidden="true"></span>
+      <button type="button" class="wiz-pill" data-phase="environment" role="tab" aria-selected="false"><span class="num">2</span>Environment</button>
+      <span class="wiz-conn" aria-hidden="true"></span>
+      <button type="button" class="wiz-pill" data-phase="entities" role="tab" aria-selected="false"><span class="num">3</span>Entities</button>
+      <span class="wiz-conn" aria-hidden="true"></span>
+      <button type="button" class="wiz-pill" data-phase="review" role="tab" aria-selected="false"><span class="num">4</span>Review</button>
+    </div>
+    <div class="spacer"></div>
+    <button type="button" class="btn ghost" id="optc-prev">← Previous</button>
+    <button type="button" class="btn accent" id="optc-next">Next →</button>
+  </nav>
+
   <!-- MAIN -->
   <section class="main">
 
@@ -288,9 +410,9 @@ button{font:inherit;color:inherit;background:transparent;border:0;cursor:pointer
       <div class="project-head">
         <div class="name">Ashen Hollow</div>
         <div class="scope-toggle" role="tablist">
-          <button class="scope-chip">World</button>
-          <button class="scope-chip active">Room</button>
-          <button class="scope-chip">Art</button>
+          <button type="button" class="scope-chip">World</button>
+          <button type="button" class="scope-chip active">Room</button>
+          <button type="button" class="scope-chip">Art</button>
         </div>
         <select><option>R2 · Flooded Hall</option><option>R1 · Foyer of Ruin</option><option>R3 · Cistern Drop</option></select>
       </div>
@@ -300,74 +422,22 @@ button{font:inherit;color:inherit;background:transparent;border:0;cursor:pointer
         <div class="progress-track"><div class="progress-fill" id="optc-progress-fill" style="width:42%"></div></div>
       </div>
 
-      <div class="phase-nav" id="optc-phase-nav">
-
-        <div class="phase-group" data-phase="identity" role="button" tabindex="0" aria-label="Identity phase">
-          <div class="phase-head">
-            <div class="phase-ring done"></div>
-            <div>
-              <div class="phase-title">Identity</div>
-              <div class="phase-sub">Name · id · footprint</div>
-            </div>
-            <div class="meta">3 / 3</div>
-          </div>
-        </div>
-
-        <div class="phase-group active" data-phase="layout" role="button" tabindex="0" aria-current="step" aria-label="Layout phase">
-          <div class="phase-head">
-            <div class="phase-ring" data-num="1"></div>
-            <div>
-              <div class="phase-title">Layout</div>
-              <div class="phase-sub">Geometry &amp; platforms</div>
-            </div>
-            <div class="meta">3 / 5</div>
-          </div>
-          <ul class="subtasks">
-            <li class="sub done"><span class="box">✓</span>Footprint preset applied</li>
-            <li class="sub done"><span class="box">✓</span>Floor platform placed</li>
-            <li class="sub done"><span class="box">✓</span>West door placed</li>
-            <li class="sub active"><span class="box">▢</span>Place east door <span class="tag">next</span></li>
-            <li class="sub"><span class="box">▢</span>Resolve door/platform overlap</li>
-          </ul>
-        </div>
-
-        <div class="phase-group" data-phase="environment" role="button" tabindex="0" aria-label="Environment phase">
-          <div class="phase-head">
-            <div class="phase-ring" data-num="2" style="background:var(--panel-3); border:1px solid var(--stroke)"></div>
-            <div>
-              <div class="phase-title">Environment</div>
-              <div class="phase-sub">Describe · preview · build</div>
-            </div>
-            <div class="meta">0 / 3</div>
-          </div>
-        </div>
-
-        <div class="phase-group" data-phase="entities" role="button" tabindex="0" aria-label="Entities phase">
-          <div class="phase-head">
-            <div class="phase-ring" data-num="3" style="background:var(--panel-3); border:1px solid var(--stroke)"></div>
-            <div>
-              <div class="phase-title">Entities</div>
-              <div class="phase-sub">Keys · abilities · movers</div>
-            </div>
-            <div class="meta">0 / 4</div>
-          </div>
-        </div>
-
-        <div class="phase-group" data-phase="review" role="button" tabindex="0" aria-label="Review phase">
-          <div class="phase-head">
-            <div class="phase-ring" data-num="4" style="background:var(--panel-3); border:1px solid var(--stroke)"></div>
-            <div>
-              <div class="phase-title">Review &amp; export</div>
-              <div class="phase-sub">Validation · runtime pack</div>
-            </div>
-            <div class="meta">Ready</div>
-          </div>
-        </div>
+      <div class="layout-checklist" id="optc-layout-checklist" aria-label="Layout subtasks">
+        <span class="uppercase" style="font-size:var(--fs-xs);color:var(--muted)">This step</span>
+        <ul class="subtasks" style="border:0;background:transparent;padding:0;margin:0;list-style:none;display:flex;flex-direction:column;gap:var(--s2)">
+          <li class="sub done"><span class="box">✓</span>Footprint preset applied</li>
+          <li class="sub done"><span class="box">✓</span>Floor platform placed</li>
+          <li class="sub done"><span class="box">✓</span>West door placed</li>
+          <li class="sub active"><span class="box">▢</span>Place east door <span class="tag">next</span></li>
+          <li class="sub"><span class="box">▢</span>Resolve door/platform overlap</li>
+        </ul>
       </div>
     </aside>
 
     <!-- STAGE -->
     <section class="stage">
+      <div class="stage-layout-stack">
+      <div class="stage-layout-full" id="optc-stage-layout">
       <div class="stage-bar">
         <h2>Flooded Hall</h2>
         <span class="coord">R2 · 1600 × 1200 px · grid 32</span>
@@ -416,8 +486,75 @@ button{font:inherit;color:inherit;background:transparent;border:0;cursor:pointer
       <div class="stage-footer">
         <span class="hint">⌘Z undo · ⌘⇧Z redo · ⌘K palette · ? shortcuts · ⌘/ copilot</span>
         <div class="spacer"></div>
-        <button type="button" class="btn ghost" id="optc-prev">← Previous</button>
-        <button type="button" class="btn accent" id="optc-next">Next phase →</button>
+        <span class="hint">Full grid is for Layout only — use the wizard bar to change steps.</span>
+      </div>
+      </div>
+
+      <div class="stage-focus-panel" id="optc-stage-focus" hidden>
+        <div class="focus-block" data-focus="identity">
+          <h3>Identity</h3>
+          <p class="lede">Name, room id, and footprint. No canvas here — open <b>Layout</b> for the full editing grid.</p>
+        </div>
+        <div class="focus-block" data-focus="environment">
+          <h3>Environment</h3>
+          <p class="lede">Mood, tags, and Copilot previews. A small <b>layout thumbnail</b> stays for reference; expand when you need detail.</p>
+          <div class="focus-preview-row">
+            <div>
+              <p class="lede" style="font-size:var(--fs-xs);margin-bottom:var(--s2)">Layout reference (read-only)</p>
+              <div class="mini-canvas" aria-hidden="true">
+                <div class="mini-canvas__scalable">
+                  <div class="grid-bg" style="position:absolute;inset:0;background-size:24px 24px"></div>
+                  <div class="room-poly" style="left:10%;top:8%;width:80%;height:80%"></div>
+                  <div class="plat" style="left:14%;top:76%;width:72%;height:5%"></div>
+                  <div class="plat sel" style="left:26%;top:56%;width:26%;height:5%"></div>
+                  <div class="door" style="left:10%;top:50%"></div>
+                  <div class="vert" style="left:10%;top:8%"></div>
+                  <div class="vert" style="left:88%;top:8%"></div>
+                </div>
+              </div>
+              <button type="button" class="btn accent" id="optc-open-layout-ref" style="margin-top:var(--s3)">Open layout reference…</button>
+            </div>
+          </div>
+        </div>
+        <div class="focus-block" data-focus="entities">
+          <h3>Entities</h3>
+          <p class="lede">Doors, keys, abilities. Thumbnail shows <b>layout + environment tint</b> (decorated, read-only).</p>
+          <div class="focus-preview-row">
+            <div>
+              <p class="lede" style="font-size:var(--fs-xs);margin-bottom:var(--s2)">Decorated preview</p>
+              <div class="mini-canvas mini-canvas--decor" aria-hidden="true">
+                <div class="mini-canvas__scalable">
+                  <div class="grid-bg" style="position:absolute;inset:0;background-size:24px 24px;opacity:.35"></div>
+                  <div class="room-poly" style="left:10%;top:8%;width:80%;height:80%"></div>
+                  <div class="plat" style="left:14%;top:76%;width:72%;height:5%"></div>
+                  <div class="plat sel" style="left:26%;top:56%;width:26%;height:5%"></div>
+                  <div class="door" style="left:10%;top:50%"></div>
+                  <div class="start" style="left:22%;top:72%"></div>
+                </div>
+              </div>
+              <button type="button" class="btn accent" id="optc-open-decor-ent" style="margin-top:var(--s3)">Open decorated preview…</button>
+            </div>
+          </div>
+        </div>
+        <div class="focus-block" data-focus="review">
+          <h3>Review &amp; export</h3>
+          <p class="lede">Validation and exports. Peek at the decorated room before download.</p>
+          <div class="focus-preview-row">
+            <div>
+              <p class="lede" style="font-size:var(--fs-xs);margin-bottom:var(--s2)">Decorated preview</p>
+              <div class="mini-canvas mini-canvas--decor" aria-hidden="true">
+                <div class="mini-canvas__scalable">
+                  <div class="grid-bg" style="position:absolute;inset:0;background-size:24px 24px;opacity:.35"></div>
+                  <div class="room-poly" style="left:10%;top:8%;width:80%;height:80%"></div>
+                  <div class="plat" style="left:14%;top:76%;width:72%;height:5%"></div>
+                  <div class="door" style="left:10%;top:50%"></div>
+                </div>
+              </div>
+              <button type="button" class="btn accent" id="optc-open-decor-rev" style="margin-top:var(--s3)">Open decorated preview…</button>
+            </div>
+          </div>
+        </div>
+      </div>
       </div>
     </section>
 
@@ -542,6 +679,30 @@ button{font:inherit;color:inherit;background:transparent;border:0;cursor:pointer
 
   </section>
 </div>
+
+<div id="optc-modal" class="preview-modal" hidden>
+  <button type="button" class="preview-modal__backdrop" id="optc-modal-backdrop" aria-label="Close preview"></button>
+  <div class="preview-modal__panel" role="dialog" aria-modal="true" aria-labelledby="optc-modal-title">
+    <div class="preview-modal__head">
+      <h3 id="optc-modal-title">Layout reference</h3>
+      <button type="button" class="btn ghost" id="optc-modal-close">Close</button>
+    </div>
+    <div class="preview-modal__body">
+      <p class="lede" style="margin-bottom:var(--s3);font-size:var(--fs-sm);color:var(--muted)">Mock: read-only snapshot. Production would load live room data.</p>
+      <div id="optc-modal-canvas" class="preview-modal__canvas">
+        <div class="grid-bg" style="position:absolute;inset:0;background-size:32px 32px"></div>
+        <div class="room-poly" style="position:absolute;left:8%;top:8%;width:84%;height:84%"></div>
+        <div class="plat" style="position:absolute;left:12%;top:78%;width:76%;height:4%"></div>
+        <div class="plat sel" style="position:absolute;left:24%;top:58%;width:28%;height:4%"></div>
+        <div class="door" style="position:absolute;left:8%;top:52%"></div>
+        <div class="start" style="position:absolute;left:20%;top:76%"></div>
+        <div class="vert" style="position:absolute;left:8%;top:8%"></div>
+        <div class="vert" style="position:absolute;left:90%;top:8%"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 (function () {
   var order = ['identity', 'layout', 'environment', 'entities', 'review'];
@@ -553,8 +714,11 @@ button{font:inherit;color:inherit;background:transparent;border:0;cursor:pointer
     review: { eyebrow: 'Phase 4 · Review', title: 'Validate & ship', desc: 'Last checks, then export JSON or runtime pack.' }
   };
   var pct = { identity: 12, layout: 42, environment: 58, entities: 76, review: 100 };
-  var nav = document.getElementById('optc-phase-nav');
+  var appEl = document.getElementById('optc-app');
+  var pillWrap = document.getElementById('optc-wiz-pills');
   var panes = document.getElementById('optc-ins-panes');
+  var layoutFull = document.getElementById('optc-stage-layout');
+  var focusPanel = document.getElementById('optc-stage-focus');
   var eyebrowEl = document.getElementById('optc-ins-eyebrow');
   var titleEl = document.getElementById('optc-ins-title');
   var descEl = document.getElementById('optc-ins-desc');
@@ -562,11 +726,28 @@ button{font:inherit;color:inherit;background:transparent;border:0;cursor:pointer
   var pctEl = document.getElementById('optc-progress-pct');
   var prevBtn = document.getElementById('optc-prev');
   var nextBtn = document.getElementById('optc-next');
-  if (!nav || !panes) return;
+  var modal = document.getElementById('optc-modal');
+  var modalTitle = document.getElementById('optc-modal-title');
+  var modalCanvas = document.getElementById('optc-modal-canvas');
+  var modalClose = document.getElementById('optc-modal-close');
+  var modalBackdrop = document.getElementById('optc-modal-backdrop');
+  if (!pillWrap || !panes || !layoutFull || !focusPanel) return;
+
+  function openModal(mode) {
+    if (!modal || !modalTitle || !modalCanvas) return;
+    var decor = mode === 'decor';
+    modalTitle.textContent = decor ? 'Decorated room (read-only)' : 'Layout reference (read-only)';
+    modalCanvas.classList.toggle('preview-modal__canvas--decor', decor);
+    modal.hidden = false;
+  }
+  function closeModal() {
+    if (modal) modal.hidden = true;
+  }
 
   function setPhase(phase) {
     var meta = copy[phase];
     if (!meta) return;
+    if (appEl) appEl.setAttribute('data-phase', phase);
     eyebrowEl.textContent = meta.eyebrow;
     titleEl.textContent = meta.title;
     descEl.textContent = meta.desc;
@@ -576,33 +757,35 @@ button{font:inherit;color:inherit;background:transparent;border:0;cursor:pointer
     if (pctEl && pct[phase] != null) {
       pctEl.textContent = pct[phase] + '%';
     }
-    nav.querySelectorAll('.phase-group').forEach(function (g) {
-      var on = g.getAttribute('data-phase') === phase;
-      g.classList.toggle('active', on);
-      g.setAttribute('aria-current', on ? 'step' : 'false');
+    pillWrap.querySelectorAll('.wiz-pill').forEach(function (p) {
+      var on = p.getAttribute('data-phase') === phase;
+      p.classList.toggle('active', on);
+      p.setAttribute('aria-selected', on ? 'true' : 'false');
     });
     panes.querySelectorAll('.wizard-pane').forEach(function (pane) {
       var on = pane.getAttribute('data-pane') === phase;
       pane.classList.toggle('active', on);
       pane.hidden = !on;
     });
+
+    var isLayout = phase === 'layout';
+    layoutFull.classList.toggle('is-hidden', !isLayout);
+    focusPanel.hidden = isLayout;
+    focusPanel.querySelectorAll('.focus-block').forEach(function (blk) {
+      var on = blk.getAttribute('data-focus') === phase;
+      blk.classList.toggle('is-on', on);
+    });
   }
 
   function currentPhase() {
-    var g = nav.querySelector('.phase-group.active');
-    var ph = g && g.getAttribute('data-phase');
+    var p = pillWrap.querySelector('.wiz-pill.active');
+    var ph = p && p.getAttribute('data-phase');
     return ph && order.indexOf(ph) >= 0 ? ph : 'layout';
   }
 
-  nav.querySelectorAll('.phase-group').forEach(function (g) {
-    g.addEventListener('click', function () {
-      setPhase(g.getAttribute('data-phase'));
-    });
-    g.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        setPhase(g.getAttribute('data-phase'));
-      }
+  pillWrap.querySelectorAll('.wiz-pill').forEach(function (p) {
+    p.addEventListener('click', function () {
+      setPhase(p.getAttribute('data-phase'));
     });
   });
 
@@ -615,7 +798,20 @@ button{font:inherit;color:inherit;background:transparent;border:0;cursor:pointer
     setPhase(order[(i + 1) % order.length]);
   });
 
+  var openLayout = document.getElementById('optc-open-layout-ref');
+  if (openLayout) openLayout.addEventListener('click', function () { openModal('layout'); });
+  var openEnt = document.getElementById('optc-open-decor-ent');
+  if (openEnt) openEnt.addEventListener('click', function () { openModal('decor'); });
+  var openRev = document.getElementById('optc-open-decor-rev');
+  if (openRev) openRev.addEventListener('click', function () { openModal('decor'); });
+  if (modalClose) modalClose.addEventListener('click', closeModal);
+  if (modalBackdrop) modalBackdrop.addEventListener('click', closeModal);
+
   document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && modal && !modal.hidden) {
+      closeModal();
+      return;
+    }
     var t = e.target;
     if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
     if (e.altKey || e.metaKey || e.ctrlKey) return;
