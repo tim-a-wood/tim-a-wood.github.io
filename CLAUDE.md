@@ -18,6 +18,10 @@ The **Design** agent owns **HI-FI mockup before implementation** — see `agents
 - **If the task is a non-trivial UI or new front-end component and there is no approved HI-FI mockup:** **stop** and ask the founder to have Design produce one (or to explicitly waive mockup-first for this task). **Do not** skip straight to a self-authored layout and present it as the final design.
 - **Trivial changes** (copy, bugfix, single-token swap, wiring only) do not require a new mockup unless they change layout or composition.
 
+### Spec and task fidelity (founder directive)
+
+When work references a **named specification, sprint plan, acceptance criteria, module map, or explicit deliverable list**, implement that contract or **stop and ask** before substituting a shortcut or alternate architecture. **Do not** ship a substitute without **explicit founder waiver in the same thread**. If the spec cannot be met, **report the gap** and **wait for direction**. Label **partial** vs **complete** honestly. See [`agents/directives/spec-task-fidelity.md`](agents/directives/spec-task-fidelity.md) and `AGENTS.md`.
+
 ---
 
 ### Non-negotiables

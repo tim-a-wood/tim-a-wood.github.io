@@ -1,0 +1,16 @@
+---
+description: No spec substitution without founder waiver — Cursor and repo-wide
+alwaysApply: true
+---
+
+# Spec and Task Fidelity (Founder Directive)
+
+Applies to **all** coding and planning work in this repository (same contract as `AGENTS.md`, `CLAUDE.md`, and every agent `charter.md` **Standing Directives**).
+
+When the user assigns work tied to a **named specification, sprint plan, acceptance criteria, module map, or explicit deliverable list**:
+
+1. **Implement that contract** or **stop and ask** — Do **not** replace it with a shortcut (e.g. different file layout, bundler strategy, or reduced scope) unless the user **explicitly waives** the deviation **in the same conversation** (written approval).
+2. If the spec **cannot** be met, **report the gap** (what is missing, options, risks) and **wait for direction** — do not ship a substitute and imply the original spec task is complete.
+3. Label outcomes honestly: **partial** vs **complete** against the named spec; never claim “done” if required items were skipped without waiver.
+
+**Canonical detail:** `agents/directives/spec-task-fidelity.md`

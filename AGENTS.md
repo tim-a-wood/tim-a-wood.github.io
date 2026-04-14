@@ -62,6 +62,10 @@ Why this matters: The Research Agent discovers patterns, violations, and opportu
 
 If you discover something significant that is NOT in the library, note it in your output so the Research Agent can log it.
 
+## Spec and task fidelity (founder directive — all agents)
+
+When the founder assigns work tied to a **named specification, sprint plan, acceptance criteria, module map, or explicit deliverable list**, implement that contract or **stop and ask** before substituting a different architecture, shortcut, or reduced scope. **Do not** ship a substitute (e.g. alternate layout, bundling strategy, or “equivalent” design not named in the spec) without **explicit founder approval in the same thread** (written waiver). If the spec cannot be met, **report the gap** and **wait for direction** — do not treat partial work as full completion of the original ask. Label outcomes **partial** vs **complete** honestly. **Canonical detail:** [`agents/directives/spec-task-fidelity.md`](agents/directives/spec-task-fidelity.md). Propagated in every agent charter **Standing Directives** and in coding-agent sections below.
+
 **Research Dashboard:** Open `research-dashboard.html` in a browser for a visual overview.
 **Agent definition:** `.claude/agents/research.md` — invoke the Research Agent for scans and reports.
 
@@ -134,6 +138,10 @@ The **Design** charter requires a **high-fidelity mockup before implementation**
 - Implement **from an approved HI-FI mockup** (e.g. `docs/mockups/…` or a founder-specified reference) with **no visual drift** — no redesign mid-implementation.
 - If the request is **non-trivial UI** and **no approved mockup** is provided, **pause** and ask for Design to supply one (or an explicit founder waiver). Do not invent a full layout and treat it as final without that step.
 - **Trivial** edits (text, bugfixes, token compliance, non-layout JS) do not need a new mockup unless layout or composition changes.
+
+### Spec and task fidelity (founder directive — coding agents)
+
+Same rule as **Spec and task fidelity** in the OS section above: when the task references a **named spec, §/sprint/module map, or explicit AC**, deliver that contract or **stop and ask**; **no unapproved architectural substitutes**; **honest partial vs complete**. Full text: [`agents/directives/spec-task-fidelity.md`](agents/directives/spec-task-fidelity.md). Cursor: `.cursor/rules/spec-task-fidelity.mdc`.
 
 ### My Actions (founder task board) after coding tasks
 
