@@ -98,6 +98,8 @@ button{font:inherit;color:inherit;background:transparent;border:0;cursor:pointer
 
 /* Main (canvas + drawer) */
 .main{position:relative; display:grid; grid-template-columns:1fr 360px; min-height:0}
+#optb-app:not([data-phase="layout"]) .main{grid-template-columns:1fr}
+#optb-app:not([data-phase="layout"]) #optb-inspector{display:none !important}
 .stage{position:relative; display:flex; flex-direction:column; min-height:0}
 .stage-layout-stack{flex:1; min-height:0; display:flex; flex-direction:column}
 .stage-b-layout-full{flex:1; min-height:0; display:grid; grid-template-rows:auto 1fr; min-height:0}
@@ -112,6 +114,42 @@ button{font:inherit;color:inherit;background:transparent;border:0;cursor:pointer
 .stage-focus-panel[hidden]{display:none !important}
 .stage-focus-panel h3{font-family:var(--font-display); font-size:var(--fs-lg); letter-spacing:.05em}
 .stage-focus-panel .lede{font-size:var(--fs-sm); color:var(--muted); line-height:1.55; max-width:52ch}
+.focus-work-wide{display:flex;flex-direction:column;gap:var(--s4);min-height:0;flex:1}
+.focus-wide-head{flex-shrink:0}
+.focus-wide-head .ins-head{padding:0;border:0;margin:0}
+.focus-wide-grid{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) min(280px,30vw);
+  gap:var(--s5);
+  align-items:start;
+  min-height:0;
+  flex:1;
+}
+.focus-wide-main{
+  min-width:0;
+  min-height:0;
+  max-height:100%;
+  overflow-y:auto;
+  display:flex;
+  flex-direction:column;
+  gap:var(--s3);
+}
+.focus-wide-main .wizard-pane{display:none;flex-direction:column;gap:var(--s3)}
+.focus-wide-main .wizard-pane.active{display:flex}
+.focus-ref-rail{
+  display:flex;
+  flex-direction:column;
+  gap:var(--s3);
+  padding:var(--s4);
+  border-radius:var(--r-card);
+  border:1px solid var(--stroke);
+  background:var(--panel);
+  position:sticky;
+  top:0;
+  max-height:min(720px,calc(100vh - 160px));
+  overflow-y:auto;
+}
+.focus-ref-rail > .uppercase{margin-bottom:var(--s1)}
 .focus-preview-row{display:flex; flex-wrap:wrap; gap:var(--s4); align-items:flex-start}
 .mini-canvas{
   width:208px; height:136px; border-radius:var(--r-tight); border:1px solid var(--stroke);
@@ -391,66 +429,56 @@ button{font:inherit;color:inherit;background:transparent;border:0;cursor:pointer
       </div>
 
       <div class="stage-focus-panel" id="optb-stage-focus" hidden>
-        <div class="focus-block" data-focus="identity">
-          <h3>Identity</h3>
-          <p class="lede">Name, id, and footprint. The full stage grid returns on <b>Layout</b>.</p>
-        </div>
-        <div class="focus-block" data-focus="environment">
-          <h3>Environment</h3>
-          <p class="lede">Mood and tags — small layout reference below; expand when you need pixels.</p>
-          <div class="focus-preview-row">
-            <div>
-              <p class="lede" style="font-size:var(--fs-xs);margin-bottom:var(--s2)">Layout reference</p>
-              <div class="mini-canvas" aria-hidden="true">
-                <div class="mini-canvas__scalable">
-                  <div class="grid-bg" style="position:absolute;inset:0;background-size:24px 24px"></div>
-                  <div class="room-poly" style="left:10%;top:8%;width:80%;height:80%"></div>
-                  <div class="plat" style="left:14%;top:76%;width:72%;height:5%"></div>
-                  <div class="plat sel" style="left:26%;top:56%;width:26%;height:5%"></div>
-                  <div class="door" style="left:10%;top:50%"></div>
-                  <div class="vert" style="left:10%;top:8%"></div>
-                  <div class="vert" style="left:88%;top:8%"></div>
-                </div>
+        <div class="focus-work-wide">
+          <div class="focus-wide-head" id="optb-wide-head-slot"></div>
+          <div class="focus-wide-grid">
+            <div class="focus-wide-main" id="optb-wide-main-slot"></div>
+            <aside class="focus-ref-rail" aria-label="Room reference">
+              <span class="uppercase">Reference</span>
+              <div class="focus-block" data-focus="identity">
+                <p class="lede" style="max-width:none;margin:0">Return to <b>Layout</b> for the full stage, drawer, and tools.</p>
               </div>
-              <button type="button" class="btn accent" id="optb-open-layout-ref" style="margin-top:var(--s3)">Open layout reference…</button>
-            </div>
-          </div>
-        </div>
-        <div class="focus-block" data-focus="entities">
-          <h3>Entities</h3>
-          <p class="lede">Decorated read-only preview (layout + environment tint).</p>
-          <div class="focus-preview-row">
-            <div>
-              <p class="lede" style="font-size:var(--fs-xs);margin-bottom:var(--s2)">Decorated preview</p>
-              <div class="mini-canvas mini-canvas--decor" aria-hidden="true">
-                <div class="mini-canvas__scalable">
-                  <div class="grid-bg" style="position:absolute;inset:0;background-size:24px 24px;opacity:.35"></div>
-                  <div class="room-poly" style="left:10%;top:8%;width:80%;height:80%"></div>
-                  <div class="plat" style="left:14%;top:76%;width:72%;height:5%"></div>
-                  <div class="door" style="left:10%;top:50%"></div>
-                  <div class="start" style="left:22%;top:72%"></div>
+              <div class="focus-block" data-focus="environment">
+                <p class="lede" style="font-size:var(--fs-xs);margin:0 0 var(--s2) 0;color:var(--muted)">Layout snapshot</p>
+                <div class="mini-canvas" aria-hidden="true">
+                  <div class="mini-canvas__scalable">
+                    <div class="grid-bg" style="position:absolute;inset:0;background-size:24px 24px"></div>
+                    <div class="room-poly" style="left:10%;top:8%;width:80%;height:80%"></div>
+                    <div class="plat" style="left:14%;top:76%;width:72%;height:5%"></div>
+                    <div class="plat sel" style="left:26%;top:56%;width:26%;height:5%"></div>
+                    <div class="door" style="left:10%;top:50%"></div>
+                    <div class="vert" style="left:10%;top:8%"></div>
+                    <div class="vert" style="left:88%;top:8%"></div>
+                  </div>
                 </div>
+                <button type="button" class="btn accent" id="optb-open-layout-ref" style="margin-top:var(--s3);width:100%">Open full layout…</button>
               </div>
-              <button type="button" class="btn accent" id="optb-open-decor-ent" style="margin-top:var(--s3)">Open decorated preview…</button>
-            </div>
-          </div>
-        </div>
-        <div class="focus-block" data-focus="review">
-          <h3>Review &amp; export</h3>
-          <p class="lede">Validation and exports — optional full-size decorated peek.</p>
-          <div class="focus-preview-row">
-            <div>
-              <p class="lede" style="font-size:var(--fs-xs);margin-bottom:var(--s2)">Decorated preview</p>
-              <div class="mini-canvas mini-canvas--decor" aria-hidden="true">
-                <div class="mini-canvas__scalable">
-                  <div class="grid-bg" style="position:absolute;inset:0;background-size:24px 24px;opacity:.35"></div>
-                  <div class="room-poly" style="left:10%;top:8%;width:80%;height:80%"></div>
-                  <div class="plat" style="left:14%;top:76%;width:72%;height:5%"></div>
-                  <div class="door" style="left:10%;top:50%"></div>
+              <div class="focus-block" data-focus="entities">
+                <p class="lede" style="font-size:var(--fs-xs);margin:0 0 var(--s2) 0;color:var(--muted)">Decorated snapshot</p>
+                <div class="mini-canvas mini-canvas--decor" aria-hidden="true">
+                  <div class="mini-canvas__scalable">
+                    <div class="grid-bg" style="position:absolute;inset:0;background-size:24px 24px;opacity:.35"></div>
+                    <div class="room-poly" style="left:10%;top:8%;width:80%;height:80%"></div>
+                    <div class="plat" style="left:14%;top:76%;width:72%;height:5%"></div>
+                    <div class="door" style="left:10%;top:50%"></div>
+                    <div class="start" style="left:22%;top:72%"></div>
+                  </div>
                 </div>
+                <button type="button" class="btn accent" id="optb-open-decor-ent" style="margin-top:var(--s3);width:100%">Open decorated room…</button>
               </div>
-              <button type="button" class="btn accent" id="optb-open-decor-rev" style="margin-top:var(--s3)">Open decorated preview…</button>
-            </div>
+              <div class="focus-block" data-focus="review">
+                <p class="lede" style="font-size:var(--fs-xs);margin:0 0 var(--s2) 0;color:var(--muted)">Decorated snapshot</p>
+                <div class="mini-canvas mini-canvas--decor" aria-hidden="true">
+                  <div class="mini-canvas__scalable">
+                    <div class="grid-bg" style="position:absolute;inset:0;background-size:24px 24px;opacity:.35"></div>
+                    <div class="room-poly" style="left:10%;top:8%;width:80%;height:80%"></div>
+                    <div class="plat" style="left:14%;top:76%;width:72%;height:5%"></div>
+                    <div class="door" style="left:10%;top:50%"></div>
+                  </div>
+                </div>
+                <button type="button" class="btn accent" id="optb-open-decor-rev" style="margin-top:var(--s3);width:100%">Open decorated room…</button>
+              </div>
+            </aside>
           </div>
         </div>
       </div>
@@ -459,7 +487,7 @@ button{font:inherit;color:inherit;background:transparent;border:0;cursor:pointer
 
     <!-- INSPECTOR -->
     <aside class="inspector" id="optb-inspector">
-      <div class="ins-head">
+      <div class="ins-head" id="optb-ins-head">
         <span class="ins-eyebrow" id="optb-ins-eyebrow">Selection · Platform</span>
         <h2 id="optb-ins-title">Mid ledge</h2>
         <p class="sub" id="optb-ins-desc">Axis-aligned rect, snapped to grid 32. Duplicate across Y uses phase snap step.</p>
@@ -638,6 +666,22 @@ button{font:inherit;color:inherit;background:transparent;border:0;cursor:pointer
   var modalBackdrop = document.getElementById('optb-modal-backdrop');
   if (!rail || !bodyEl || !layoutFull || !focusPanel) return;
 
+  var inspectorEl = document.getElementById('optb-inspector');
+  var insHeadEl = document.getElementById('optb-ins-head');
+  var wideHeadSlot = document.getElementById('optb-wide-head-slot');
+  var wideMainSlot = document.getElementById('optb-wide-main-slot');
+
+  function relocateOptbChrome(isLayout) {
+    if (!inspectorEl || !insHeadEl || !bodyEl || !wideHeadSlot || !wideMainSlot) return;
+    if (isLayout) {
+      inspectorEl.appendChild(insHeadEl);
+      inspectorEl.appendChild(bodyEl);
+    } else {
+      wideHeadSlot.appendChild(insHeadEl);
+      wideMainSlot.appendChild(bodyEl);
+    }
+  }
+
   function openModal(mode) {
     if (!modal || !modalTitle || !modalCanvas) return;
     var decor = mode === 'decor';
@@ -673,6 +717,7 @@ button{font:inherit;color:inherit;background:transparent;border:0;cursor:pointer
     });
 
     var isLayout = phase === 'layout';
+    relocateOptbChrome(isLayout);
     layoutFull.classList.toggle('is-hidden', !isLayout);
     focusPanel.hidden = isLayout;
     focusPanel.querySelectorAll('.focus-block').forEach(function (blk) {

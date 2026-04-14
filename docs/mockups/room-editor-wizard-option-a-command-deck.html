@@ -49,9 +49,10 @@ button{font:inherit;color:inherit;background:transparent;border:0;cursor:pointer
   grid-template-columns:248px 56px 1fr 360px;
 }
 #opta-app:not([data-phase="layout"]) .main{
-  grid-template-columns:248px 1fr 360px;
+  grid-template-columns:248px 1fr;
 }
 #opta-app:not([data-phase="layout"]) .tools{display:none}
+#opta-app:not([data-phase="layout"]) #opta-inspector{display:none !important}
 .topbar{
   display:flex; align-items:center; gap:var(--s4);
   padding:0 var(--s4);
@@ -156,6 +157,43 @@ button{font:inherit;color:inherit;background:transparent;border:0;cursor:pointer
 .stage-focus-panel[hidden]{display:none !important}
 .stage-focus-panel h3{font-family:var(--font-display);font-size:var(--fs-lg);letter-spacing:.05em}
 .stage-focus-panel .lede{font-size:var(--fs-sm);color:var(--muted);line-height:1.55;max-width:52ch}
+.focus-work-wide{display:flex;flex-direction:column;gap:var(--s4);min-height:0;flex:1}
+.focus-wide-head{flex-shrink:0}
+.focus-wide-head .ins-head{padding:0 0 var(--s3) 0;border-bottom:1px solid var(--stroke);margin:0}
+.focus-wide-grid{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) min(280px,30vw);
+  gap:var(--s5);
+  align-items:start;
+  min-height:0;
+  flex:1;
+}
+.focus-wide-main{
+  min-width:0;
+  min-height:0;
+  max-height:100%;
+  overflow-y:auto;
+  display:flex;
+  flex-direction:column;
+  gap:var(--s3);
+}
+.focus-wide-main .wizard-pane{display:none;flex-direction:column;gap:var(--s3)}
+.focus-wide-main .wizard-pane.active{display:flex}
+.focus-wide-main .preset-grid{grid-template-columns:repeat(auto-fill,minmax(168px,1fr))}
+.focus-ref-rail{
+  display:flex;
+  flex-direction:column;
+  gap:var(--s3);
+  padding:var(--s4);
+  border-radius:var(--r-card);
+  border:1px solid var(--stroke);
+  background:var(--panel);
+  position:sticky;
+  top:0;
+  max-height:min(720px,calc(100vh - 160px));
+  overflow-y:auto;
+}
+.focus-ref-rail > .uppercase{margin-bottom:var(--s1)}
 .focus-preview-row{display:flex;flex-wrap:wrap;gap:var(--s4);align-items:flex-start}
 .mini-canvas{
   width:208px;height:136px;border-radius:var(--r-tight);border:1px solid var(--stroke);
@@ -618,66 +656,56 @@ button{font:inherit;color:inherit;background:transparent;border:0;cursor:pointer
       </div>
 
       <div class="stage-focus-panel" id="opta-stage-focus" hidden>
-        <div class="focus-block" data-focus="identity">
-          <h3>Identity</h3>
-          <p class="lede">Name, id, and footprint. Open <b>Layout</b> for the full grid and Copilot dock.</p>
-        </div>
-        <div class="focus-block" data-focus="environment">
-          <h3>Environment</h3>
-          <p class="lede">Mood and tags — keep a read-only layout thumbnail for alignment.</p>
-          <div class="focus-preview-row">
-            <div>
-              <p class="lede" style="font-size:var(--fs-xs);margin-bottom:var(--s2)">Layout reference</p>
-              <div class="mini-canvas" aria-hidden="true">
-                <div class="mini-canvas__scalable">
-                  <div class="grid-bg" style="position:absolute;inset:0;background-size:24px 24px"></div>
-                  <div class="room-poly" style="left:10%;top:8%;width:80%;height:80%"></div>
-                  <div class="plat" style="left:14%;top:76%;width:72%;height:5%"></div>
-                  <div class="plat sel" style="left:26%;top:56%;width:26%;height:5%"></div>
-                  <div class="door" style="left:10%;top:50%"></div>
-                  <div class="vert" style="left:10%;top:8%"></div>
-                  <div class="vert" style="left:88%;top:8%"></div>
-                </div>
+        <div class="focus-work-wide">
+          <div class="focus-wide-head" id="opta-wide-head-slot"></div>
+          <div class="focus-wide-grid">
+            <div class="focus-wide-main" id="opta-wide-main-slot"></div>
+            <aside class="focus-ref-rail" aria-label="Room reference">
+              <span class="uppercase">Reference</span>
+              <div class="focus-block" data-focus="identity">
+                <p class="lede" style="max-width:none;margin:0">Use <b>Layout</b> for the full grid, tools, and Copilot dock. This column stays for quick context.</p>
               </div>
-              <button type="button" class="btn accent" id="opta-open-layout-ref" style="margin-top:var(--s3)">Open layout reference…</button>
-            </div>
-          </div>
-        </div>
-        <div class="focus-block" data-focus="entities">
-          <h3>Entities</h3>
-          <p class="lede">Gameplay seeds — decorated preview (layout + environment tint) is read-only.</p>
-          <div class="focus-preview-row">
-            <div>
-              <p class="lede" style="font-size:var(--fs-xs);margin-bottom:var(--s2)">Decorated preview</p>
-              <div class="mini-canvas mini-canvas--decor" aria-hidden="true">
-                <div class="mini-canvas__scalable">
-                  <div class="grid-bg" style="position:absolute;inset:0;background-size:24px 24px;opacity:.35"></div>
-                  <div class="room-poly" style="left:10%;top:8%;width:80%;height:80%"></div>
-                  <div class="plat" style="left:14%;top:76%;width:72%;height:5%"></div>
-                  <div class="door" style="left:10%;top:50%"></div>
-                  <div class="start" style="left:22%;top:72%"></div>
+              <div class="focus-block" data-focus="environment">
+                <p class="lede" style="font-size:var(--fs-xs);margin:0 0 var(--s2) 0;color:var(--muted)">Layout snapshot</p>
+                <div class="mini-canvas" aria-hidden="true">
+                  <div class="mini-canvas__scalable">
+                    <div class="grid-bg" style="position:absolute;inset:0;background-size:24px 24px"></div>
+                    <div class="room-poly" style="left:10%;top:8%;width:80%;height:80%"></div>
+                    <div class="plat" style="left:14%;top:76%;width:72%;height:5%"></div>
+                    <div class="plat sel" style="left:26%;top:56%;width:26%;height:5%"></div>
+                    <div class="door" style="left:10%;top:50%"></div>
+                    <div class="vert" style="left:10%;top:8%"></div>
+                    <div class="vert" style="left:88%;top:8%"></div>
+                  </div>
                 </div>
+                <button type="button" class="btn accent" id="opta-open-layout-ref" style="margin-top:var(--s3);width:100%">Open full layout…</button>
               </div>
-              <button type="button" class="btn accent" id="opta-open-decor-ent" style="margin-top:var(--s3)">Open decorated preview…</button>
-            </div>
-          </div>
-        </div>
-        <div class="focus-block" data-focus="review">
-          <h3>Review &amp; export</h3>
-          <p class="lede">Validate and export — peek at the dressed room before download.</p>
-          <div class="focus-preview-row">
-            <div>
-              <p class="lede" style="font-size:var(--fs-xs);margin-bottom:var(--s2)">Decorated preview</p>
-              <div class="mini-canvas mini-canvas--decor" aria-hidden="true">
-                <div class="mini-canvas__scalable">
-                  <div class="grid-bg" style="position:absolute;inset:0;background-size:24px 24px;opacity:.35"></div>
-                  <div class="room-poly" style="left:10%;top:8%;width:80%;height:80%"></div>
-                  <div class="plat" style="left:14%;top:76%;width:72%;height:5%"></div>
-                  <div class="door" style="left:10%;top:50%"></div>
+              <div class="focus-block" data-focus="entities">
+                <p class="lede" style="font-size:var(--fs-xs);margin:0 0 var(--s2) 0;color:var(--muted)">Decorated snapshot</p>
+                <div class="mini-canvas mini-canvas--decor" aria-hidden="true">
+                  <div class="mini-canvas__scalable">
+                    <div class="grid-bg" style="position:absolute;inset:0;background-size:24px 24px;opacity:.35"></div>
+                    <div class="room-poly" style="left:10%;top:8%;width:80%;height:80%"></div>
+                    <div class="plat" style="left:14%;top:76%;width:72%;height:5%"></div>
+                    <div class="door" style="left:10%;top:50%"></div>
+                    <div class="start" style="left:22%;top:72%"></div>
+                  </div>
                 </div>
+                <button type="button" class="btn accent" id="opta-open-decor-ent" style="margin-top:var(--s3);width:100%">Open decorated room…</button>
               </div>
-              <button type="button" class="btn accent" id="opta-open-decor-rev" style="margin-top:var(--s3)">Open decorated preview…</button>
-            </div>
+              <div class="focus-block" data-focus="review">
+                <p class="lede" style="font-size:var(--fs-xs);margin:0 0 var(--s2) 0;color:var(--muted)">Decorated snapshot</p>
+                <div class="mini-canvas mini-canvas--decor" aria-hidden="true">
+                  <div class="mini-canvas__scalable">
+                    <div class="grid-bg" style="position:absolute;inset:0;background-size:24px 24px;opacity:.35"></div>
+                    <div class="room-poly" style="left:10%;top:8%;width:80%;height:80%"></div>
+                    <div class="plat" style="left:14%;top:76%;width:72%;height:5%"></div>
+                    <div class="door" style="left:10%;top:50%"></div>
+                  </div>
+                </div>
+                <button type="button" class="btn accent" id="opta-open-decor-rev" style="margin-top:var(--s3);width:100%">Open decorated room…</button>
+              </div>
+            </aside>
           </div>
         </div>
       </div>
@@ -686,7 +714,7 @@ button{font:inherit;color:inherit;background:transparent;border:0;cursor:pointer
 
     <!-- INSPECTOR -->
     <aside class="inspector" aria-label="Phase inspector" id="opta-inspector">
-      <div class="ins-head">
+      <div class="ins-head" id="opta-ins-head">
         <span class="eyebrow" id="opta-ins-eyebrow">Phase 1 · Layout</span>
         <h2 id="opta-ins-title">Shape the room</h2>
         <p id="opta-ins-desc">Name it, set its footprint, then place platforms. Environment unlocks when Identity is valid and the footprint has at least one floor platform.</p>
@@ -889,6 +917,23 @@ button{font:inherit;color:inherit;background:transparent;border:0;cursor:pointer
   var modalBackdrop = document.getElementById('opta-modal-backdrop');
   if (!pillWrap || !eyebrowEl || !layoutFull || !focusPanel) return;
 
+  var inspectorEl = document.getElementById('opta-inspector');
+  var insHeadEl = document.getElementById('opta-ins-head');
+  var insBodyEl = document.getElementById('opta-ins-body');
+  var wideHeadSlot = document.getElementById('opta-wide-head-slot');
+  var wideMainSlot = document.getElementById('opta-wide-main-slot');
+
+  function relocateOptaChrome(isLayout) {
+    if (!inspectorEl || !insHeadEl || !insBodyEl || !wideHeadSlot || !wideMainSlot) return;
+    if (isLayout) {
+      inspectorEl.appendChild(insHeadEl);
+      inspectorEl.appendChild(insBodyEl);
+    } else {
+      wideHeadSlot.appendChild(insHeadEl);
+      wideMainSlot.appendChild(insBodyEl);
+    }
+  }
+
   function openModal(mode) {
     if (!modal || !modalTitle || !modalCanvas) return;
     var decor = mode === 'decor';
@@ -918,6 +963,7 @@ button{font:inherit;color:inherit;background:transparent;border:0;cursor:pointer
       pane.hidden = !on;
     });
     var isLayout = phase === 'layout';
+    relocateOptaChrome(isLayout);
     layoutFull.classList.toggle('is-hidden', !isLayout);
     focusPanel.hidden = isLayout;
     focusPanel.querySelectorAll('.focus-block').forEach(function (blk) {
