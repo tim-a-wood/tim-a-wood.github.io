@@ -2201,9 +2201,8 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
             False,
             room=l_room,
         )
-        self.assertEqual(len(bg), 2)
-        self.assertTrue(str(bg[0]).endswith("-silhouette.png"))
-        self.assertTrue(str(bg[1]).endswith("-guide.png"))
+        self.assertEqual(len(bg), 1)
+        self.assertTrue(str(bg[0]).endswith("background_far_plate-guide.png"))
         self.assertEqual(len(mg), 3)
         self.assertTrue(str(mg[0]).endswith("-silhouette.png"))
         self.assertEqual(mg[1], template)
@@ -2722,7 +2721,7 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.assertIn("room footprint conditioning", prompt.lower())
         self.assertIn("chamber bounds", prompt.lower())
 
-    def test_build_bespoke_prompt_background_includes_footprint_silhouette_clause(self):
+    def test_build_bespoke_prompt_background_includes_footprint_text_clause_guide_only_refs(self):
         l_room = {
             "id": "RX",
             "size": {"width": 320, "height": 240},
@@ -2751,11 +2750,12 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         )
         low = prompt.lower()
         self.assertIn("room footprint conditioning", low)
-        self.assertIn("footprint silhouette map", low)
-        self.assertIn("interior void", low)
+        self.assertIn("not by a silhouette reference image", low)
+        self.assertIn("flat schematic depth-tone guide", low)
+        self.assertIn("interior void shape", low)
         self.assertIn("do not add a second masonry rim", low)
         self.assertIn("chamber bounds", low)
-        self.assertIn("footprint silhouette + flat depth/layout guide", low)
+        self.assertIn("depth-tone guide only", low)
         self.assertIn("side-scroller orthographic", low)
         self.assertIn("do not preserve a framed shell composition", low)
         # Shell-only masonry wording must not leak into background prompts.
@@ -2974,7 +2974,7 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
 
         self.assertEqual(list(restored.getdata()), list(source.getdata()))
 
-    def test_background_refs_include_room_silhouette_when_geometry_exists(self):
+    def test_background_refs_are_depth_guide_only_when_geometry_exists(self):
         template = self.root / "bg-template.png"
         preview = self.root / "bg-preview.png"
         refs_root = self.root / "bg-refs"
@@ -2998,9 +2998,9 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
             room=room,
         )
 
-        self.assertEqual(len(refs), 2)
-        self.assertIn("silhouette", refs[0].name)
-        self.assertIn("guide", refs[1].name)
+        self.assertEqual(len(refs), 1)
+        self.assertIn("guide", refs[0].name)
+        self.assertNotIn("silhouette", refs[0].name)
 
 
     def test_midground_template_family_check_uses_edge_similarity(self):
@@ -3740,9 +3740,8 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
             room=room,
         )
 
-        self.assertEqual(len(refs), 2)
-        self.assertTrue(str(refs[0]).endswith("background_far_plate-silhouette.png"))
-        self.assertTrue(str(refs[1]).endswith("background_far_plate-guide.png"))
+        self.assertEqual(len(refs), 1)
+        self.assertTrue(str(refs[0]).endswith("background_far_plate-guide.png"))
         self.assertNotIn(template, refs)
 
     def test_background_validation_flags_vertical_bar_artifacts(self):

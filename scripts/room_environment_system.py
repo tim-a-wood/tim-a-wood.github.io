@@ -7081,17 +7081,16 @@ def _build_bespoke_prompt(
         f"height {int(round(float(_geom.get('chamber_height') or 0)))} px.\n"
     )
     if component_type == "background_far_plate" and isinstance(_poly, list) and len(_poly) >= 3:
-        # Matches _bespoke_reference_images_for_component: silhouette is first ref when room geometry exists.
+        # Reference stack is guide-only (no silhouette PNG) — geometry is text + chamber bounds below.
         silhouette_clause = (
-            "\nRoom footprint conditioning: A footprint silhouette map is included in the reference images at exact output resolution. "
-            "Black marks the outer shell-adjacent band; neutral-dark marks the interior void (walkable footprint opening). "
-            "Do not invert that encoding. "
-            "The silhouette is a layout key only: do NOT reproduce its black outer band as opaque matte black stone, gutters, or a painted second rim in the final plate — translate void vs band into atmospheric depth, not a copy of the mask geometry. "
+            "\nRoom footprint conditioning: Footprint and chamber shape are defined in TEXT below (not by a silhouette reference image). "
+            "Reference #1 is a flat schematic depth-tone guide (horizontal bands) at output resolution — it is not photography, has no masonry, and shows no perimeter shell occupancy. "
+            "Do not invent a cracked stone border, outer frame, or portal mat to 'ground' that guide; the unified shell layer owns all perimeter stone. "
             "Far hall depth, vaulting, and recesses must follow the interior void shape—including L-shapes, steps, re-entrant corners, and diagonal edges—"
             "not a substitute centered rectangle or generic nave. "
-            "Paint depth and atmosphere inside the void only — do not add a second masonry rim, outer border frame, or duplicate chamber shell; the unified shell layer owns the perimeter. "
+            "Paint depth and atmosphere inside the void only — do not add a second masonry rim, outer border frame, or duplicate chamber shell. "
             "Do not compose 'looking through' a near wall opening, tunnel mouth, or proscenium — the void is open depth, not a hole cut through a foreground frame. "
-            "If stone masses approach the void boundary, they must read as interior walls/vaults set back from the crop line — not a shell band that follows the L-shape step-for-step. "
+            "If stone masses approach the void boundary, they must read as interior walls/vaults set back from the crop line — not a shell band that traces the footprint edge step-for-step. "
             "The interior void should read as continuous atmospheric depth; avoid tall near-black vertical slats, matte poster bars, or hard occluder strips there.\n"
             f"{_chamber_bounds_line}"
         )
@@ -7155,8 +7154,8 @@ def _build_bespoke_prompt(
         )
     elif component_type == "background_far_plate":
         prompt_opening = (
-            "Create a single 2D metroidvania far-depth background component from the attached references "
-            "(footprint silhouette + flat depth/layout guide). "
+            "Create a single 2D metroidvania far-depth background component from the attached flat depth-tone guide only. "
+            "Footprint geometry comes from the text contract in this prompt, not from a silhouette image. "
             "Use a side-scroller orthographic depth read, not a one-point perspective 3D corridor. "
             "The camera is already inside the hall — do not add a second stone frame, portal, or window cutting through a near wall."
         )
@@ -7859,12 +7858,11 @@ def _bespoke_reference_images_for_component(
             return [silhouette_path, template_path, guide_path]
         return [template_path, guide_path]
     if component_type == "background_far_plate":
+        # Guide-only: the footprint *silhouette* (black shell band + void) was teaching Gemini to
+        # paint a second heavy stone rim around the scene — stacking badly with `room_shell_foreground`.
+        # Footprint shape stays in the text contract (`silhouette_clause` + `_geometry_footprint_shape_hint`).
         _structural_slot_reference_guide(component_type, guide_path, expected_size, transparent, aggressive=aggressive)
-        refs: List[Path] = []
-        if room is not None and _write_bespoke_room_silhouette_reference(_room_geometry(room), silhouette_path, expected_size):
-            refs.append(silhouette_path)
-        refs.append(guide_path)
-        return refs
+        return [guide_path]
     if component_type in {
         "hero_platform_top",
         "hero_platform_face",
