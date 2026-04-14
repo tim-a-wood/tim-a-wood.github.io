@@ -65,6 +65,7 @@ function syncEditorWorkflowSecondaryRail() {
 function syncRoomWizardScopePanels() {
         const panL = document.getElementById('roomWizardPanelLayout');
         const panE = document.getElementById('roomWizardPanelEnvironment');
+        const panEnt = document.getElementById('roomWizardPanelEntities');
         const panA = document.getElementById('roomWizardPanelArtDirection');
         const panR = document.getElementById('roomWizardPanelReview');
         const artScope = RoomEditor.State.workflowScope === 'art-direction';
@@ -75,6 +76,7 @@ function syncRoomWizardScopePanels() {
         if (artScope) {
           if (panL) panL.hidden = true;
           if (panE) panE.hidden = true;
+          if (panEnt) panEnt.hidden = true;
           if (panR) panR.hidden = true;
         }
       }
@@ -177,6 +179,18 @@ function updateWorkflowRailPills() {
         rail.querySelectorAll('.phase-pill[data-rw-phase]').forEach((pill) => {
           const key = pill.dataset.rwPhase;
           pill.classList.remove('active', 'available', 'locked', 'complete');
+          if (key === 'identity') {
+            pill.disabled = false;
+            pill.title = '';
+            if (wizardOn && ph === 'identity') {
+              pill.classList.add('active');
+            } else if (!wizardOn && vm === 'room' && RoomEditor.State.workflowScope === 'room') {
+              pill.classList.add('available');
+            } else {
+              pill.classList.add('available');
+            }
+            return;
+          }
           if (key === 'layout') {
             if (wizardOn && ph === 'layout') {
               pill.classList.add('active');
@@ -203,7 +217,7 @@ function updateWorkflowRailPills() {
             }
             return;
           }
-          if (key === 'objects') {
+          if (key === 'entities') {
             pill.classList.add('locked');
             pill.disabled = true;
             pill.title = 'Coming in a later update';
@@ -255,12 +269,15 @@ function syncRoomWizardDock() {
           RoomEditor.State.viewMode === 'room' &&
           !!RoomEditor.State.data &&
           (RoomEditor.State.workflowScope === 'art-direction' ? !!RoomEditor.State.PROJECT_ID : !!room);
-        dock.hidden = !show;
-        dock.setAttribute('aria-hidden', show ? 'false' : 'true');
-        dock.classList.toggle('room-wizard-dock--compact', show);
+        const optBHideDock =
+          show && RoomEditor.State.workflowScope === 'room' && RoomEditor.State.roomWizard.active;
+        dock.hidden = !show || optBHideDock;
+        dock.setAttribute('aria-hidden', dock.hidden ? 'true' : 'false');
+        dock.classList.toggle('room-wizard-dock--compact', show && !optBHideDock);
         if (RoomEditor.Ui.refs.roomSetupBtn) {
           RoomEditor.Ui.refs.roomSetupBtn.disabled = !RoomEditor.State.currentRoomId || !RoomEditor.State.data?.rooms?.length;
         }
+        RoomEditor.WizardOptionB?.syncShell?.();
       }
 
   Module.updateWorkflowScopeToggle = updateWorkflowScopeToggle;

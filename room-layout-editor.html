@@ -7,9 +7,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/editor-tokens.css?v=20260413" />
-  <link rel="stylesheet" href="css/editor-shell.css?v=20260413" />
-  <link rel="stylesheet" href="css/room-wizard.css?v=20260413" />
+  <link rel="stylesheet" href="css/editor-tokens.css?v=20260414" />
+  <link rel="stylesheet" href="css/editor-shell.css?v=20260414" />
+  <link rel="stylesheet" href="css/room-wizard.css?v=20260414" />
 </head>
 <body>
   <nav class="site-nav" aria-label="Site navigation">
@@ -90,11 +90,18 @@
         </nav>
         <div class="workflow-secondary-rail" id="roomWizardPhaseRailWrap" hidden>
           <nav id="roomWizardPhaseRail" class="phase-rail phase-rail--room" aria-label="Room setup steps">
-            <button type="button" class="phase-pill active" data-rw-phase="layout" id="roomWizardTabLayout">
+            <button type="button" class="phase-pill active" data-rw-phase="identity" id="roomWizardTabIdentity">
+              <span class="phase-number">0</span>
+              <span class="phase-pill-copy">
+                <strong>Identity</strong>
+                <small>Name · id · footprint</small>
+              </span>
+            </button>
+            <button type="button" class="phase-pill available" data-rw-phase="layout" id="roomWizardTabLayout">
               <span class="phase-number">1</span>
               <span class="phase-pill-copy">
                 <strong>Layout</strong>
-                <small>Footprint &amp; platforms</small>
+                <small>Geometry &amp; platforms</small>
               </span>
             </button>
             <button type="button" class="phase-pill locked" disabled data-rw-phase="environment" id="roomWizardTabEnvironment" title="Complete layout (name, id, footprint) first">
@@ -104,10 +111,10 @@
                 <small>Room components</small>
               </span>
             </button>
-            <button type="button" class="phase-pill locked" disabled data-rw-phase="objects" title="Coming in a later update">
+            <button type="button" class="phase-pill locked" disabled data-rw-phase="entities" id="roomWizardTabEntities" title="Coming in a later update">
               <span class="phase-number">3</span>
               <span class="phase-pill-copy">
-                <strong>Objects</strong>
+                <strong>Entities</strong>
                 <small>Coming soon</small>
               </span>
             </button>
@@ -115,10 +122,14 @@
               <span class="phase-number">4</span>
               <span class="phase-pill-copy">
                 <strong>Review</strong>
-                <small>Room validation &amp; export</small>
+                <small>Validation &amp; export</small>
               </span>
             </button>
           </nav>
+          <div class="rw-phase-rail-nav-actions" role="group" aria-label="Previous and next room wizard phase">
+            <button type="button" class="btn-secondary rw-phase-nav-btn" id="roomWizardPhasePrev" title="Previous phase">← Prev</button>
+            <button type="button" class="btn-secondary rw-phase-nav-btn" id="roomWizardPhaseNext" title="Next phase">Next →</button>
+          </div>
         </div>
       </div>
 
@@ -158,26 +169,18 @@
 
       <!-- Room setup (compact strip) — shown under header when room workflow step is active -->
       <div id="roomWizardDock" class="room-wizard-dock" hidden aria-hidden="true">
-        <div class="room-wizard-sheet">
-          <div class="room-wizard-sheet-top">
+        <div class="room-wizard-sheet" id="roomWizardSheetRoot">
+          <div class="room-wizard-sheet-top" id="rwWizardSheetTop">
             <div>
               <div class="eyebrow">Room setup</div>
               <h2 id="roomWizardTitle" class="room-wizard-sheet-title">Room wizard</h2>
-              <p class="room-wizard-sub">Layout sets the room shell and traversal footprint. Environment unlocks once name, id, and footprint are valid; Objects is still reserved for a later pass.</p>
+              <p id="roomWizardSub" class="room-wizard-sub">Layout sets the room shell and traversal footprint. Environment unlocks once name, id, and footprint are valid; Entities is reserved for a later pass.</p>
             </div>
             <button type="button" class="btn-icon" id="roomWizardClose" aria-label="Dismiss room setup">×</button>
           </div>
-          <div class="room-wizard-scroll">
+          <div class="room-wizard-scroll" id="rwWizardSheetScroll">
             <div id="roomWizardPanelLayout">
-              <div class="phase-header">
-                <div class="phase-header-left">
-                  <span class="phase-header-num">Phase 1 · Layout</span>
-                  <h2>Layout</h2>
-                  <p class="phase-header-desc">
-                    Name the room, set its id, define the footprint polygon, then add walkable platforms (axis-aligned rects for Phaser Arcade) with the canvas tools or presets below.
-                  </p>
-                </div>
-              </div>
+              <div id="roomWizardLayoutIdentityBlock">
               <div class="stage-card">
                 <div class="stage-card-head">
                   <h4>Identity</h4>
@@ -221,6 +224,17 @@
                   <div style="grid-column:1/-1;">
                     <button type="button" class="btn-secondary" id="roomWizardApplyCustomFootprint">Apply custom size</button>
                   </div>
+                </div>
+              </div>
+              </div>
+              <div id="roomWizardLayoutGeometryBlock">
+              <div class="phase-header" id="roomWizardLayoutPhaseHeader">
+                <div class="phase-header-left">
+                  <span class="phase-header-num" id="roomWizardLayoutPhaseEyebrow">Phase · Layout</span>
+                  <h2 id="roomWizardLayoutPhaseTitle">Layout</h2>
+                  <p class="phase-header-desc" id="roomWizardLayoutPhaseDesc">
+                    Connect neighbors, place presets or draw platforms on the canvas, then run door/platform checks.
+                  </p>
                 </div>
               </div>
               <div class="stage-card" id="roomWizardNeighborsCard">
@@ -280,6 +294,7 @@
                   <p class="small-note">Warns when a door anchor sits inside a platform’s walkable band.</p>
                 </div>
                 <div class="info-box" id="roomWizardTerrainWarnings"><p class="hint">Complete layout (name, id, footprint) to refresh checks.</p></div>
+              </div>
               </div>
             </div>
             <div id="roomWizardPanelEnvironment" hidden>
@@ -576,6 +591,23 @@
                 </div>
               </div>
             </div>
+            <div id="roomWizardPanelEntities" hidden>
+              <div class="phase-header">
+                <div class="phase-header-left">
+                  <span class="phase-header-num">Phase 3 · Entities</span>
+                  <h2>Entities</h2>
+                  <p class="phase-header-desc">
+                    Doors, keys, movers, and interactables beyond the layout pass will be edited here in a future update.
+                  </p>
+                </div>
+              </div>
+              <div class="stage-card">
+                <div class="stage-card-head">
+                  <h4>Coming soon</h4>
+                  <p class="small-note">Use the canvas tools and selection inspector for now. This phase will collect entity-specific authoring in one place.</p>
+                </div>
+              </div>
+            </div>
             <div id="roomWizardPanelArtDirection" hidden>
               <div class="phase-header">
                 <div class="phase-header-left">
@@ -713,11 +745,38 @@
         <button class="btn-primary" type="button" onclick="document.getElementById('advancedToggle').click()">Import JSON</button>
       </div>
 
+      <div class="rw-optb-main" id="rwOptbMain">
+        <div class="rw-canvas-workspace" id="rwCanvasWorkspace">
+          <div class="rw-stage-column" id="rwStageColumn">
+            <header class="rw-stage-bar" id="rwStageBar" hidden aria-label="Room canvas summary">
+              <h2 class="rw-stage-bar-title" id="rwStageRoomTitle">Room</h2>
+              <span class="rw-stage-bar-meta mono" id="rwStageRoomMeta">—</span>
+              <span class="rw-stage-bar-spacer" aria-hidden="true"></span>
+              <div class="rw-stage-zoom" role="group" aria-label="Canvas zoom preset">
+                <button type="button" class="rw-stage-zoom-btn" id="rwStageZoomFit" title="Fit room in view">Fit</button>
+                <button type="button" class="rw-stage-zoom-btn" id="rwStageZoom25" title="Zoom 25%">25%</button>
+                <button type="button" class="rw-stage-zoom-btn" id="rwStageZoom50" title="Zoom 50%">50%</button>
+                <button type="button" class="rw-stage-zoom-btn rw-stage-zoom-btn--active" id="rwStageZoom100" title="Zoom 100%">100%</button>
+                <button type="button" class="rw-stage-zoom-btn" id="rwStageZoom200" title="Zoom 200%">200%</button>
+              </div>
+              <button type="button" class="rw-stage-icon-btn" id="rwStageToggleGrid" title="Toggle grid overlay" aria-label="Toggle grid overlay">
+                <svg class="rw-stage-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3h7.5v7.5H3zM13.5 3H21v7.5h-7.5zM3 13.5h7.5V21H3zM13.5 13.5H21V21h-7.5z"/></svg>
+              </button>
+              <button type="button" class="rw-stage-icon-btn" id="rwStageSnapHint" title="Grid snap is set in canvas settings" aria-label="Grid snap — adjust in canvas settings">
+                <svg class="rw-stage-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5"/><circle cx="12" cy="12" r="2" fill="currentColor" stroke="none"/></svg>
+              </button>
+              <button type="button" class="rw-stage-icon-btn" id="rwStageUndo" title="Undo (coming soon)" aria-label="Undo" disabled>
+                <svg class="rw-stage-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 00-9-9 9 9 0 00-6 2.3L3 13"/></svg>
+              </button>
+              <button type="button" class="rw-stage-icon-btn" id="rwStageRedo" title="Redo (coming soon)" aria-label="Redo" disabled>
+                <svg class="rw-stage-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 019-9 9 9 0 016 2.3L21 13"/></svg>
+              </button>
+            </header>
       <div class="canvas-with-inspector" id="canvasWithInspector">
         <div class="canvas-box" id="roomCanvasBox">
           <div class="canvas-toolbar" id="canvasToolButtons">
           <button data-tool="select" class="active" type="button">Select <kbd>V</kbd></button>
-          <button data-tool="vertex" type="button">Add Vertex <kbd>E</kbd></button>
+          <button data-tool="vertex" type="button">Vertex <kbd>N</kbd></button>
           <button data-tool="platform" type="button">Add Platform <kbd>P</kbd></button>
           <button data-tool="door" type="button">Add Door <kbd>D</kbd></button>
           <button data-tool="key" type="button">Add Key <kbd>K</kbd></button>
@@ -761,6 +820,17 @@
           </div>
         </div>
           <canvas id="roomCanvas" width="960" height="720"></canvas>
+          <div class="rw-task-drawer" id="rwTaskDrawer" hidden aria-label="Phase tasks">
+            <div class="rw-task-drawer-handle">
+              <span class="rw-task-drawer-caret" aria-hidden="true">&#9662;</span>
+              <span class="rw-task-drawer-phase" id="rwTaskDrawerPhaseLabel">Room setup</span>
+              <span class="rw-task-drawer-badge" id="rwTaskDrawerBadge"></span>
+            </div>
+            <div class="rw-task-scroll" id="rwTaskScroll" role="list"></div>
+            <div class="rw-task-drawer-actions">
+              <button type="button" class="btn-secondary" id="rwTaskOpenPhasePanel" hidden>Open full phase panel</button>
+            </div>
+          </div>
         </div>
         <div class="inspector hidden" id="selectionInspector">
           <div class="inspector-header">
@@ -822,6 +892,49 @@
             </label>
           </div>
           <button id="applyProps" class="good" type="button">Apply Properties</button>
+        </div>
+      </div>
+          </div>
+          <aside class="rw-wizard-inspector-host" id="rwWizardInspectorHost" hidden>
+            <div class="rw-wizard-inspector" id="rwWizardInspector">
+              <div class="rw-wizard-ins-head" id="rwWizardInsHeadSlot"></div>
+              <div class="rw-wizard-ins-body" id="rwWizardInsBodySlot"></div>
+            </div>
+          </aside>
+        </div>
+        <div class="rw-stage-focus" id="rwStageFocus" hidden>
+          <div class="rw-focus-work-wide">
+            <div class="rw-focus-wide-head" id="rwFocusHeadSlot"></div>
+            <div class="rw-focus-wide-grid">
+              <div class="rw-focus-wide-main" id="rwFocusMainSlot"></div>
+              <aside class="rw-focus-ref-rail" aria-label="Room reference">
+                <span class="rw-focus-ref-eyebrow">Reference</span>
+                <div class="rw-focus-block" data-rw-focus="identity" hidden>
+                  <p class="rw-focus-lede">Return to <strong>Identity</strong> or <strong>Layout</strong> for the full stage, task drawer, and tools.</p>
+                </div>
+                <div class="rw-focus-block" data-rw-focus="layout" hidden>
+                  <p class="rw-focus-lede rw-focus-muted">Layout snapshot</p>
+                  <p class="small-note">Open a read-only preview of the current room geometry.</p>
+                  <button type="button" class="btn-secondary rw-focus-preview-btn" id="rwOpenLayoutPreview" data-rw-preview="layout">Open layout preview…</button>
+                </div>
+                <div class="rw-focus-block" data-rw-focus="environment" hidden>
+                  <p class="rw-focus-lede rw-focus-muted">Layout snapshot</p>
+                  <p class="small-note">Compare environment work against the footprint.</p>
+                  <button type="button" class="btn-secondary rw-focus-preview-btn" id="rwOpenLayoutPreviewEnv" data-rw-preview="layout">Open layout preview…</button>
+                </div>
+                <div class="rw-focus-block" data-rw-focus="entities" hidden>
+                  <p class="rw-focus-lede rw-focus-muted">Decorated snapshot</p>
+                  <p class="small-note">Placeholder until the Entities phase ships.</p>
+                  <button type="button" class="btn-secondary rw-focus-preview-btn" id="rwOpenDecorPreviewEnt" data-rw-preview="decor">Open decorated preview…</button>
+                </div>
+                <div class="rw-focus-block" data-rw-focus="review" hidden>
+                  <p class="rw-focus-lede rw-focus-muted">Export checklist</p>
+                  <p class="small-note">Review validation, then export from the main panel.</p>
+                  <button type="button" class="btn-secondary rw-focus-preview-btn" id="rwOpenDecorPreviewRev" data-rw-preview="decor">Open decorated preview…</button>
+                </div>
+              </aside>
+            </div>
+          </div>
         </div>
       </div>
       <div class="canvas-box hidden" id="globalCanvasBox">
@@ -1017,6 +1130,28 @@
   </div>
 
   <div
+    id="rwOptbPreviewModal"
+    class="rw-optb-preview-modal"
+    hidden
+    aria-hidden="true"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="rwOptbPreviewTitle"
+  >
+    <div class="rw-optb-preview-backdrop" id="rwOptbPreviewBackdrop" aria-hidden="true"></div>
+    <div class="rw-optb-preview-dialog">
+      <header class="rw-optb-preview-header">
+        <h2 id="rwOptbPreviewTitle">Preview</h2>
+        <button type="button" class="btn-icon" id="rwOptbPreviewClose" aria-label="Close preview">×</button>
+      </header>
+      <div class="rw-optb-preview-body" id="rwOptbPreviewBody">
+        <p class="small-note">Read-only snapshot. Live canvas is behind this dialog.</p>
+        <canvas id="rwOptbPreviewCanvas" width="320" height="240" class="rw-optb-preview-canvas"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div
     id="gamePreviewOverlay"
     class="game-preview-overlay"
     hidden
@@ -1060,29 +1195,30 @@
 
   <!-- Default layout seed is loaded from ./room-layout-seed.json at boot (js/editor/init.js). -->
 
-  <script src="js/editor/constants.js?v=202604132"></script>
-  <script src="js/editor/state.js?v=202604132"></script>
-  <script src="js/editor/model.js?v=202604132"></script>
-  <script src="js/editor/topology.js?v=202604132"></script>
-  <script src="js/editor/validation.js?v=202604132"></script>
-  <script src="js/editor/workflow.js?v=202604132"></script>
+  <script src="js/editor/constants.js?v=20260414"></script>
+  <script src="js/editor/state.js?v=20260414"></script>
+  <script src="js/editor/model.js?v=20260414"></script>
+  <script src="js/editor/topology.js?v=20260414"></script>
+  <script src="js/editor/validation.js?v=20260414"></script>
+  <script src="js/editor/workflow.js?v=20260414"></script>
 
-  <script src="js/wizard/export-package.js?v=202604132"></script>
-  <script src="js/wizard/footprint.js?v=202604132"></script>
-  <script src="js/wizard/neighbor-align.js?v=202604132"></script>
-  <script src="js/wizard/terrain.js?v=202604132"></script>
-  <script src="js/wizard/environment.js?v=202604132"></script>
-  <script src="js/wizard/environment-copilot.js?v=202604132"></script>
+  <script src="js/wizard/export-package.js?v=20260414"></script>
+  <script src="js/wizard/footprint.js?v=20260414"></script>
+  <script src="js/wizard/neighbor-align.js?v=20260414"></script>
+  <script src="js/wizard/terrain.js?v=20260414"></script>
+  <script src="js/wizard/environment.js?v=20260414"></script>
+  <script src="js/wizard/environment-copilot.js?v=20260414"></script>
 
-  <script src="js/editor/viewport.js?v=202604132"></script>
-  <script src="js/editor/render.js?v=202604132"></script>
-  <script src="js/editor/ui.js?v=202604132"></script>
-  <script src="js/editor/storage.js?v=202604132"></script>
-  <script src="js/editor/wizard.js?v=202604132"></script>
-  <script src="js/editor/wizard-async.js?v=202604132"></script>
-  <script src="js/editor/wizard-events.js?v=202604132"></script>
-  <script src="js/editor/input.js?v=202604132"></script>
-  <script src="js/editor/game-preview.js?v=202604132"></script>
-  <script src="js/editor/init.js?v=202604132"></script>
+  <script src="js/editor/viewport.js?v=20260414"></script>
+  <script src="js/editor/render.js?v=20260414"></script>
+  <script src="js/editor/ui.js?v=20260414"></script>
+  <script src="js/editor/storage.js?v=20260414"></script>
+  <script src="js/editor/wizard.js?v=20260414"></script>
+  <script src="js/editor/wizard-async.js?v=20260414"></script>
+  <script src="js/editor/wizard-events.js?v=20260414"></script>
+  <script src="js/editor/room-wizard-option-b.js?v=20260414"></script>
+  <script src="js/editor/input.js?v=20260414"></script>
+  <script src="js/editor/game-preview.js?v=20260414"></script>
+  <script src="js/editor/init.js?v=20260414"></script>
 </body>
 </html>

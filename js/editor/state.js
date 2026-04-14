@@ -39,7 +39,7 @@ RoomEditor.State = {
         lastValidationReport: null,
         roomWizard: {
           active: false,
-          phase: 'layout',
+          phase: 'identity',
           roomId: null,
           touched: false,
           copilotPreview: null,

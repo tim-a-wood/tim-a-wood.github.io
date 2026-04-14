@@ -1266,6 +1266,12 @@ function wireEvents() {
               event.preventDefault();
               return;
             }
+            const rwPrev = document.getElementById('rwOptbPreviewModal');
+            if (rwPrev && !rwPrev.hidden) {
+              RoomEditor.WizardOptionB?.closePreviewModal?.();
+              event.preventDefault();
+              return;
+            }
             if (RoomEditor.State.roomWizard.active) {
               RoomEditor.Wizard.requestCloseRoomWizard();
               event.preventDefault();
@@ -1278,9 +1284,22 @@ function wireEvents() {
             return;
           }
           if (isTypingTarget || event.metaKey || event.ctrlKey || event.altKey) return;
+          if (RoomEditor.State.roomWizard.active && RoomEditor.State.workflowScope !== 'art-direction') {
+            if (event.key === '[' || event.key === 'ArrowLeft') {
+              RoomEditor.WizardOptionB?.navigatePhase?.(-1);
+              event.preventDefault();
+              return;
+            }
+            if (event.key === ']' || event.key === 'ArrowRight') {
+              RoomEditor.WizardOptionB?.navigatePhase?.(1);
+              event.preventDefault();
+              return;
+            }
+          }
           const toolMap = {
             v: 'select',
             e: 'vertex',
+            n: 'vertex',
             p: 'platform',
             d: 'door',
             k: 'key',

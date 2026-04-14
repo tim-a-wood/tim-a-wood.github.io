@@ -21,6 +21,7 @@
     RoomEditor.Wizard.installRoomWizardQaHooks();
     document.getElementById('btnNewLocalProject')?.addEventListener('click', RoomEditor.Storage.createNewLocalProject);
     RoomEditor.Wizard.wireRoomWizardEvents();
+    RoomEditor.WizardOptionB?.wireChromeEvents?.();
     RoomEditor.GamePreview.wireGamePreview();
     RoomEditor.Input.wireEvents();
     RoomEditor.Storage.refreshProjectList().catch(() => {});

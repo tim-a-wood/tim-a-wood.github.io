@@ -71,7 +71,7 @@ Module.GLOBAL_DRAG_START_DISTANCE = 6;
 
 Module.VIEW_PAN_STEP = 96;
 
-Module.ROOM_ZOOM_MIN = 0.5;
+Module.ROOM_ZOOM_MIN = 0.25;
 
 Module.ROOM_ZOOM_MAX = 3;
 

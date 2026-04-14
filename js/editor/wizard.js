@@ -2127,24 +2127,29 @@ function applyRoomWizardMatchWallLength() {
       }
 
 function setRoomWizardPhase(phase) {
-        if (phase !== 'layout' && phase !== 'environment' && phase !== 'review') return;
+        const allowed = ['identity', 'layout', 'environment', 'entities', 'review'];
+        if (!allowed.includes(phase)) return;
         RoomEditor.State.roomWizard.phase = phase;
         const dock = document.getElementById('roomWizardDock');
         if (dock) dock.dataset.phase = phase;
         const panL = document.getElementById('roomWizardPanelLayout');
         const panE = document.getElementById('roomWizardPanelEnvironment');
+        const panEnt = document.getElementById('roomWizardPanelEntities');
         const panA = document.getElementById('roomWizardPanelArtDirection');
         const panR = document.getElementById('roomWizardPanelReview');
         const artScope = RoomEditor.State.workflowScope === 'art-direction';
-        if (panL) panL.hidden = artScope || phase !== 'layout';
+        const layoutPanelPhases = ['identity', 'layout'];
+        if (panL) panL.hidden = artScope || !layoutPanelPhases.includes(phase);
         if (panE) panE.hidden = artScope || phase !== 'environment';
+        if (panEnt) panEnt.hidden = artScope || phase !== 'entities';
         if (panA) panA.hidden = !artScope;
         if (panR) panR.hidden = artScope || phase !== 'review';
+        RoomEditor.WizardOptionB?.syncLayoutSubpanels?.();
         RoomEditor.Workflow.updateWorkflowRailPills();
         if (phase === 'review') {
           updateRoomWizardReviewPanel();
         }
-        if (phase === 'layout') {
+        if (phase === 'layout' || phase === 'identity') {
           updateRoomWizardTerrainControls();
           refreshTerrainWarnings();
         }
@@ -2155,6 +2160,7 @@ function setRoomWizardPhase(phase) {
           setRoomWizardEnvStep(RoomEditor.State.roomWizard.envStep || 'describe');
         }
         RoomEditor.Workflow.syncRoomWizardScopePanels();
+        RoomEditor.WizardOptionB?.syncShell?.();
       }
 
 function updateRoomWizardReviewPanel() {
@@ -2212,7 +2218,7 @@ function openRoomWizard(roomId) {
         RoomEditor.State.setViewMode('room');
         RoomEditor.State.roomWizard.active = true;
         RoomEditor.State.roomWizard.roomId = roomId;
-        RoomEditor.State.roomWizard.phase = 'layout';
+        RoomEditor.State.roomWizard.phase = 'identity';
         RoomEditor.State.roomWizard.touched = false;
         RoomEditor.State.roomWizard.envStep = 'describe';
         clearRoomWizardCopilotPreview();
@@ -2220,7 +2226,7 @@ function openRoomWizard(roomId) {
         RoomEditor.Ui.populateRoomSelect();
         RoomEditor.Ui.refs.roomSelect.value = roomId;
         syncRoomWizardFormFromRoom();
-        setRoomWizardPhase('layout');
+        setRoomWizardPhase('identity');
         RoomEditor.Workflow.syncRoomWizardDock();
         RoomEditor.Workflow.syncWorkflowRailVisibility();
         const nameInput = document.getElementById('roomWizardRoomName');
@@ -2255,10 +2261,11 @@ function closeRoomWizard(skipConfirm) {
         }
         RoomEditor.State.roomWizard.active = false;
         RoomEditor.State.roomWizard.roomId = null;
-        RoomEditor.State.roomWizard.phase = 'layout';
+        RoomEditor.State.roomWizard.phase = 'identity';
         RoomEditor.State.roomWizard.touched = false;
         syncRoomWizardFormFromRoom();
         RoomEditor.Workflow.syncRoomWizardDock();
+        RoomEditor.WizardOptionB?.syncShell?.();
         RoomEditor.Workflow.updateWorkflowRailPills();
         RoomEditor.Workflow.updateWorldWorkflowPills();
         RoomEditor.Workflow.updateWorkflowScopeToggle();

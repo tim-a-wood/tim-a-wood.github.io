@@ -11,6 +11,19 @@ function wireRoomWizardEvents() {
         document.querySelectorAll('#worldWorkflowRail [data-world-workflow-step]').forEach((btn) => {
           btn.addEventListener('click', () => RoomEditor.Workflow.setWorldWorkflowStep(Number(btn.dataset.worldWorkflowStep)));
         });
+        document.getElementById('roomWizardTabIdentity')?.addEventListener('click', () => {
+          if (RoomEditor.State.viewMode === 'global') RoomEditor.State.setViewMode('room');
+          if (!RoomEditor.State.currentRoomId || !RoomEditor.State.data) return;
+          if (RoomEditor.State.workflowScope !== 'room') {
+            RoomEditor.Workflow.setWorkflowScope('room');
+          } else if (!RoomEditor.State.roomWizard.active) {
+            RoomEditor.Wizard.openRoomWizard(RoomEditor.State.currentRoomId);
+          }
+          RoomEditor.Wizard.setRoomWizardPhase('identity');
+          RoomEditor.Workflow.updateWorldWorkflowPills();
+          RoomEditor.Workflow.syncEditorWorkflowSecondaryRail();
+          RoomEditor.Render.redraw();
+        });
         document.getElementById('roomWizardTabLayout')?.addEventListener('click', () => {
           if (RoomEditor.State.viewMode === 'global') RoomEditor.State.setViewMode('room');
           if (!RoomEditor.State.currentRoomId || !RoomEditor.State.data) return;
@@ -55,6 +68,12 @@ function wireRoomWizardEvents() {
           RoomEditor.Workflow.updateWorldWorkflowPills();
           RoomEditor.Workflow.syncEditorWorkflowSecondaryRail();
           RoomEditor.Render.redraw();
+        });
+        document.getElementById('roomWizardPhasePrev')?.addEventListener('click', () => {
+          RoomEditor.WizardOptionB?.navigatePhase?.(-1);
+        });
+        document.getElementById('roomWizardPhaseNext')?.addEventListener('click', () => {
+          RoomEditor.WizardOptionB?.navigatePhase?.(1);
         });
         document.getElementById('roomWizardBackToLayoutFromEnv')?.addEventListener('click', () => RoomEditor.Wizard.setRoomWizardPhase('layout'));
         document.getElementById('roomWizardBackToEnvironment')?.addEventListener('click', () => RoomEditor.Wizard.setRoomWizardPhase('environment'));
