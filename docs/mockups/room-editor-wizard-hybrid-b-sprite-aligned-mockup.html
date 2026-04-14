@@ -51,8 +51,9 @@
   --r-lg: 20px;
   --r-full: 999px;
   --nav-h: 52px;
-  --rail-w: 248px;
-  --ins-w: 360px;
+  --rail-w: 216px;
+  --ins-w: 312px;
+  --tool-strip-w: 36px;
   --ent-platform: #4a9eff;
   --ent-door: #ff9750;
   --ent-vertex: #ff6aa3;
@@ -182,9 +183,9 @@ button { background: transparent; border: 0; cursor: pointer; }
   align-items: center;
   gap: var(--s2);
   flex-wrap: wrap;
-  padding: var(--s2) var(--s5);
+  padding: var(--s1) var(--s4);
   border-bottom: 1px solid var(--stroke);
-  background: rgba(4, 6, 10, 0.88);
+  background: rgba(4, 6, 10, 0.72);
 }
 
 .mock-switcher .label {
@@ -197,12 +198,12 @@ button { background: transparent; border: 0; cursor: pointer; }
 }
 
 .mock-chip {
-  min-height: 36px;
-  padding: var(--s2) var(--s3);
+  min-height: 28px;
+  padding: var(--s1) var(--s2);
   border-radius: var(--r-full);
   border: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.03);
-  font-size: var(--fs-sm);
+  font-size: var(--fs-xs);
   font-weight: 600;
   color: var(--muted);
   transition: background var(--transition-base), border-color var(--transition-base), color var(--transition-base), transform var(--transition-base);
@@ -234,15 +235,15 @@ button { background: transparent; border: 0; cursor: pointer; }
   flex-shrink: 0;
   background: var(--panel);
   border-bottom: 1px solid var(--stroke);
-  padding: var(--s3) var(--s4);
+  padding: var(--s2) var(--s4);
 }
 
 .top-wizard {
   display: none;
   align-items: center;
-  gap: var(--s3);
+  gap: var(--s2);
   max-width: 100%;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 html:not([data-mock-screen="world"]) .top-wizard-room {
@@ -256,40 +257,41 @@ html[data-mock-screen="world"] .top-wizard-world {
 .phase-rail-h {
   display: flex;
   align-items: center;
-  gap: var(--s2);
+  gap: var(--s1);
   flex: 1;
   justify-content: center;
   flex-wrap: nowrap;
   overflow-x: auto;
-  padding-bottom: var(--s1);
+  padding-bottom: 0;
   scrollbar-width: thin;
+  min-width: 0;
 }
 
 .phase-pill-h {
   display: inline-flex;
   align-items: center;
   gap: var(--s2);
-  padding: 10px var(--s4);
+  padding: var(--s2) var(--s3);
   border-radius: var(--r-full);
   border: 1px solid var(--stroke);
   background: var(--panel-2);
-  font-size: var(--fs-sm);
+  font-size: var(--fs-xs);
   font-weight: 600;
   color: var(--muted);
-  min-height: 44px;
+  min-height: 36px;
   flex-shrink: 0;
   text-align: left;
-  transition: background var(--transition-base), border-color var(--transition-base), color var(--transition-base), box-shadow var(--transition-base);
+  transition: background var(--transition-base), border-color var(--transition-base), color var(--transition-base);
 }
 
 .phase-pill-h .num {
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   display: grid;
   place-items: center;
   font-family: var(--font-display);
-  font-size: var(--fs-sm);
+  font-size: 11px;
   background: var(--panel-3);
   color: var(--muted);
   border: 1px solid var(--stroke);
@@ -299,22 +301,21 @@ html[data-mock-screen="world"] .top-wizard-world {
 .phase-pill-h .pill-copy {
   display: flex;
   flex-direction: column;
-  gap: var(--s1);
+  gap: 0;
   align-items: flex-start;
 }
 
 .phase-pill-h .pill-copy strong {
-  font-size: var(--fs-sm);
+  font-size: var(--fs-xs);
   font-weight: 700;
   color: inherit;
   line-height: 1.2;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .phase-pill-h .pill-copy small {
-  font-size: var(--fs-xs);
-  color: var(--faint);
-  font-weight: 500;
-  line-height: 1.2;
+  display: none;
 }
 
 .phase-pill-h.done {
@@ -332,7 +333,6 @@ html[data-mock-screen="world"] .top-wizard-world {
   color: var(--accent);
   border-color: var(--accent);
   background: var(--accent-soft);
-  box-shadow: 0 0 0 3px rgba(0, 232, 200, 0.08);
 }
 
 .phase-pill-h.active .num {
@@ -351,7 +351,7 @@ html[data-mock-screen="world"] .top-wizard-world {
 }
 
 .phase-conn {
-  width: var(--s4);
+  width: var(--s2);
   height: 1px;
   background: var(--line);
   flex-shrink: 0;
@@ -364,23 +364,12 @@ html[data-mock-screen="world"] .top-wizard-world {
   flex-shrink: 0;
 }
 
-.workflow-rail-eyebrow {
-  font-size: var(--fs-xs);
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--muted);
-  flex-shrink: 0;
-  margin-right: var(--s2);
-}
-
 /* Compact left context: mirrors top step (no duplicate vertical wizard) */
 .active-step-card {
-  padding: var(--s3);
+  padding: var(--s2) var(--s3);
   border-radius: var(--r-tight);
-  border: 1px solid var(--line-strong);
-  background: var(--accent-soft);
-  box-shadow: inset 0 0 0 1px rgba(0, 232, 200, 0.08);
+  border: 1px solid var(--stroke);
+  background: var(--panel-2);
 }
 
 .active-step-card .eyebrow {
@@ -389,22 +378,22 @@ html[data-mock-screen="world"] .top-wizard-world {
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--muted);
-  margin-bottom: var(--s2);
+  margin-bottom: var(--s1);
 }
 
 .active-step-card strong {
   display: block;
   font-family: var(--font-display);
-  font-size: var(--fs-md);
+  font-size: var(--fs-sm);
   letter-spacing: 0.05em;
-  color: var(--accent);
+  color: var(--text);
 }
 
 .active-step-card p {
-  margin-top: var(--s2);
-  font-size: var(--fs-sm);
+  margin-top: var(--s1);
+  font-size: var(--fs-xs);
   color: var(--muted);
-  line-height: 1.45;
+  line-height: 1.4;
 }
 
 .btn.ghost {
@@ -434,15 +423,15 @@ html[data-mock-screen="world"] .top-wizard-world {
   border-right: 1px solid var(--stroke);
   display: flex;
   flex-direction: column;
-  gap: var(--s3);
-  padding: var(--s4) var(--s3);
+  gap: var(--s2);
+  padding: var(--s3) var(--s2);
   overflow-y: auto;
   min-height: 0;
 }
 
 .rail-section-title {
   font-family: var(--font-display);
-  font-size: var(--fs-lg);
+  font-size: var(--fs-md);
   letter-spacing: 0.05em;
   color: var(--text);
 }
@@ -579,41 +568,43 @@ html[data-mock-screen="world"] .top-wizard-world {
   margin: var(--s2) 0;
 }
 
-/* Guide + checklist (from Option A) */
-.guide-card, .checklist-card {
-  padding: var(--s3);
+/* Single left context panel (guide + checklist merged) */
+.rail-context {
+  padding: var(--s2) var(--s3);
   border-radius: var(--r-tight);
   border: 1px solid var(--stroke);
   background: var(--panel-2);
 }
 
-.guide-card h3, .checklist-card h3 {
+.rail-context-title {
   font-family: var(--font-display);
-  font-size: var(--fs-md);
+  font-size: var(--fs-sm);
   letter-spacing: 0.05em;
   margin-bottom: var(--s2);
+  color: var(--text);
 }
 
-.guide-card p, .checklist-card p {
-  font-size: var(--fs-sm);
+.rail-context-lead {
+  font-size: var(--fs-xs);
   color: var(--muted);
-  line-height: 1.5;
+  line-height: 1.45;
+  margin-bottom: var(--s3);
 }
 
-.checklist { list-style: none; margin-top: var(--s3); display: flex; flex-direction: column; gap: var(--s2); }
+.checklist { list-style: none; margin-top: 0; display: flex; flex-direction: column; gap: var(--s1); }
 
 .checklist li {
   display: flex;
   align-items: flex-start;
   gap: var(--s2);
-  font-size: var(--fs-sm);
+  font-size: var(--fs-xs);
   color: var(--text);
 }
 
 .checklist li::before {
   content: "";
-  width: var(--s4);
-  height: var(--s4);
+  width: var(--s3);
+  height: var(--s3);
   border-radius: var(--r-sm);
   border: 1px solid var(--line);
   flex-shrink: 0;
@@ -652,7 +643,7 @@ html[data-mock-screen="world"] .top-wizard-world {
 
 .stage-bar h2 {
   font-family: var(--font-display);
-  font-size: var(--fs-lg);
+  font-size: var(--fs-md);
   letter-spacing: 0.05em;
 }
 
@@ -715,50 +706,58 @@ html[data-mock-screen="world"] .top-wizard-world {
 
 .btn.sm { min-height: 36px; padding: var(--s2) var(--s3); font-size: var(--fs-xs); }
 
-/* Professional tool strip — labeled, segmented, SVG icons (no emoji) */
+/* Compact vertical tool strip — icons only, tooltips via title (max canvas) */
 .tool-dock {
   position: absolute;
-  left: var(--s4);
-  top: var(--s4);
+  left: var(--s3);
+  top: var(--s3);
   z-index: 4;
   display: flex;
-  align-items: stretch;
-  gap: 0;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s1);
   padding: var(--s1);
-  border-radius: var(--r-lg);
-  border: 1px solid var(--line-strong);
-  background: rgba(4, 6, 10, 0.92);
-  backdrop-filter: blur(12px);
-  box-shadow: var(--shadow-md);
+  border-radius: var(--r-tight);
+  border: 1px solid var(--line);
+  background: rgba(4, 6, 10, 0.88);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow-sm);
 }
 
 .tool-group {
   display: flex;
-  align-items: stretch;
+  flex-direction: column;
+  align-items: center;
   gap: var(--s1);
-  padding: 0 var(--s1);
+  padding: 0;
 }
 
 .tool-group + .tool-group {
-  border-left: 1px solid var(--line);
+  border-left: none;
+  border-top: 1px solid var(--line);
+  padding-top: var(--s1);
+  margin-top: 0;
 }
 
 .tool-item {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: var(--s2);
-  min-height: 44px;
-  padding: var(--s2) var(--s3);
-  border-radius: var(--r-md);
+  justify-content: center;
+  width: var(--tool-strip-w);
+  height: var(--tool-strip-w);
+  min-height: var(--tool-strip-w);
+  padding: 0;
+  border-radius: var(--r-sm);
   border: 1px solid transparent;
   color: var(--muted);
   transition: background var(--transition-base), border-color var(--transition-base), color var(--transition-base);
 }
 
-.tool-item svg { flex-shrink: 0; opacity: 0.85; }
+.tool-item svg { flex-shrink: 0; opacity: 0.9; width: 15px; height: 15px; }
 
 .tool-item:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.06);
   color: var(--text);
 }
 
@@ -768,23 +767,6 @@ html[data-mock-screen="world"] .top-wizard-world {
   color: var(--accent);
 }
 
-.tool-item .tlab {
-  font-size: var(--fs-xs);
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.tool-item .tkey {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  color: var(--muted);
-  margin-left: var(--s1);
-  padding: var(--s1) var(--s2);
-  border-radius: var(--r-sm);
-  border: 1px solid var(--stroke);
-  background: var(--panel-2);
-}
 
 .canvas-area {
   flex: 1;
@@ -896,29 +878,6 @@ html[data-mock-screen="world"] .top-wizard-world {
   background: var(--line);
 }
 
-.hud-stack {
-  position: absolute;
-  right: var(--s4);
-  top: var(--s4);
-  display: flex;
-  flex-direction: column;
-  gap: var(--s2);
-  align-items: flex-end;
-  z-index: 3;
-}
-
-.hud-card {
-  padding: var(--s2) var(--s3);
-  border-radius: var(--r-md);
-  background: rgba(4, 6, 10, 0.82);
-  border: 1px solid var(--stroke);
-  backdrop-filter: blur(10px);
-  font-size: var(--fs-xs);
-  color: var(--muted);
-}
-
-.hud-card b { color: var(--text); }
-
 /* Copilot popover (collapsible — founder direction) */
 .copilot-fab {
   position: absolute;
@@ -1015,10 +974,10 @@ html[data-mock-screen="world"] .top-wizard-world {
   grid-area: drawer;
   border-top: 1px solid var(--stroke);
   background: linear-gradient(180deg, rgba(4, 6, 10, 0), var(--panel));
-  padding: var(--s3) var(--s4);
+  padding: var(--s2) var(--s3);
   display: grid;
   grid-template-columns: auto 1fr auto;
-  gap: var(--s4);
+  gap: var(--s3);
   align-items: center;
 }
 
@@ -1222,18 +1181,12 @@ html[data-mock-screen="review"] .screen-review,
 html[data-mock-screen="world"] .screen-world { display: block; }
 
 .tool-dock,
-.hud-stack,
 .vis-room-layer { display: none; }
 
 html[data-mock-screen="layout"] .tool-dock,
 html[data-mock-screen="environment"] .tool-dock,
 html[data-mock-screen="objects"] .tool-dock,
 html[data-mock-screen="review"] .tool-dock { display: flex; }
-
-html[data-mock-screen="layout"] .hud-stack,
-html[data-mock-screen="environment"] .hud-stack,
-html[data-mock-screen="objects"] .hud-stack,
-html[data-mock-screen="review"] .hud-stack { display: flex; }
 
 html[data-mock-screen="layout"] .vis-room-layer,
 html[data-mock-screen="environment"] .vis-room-layer,
@@ -1294,9 +1247,8 @@ html[data-mock-screen="review"] .scope-chip[data-scope="world"] {
     <a class="site-nav-link" href="#" role="listitem">Docs</a>
   </div>
   <div class="site-nav-actions">
-    <button type="button" class="btn sm">Validate</button>
-    <button type="button" class="btn sm accent">Sync canonical</button>
-    <button type="button" class="btn sm primary">Save local</button>
+    <button type="button" class="btn sm accent">Sync</button>
+    <button type="button" class="btn sm primary">Save</button>
   </div>
 </nav>
 
@@ -1313,7 +1265,6 @@ html[data-mock-screen="review"] .scope-chip[data-scope="world"] {
 
   <div class="workflow-rail-top">
     <nav class="top-wizard top-wizard-room" id="topRoomWizard" aria-label="Room setup steps">
-      <span class="workflow-rail-eyebrow">Room</span>
       <div class="phase-rail-h" role="list">
         <button type="button" class="phase-pill-h" data-phase="layout" role="listitem">
           <span class="num">1</span>
@@ -1348,13 +1299,11 @@ html[data-mock-screen="review"] .scope-chip[data-scope="world"] {
         </button>
       </div>
       <div class="phase-bar-actions">
-        <button type="button" class="btn sm ghost">Back</button>
         <button type="button" class="btn sm accent">Continue</button>
       </div>
     </nav>
 
     <nav class="top-wizard top-wizard-world" id="topWorldWizard" aria-label="World workflow">
-      <span class="workflow-rail-eyebrow">World</span>
       <div class="phase-rail-h" role="list">
         <button type="button" class="phase-pill-h" data-world-step="1" role="listitem">
           <span class="num">1</span>
@@ -1389,7 +1338,6 @@ html[data-mock-screen="review"] .scope-chip[data-scope="world"] {
         </button>
       </div>
       <div class="phase-bar-actions">
-        <button type="button" class="btn sm ghost">Room scope</button>
         <button type="button" class="btn sm accent">Next</button>
       </div>
     </nav>
@@ -1416,87 +1364,61 @@ html[data-mock-screen="review"] .scope-chip[data-scope="world"] {
     <div class="phase-room-only">
       <p class="uppercase" style="margin-bottom:var(--s2)">Active step</p>
       <div class="active-step-card" id="activeStepCard">
-        <div class="eyebrow">Top rail is canonical</div>
+        <div class="eyebrow">Now</div>
         <strong id="activeStepTitle">Layout</strong>
-        <p id="activeStepDesc">Footprint and platforms — use the horizontal wizard above; this card stays in sync for quick context.</p>
+        <p id="activeStepDesc">Wizard steps live in the top rail. This panel summarizes the active phase.</p>
       </div>
     </div>
 
     <div class="phase-world-only">
-      <p class="uppercase" style="margin-bottom:var(--s2)">World workflow</p>
-      <div class="phase-list">
-        <button type="button" class="phase-btn active">
-          <span class="phase-num">1</span>
-          <span><strong>World layout</strong><small>Placement and links</small></span>
-          <span class="phase-badge">Active</span>
-        </button>
-        <button type="button" class="phase-btn">
-          <span class="phase-num">2</span>
-          <span><strong>Placeholder</strong><small>Reserved</small></span>
-          <span class="phase-badge">—</span>
-        </button>
-        <button type="button" class="phase-btn">
-          <span class="phase-num">3</span>
-          <span><strong>Placeholder</strong><small>Reserved</small></span>
-          <span class="phase-badge">—</span>
-        </button>
-        <button type="button" class="phase-btn">
-          <span class="phase-num">4</span>
-          <span><strong>Review and export</strong><small>Validation</small></span>
-          <span class="phase-badge">—</span>
-        </button>
-      </div>
+      <p class="rail-context-lead" style="margin:0">World steps use the <strong>top rail</strong>. Open a room to edit geometry.</p>
     </div>
 
     <div class="rail-divider"></div>
 
-    <div class="guide-card screen-only screen-layout">
-      <h3>Guide · Layout</h3>
-      <p>Lock identity first, then footprint. Platforms are axis-aligned rects. Use neighbors to align door heights across rooms.</p>
-    </div>
-    <div class="guide-card screen-only screen-environment">
-      <h3>Guide · Environment</h3>
-      <p>Describe the room in plain language. Copilot proposes structured environment data — review before apply. No silent mutation.</p>
-    </div>
-    <div class="guide-card screen-only screen-objects">
-      <h3>Guide · Objects</h3>
-      <p>Placing interactables and spawners ships after the Objects wizard step is scoped. This mock shows the reserved shell.</p>
-    </div>
-    <div class="guide-card screen-only screen-review">
-      <h3>Guide · Review</h3>
-      <p>Run validation, fix blocking checks, then export JSON or a runtime bundle. Bundles stay aligned with Sprite Workbench exports.</p>
-    </div>
-    <div class="guide-card screen-only screen-world">
-      <h3>Guide · World</h3>
-      <p>Edit the room graph at macro scale. Double-check door directions and key progression before drilling into a room.</p>
-    </div>
-
-    <div class="checklist-card">
-      <h3>Checklist</h3>
-      <ul class="checklist screen-only screen-layout">
+    <div class="rail-context screen-only screen-layout">
+      <h3 class="rail-context-title">Layout</h3>
+      <p class="rail-context-lead">Footprint, platforms, doors. Match neighbor opening heights before export.</p>
+      <ul class="checklist">
         <li class="done">Room name and id</li>
         <li class="done">Footprint valid</li>
         <li class="done">Floor platform</li>
         <li class="warn">Door anchors clear of overlaps</li>
         <li>Start point reachable</li>
       </ul>
-      <ul class="checklist screen-only screen-environment">
-        <li class="done">Layout phase complete</li>
+    </div>
+    <div class="rail-context screen-only screen-environment">
+      <h3 class="rail-context-title">Environment</h3>
+      <p class="rail-context-lead">Describe mood; Copilot proposes data — you approve before it applies.</p>
+      <ul class="checklist">
+        <li class="done">Layout complete</li>
         <li>Describe pass saved</li>
-        <li>Component build reviewed</li>
-        <li>Preview approved or rejected with notes</li>
+        <li>Build reviewed</li>
+        <li>Preview approved or rejected</li>
       </ul>
-      <ul class="checklist screen-only screen-objects">
+    </div>
+    <div class="rail-context screen-only screen-objects">
+      <h3 class="rail-context-title">Objects</h3>
+      <p class="rail-context-lead">Reserved for interactables and spawners in a later pass.</p>
+      <ul class="checklist">
         <li>Layout complete</li>
         <li>Environment approved</li>
-        <li class="warn">Objects step not yet available</li>
+        <li class="warn">Step not available yet</li>
       </ul>
-      <ul class="checklist screen-only screen-review">
+    </div>
+    <div class="rail-context screen-only screen-review">
+      <h3 class="rail-context-title">Review</h3>
+      <p class="rail-context-lead">Clear blocking checks, then export JSON or runtime bundle.</p>
+      <ul class="checklist">
         <li class="done">Schema valid</li>
         <li>Blocking checks cleared</li>
         <li>Export path chosen</li>
       </ul>
-      <ul class="checklist screen-only screen-world">
+    </div>
+    <div class="rail-context screen-only screen-world">
+      <h3 class="rail-context-title">World</h3>
+      <p class="rail-context-lead">Graph-level links and progression. Drill into Room scope for geometry.</p>
+      <ul class="checklist">
         <li class="done">Room nodes placed</li>
         <li>Directed links consistent</li>
         <li>No orphan hubs</li>
@@ -1524,48 +1446,42 @@ html[data-mock-screen="review"] .scope-chip[data-scope="world"] {
       <!-- Labeled tool dock: professional, not emoji -->
       <div class="tool-dock" aria-label="Canvas tools">
         <div class="tool-group">
-          <button type="button" class="tool-item active" title="Select (V)">
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+          <button type="button" class="tool-item active" title="Select (V)" aria-label="Select tool, V">
+            <svg viewBox="0 0 18 18" fill="none" aria-hidden="true">
               <path d="M3 2l6.5 12L8 10l-5-1L3 2z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/>
             </svg>
-            <span class="tlab">Select</span><span class="tkey">V</span>
           </button>
-          <button type="button" class="tool-item" title="Footprint (F)">
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+          <button type="button" class="tool-item" title="Footprint (F)" aria-label="Footprint, F">
+            <svg viewBox="0 0 18 18" fill="none" aria-hidden="true">
               <rect x="3" y="3" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.4" stroke-dasharray="3 2"/>
             </svg>
-            <span class="tlab">Footprint</span><span class="tkey">F</span>
           </button>
         </div>
         <div class="tool-group">
-          <button type="button" class="tool-item" title="Platform (P)">
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+          <button type="button" class="tool-item" title="Platform (P)" aria-label="Platform, P">
+            <svg viewBox="0 0 18 18" fill="none" aria-hidden="true">
               <rect x="2" y="10" width="14" height="4" rx="1" fill="currentColor" opacity="0.35"/>
               <rect x="2" y="10" width="14" height="4" rx="1" stroke="currentColor" stroke-width="1.2"/>
             </svg>
-            <span class="tlab">Platform</span><span class="tkey">P</span>
           </button>
-          <button type="button" class="tool-item" title="Door (D)">
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+          <button type="button" class="tool-item" title="Door (D)" aria-label="Door, D">
+            <svg viewBox="0 0 18 18" fill="none" aria-hidden="true">
               <rect x="7" y="4" width="4" height="10" rx="0.8" stroke="currentColor" stroke-width="1.3"/>
               <circle cx="10" cy="9" r="0.9" fill="currentColor"/>
             </svg>
-            <span class="tlab">Door</span><span class="tkey">D</span>
           </button>
-          <button type="button" class="tool-item" title="Vertex (N)">
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+          <button type="button" class="tool-item" title="Vertex (N)" aria-label="Vertex, N">
+            <svg viewBox="0 0 18 18" fill="none" aria-hidden="true">
               <path d="M9 3l2.5 5.5L17 10l-5.5 2.5L9 18l-2.5-5.5L1 10l5.5-2.5L9 3z" stroke="currentColor" stroke-width="1.1"/>
             </svg>
-            <span class="tlab">Vertex</span><span class="tkey">N</span>
           </button>
         </div>
         <div class="tool-group">
-          <button type="button" class="tool-item" title="Pan (Space)">
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+          <button type="button" class="tool-item" title="Pan (H)" aria-label="Pan, H">
+            <svg viewBox="0 0 18 18" fill="none" aria-hidden="true">
               <path d="M6 4v10M3 9h10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
               <path d="M12 6l3 3-3 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
-            <span class="tlab">Pan</span><span class="tkey">H</span>
           </button>
         </div>
       </div>
@@ -1593,14 +1509,6 @@ html[data-mock-screen="review"] .scope-chip[data-scope="world"] {
           <div class="world-node">R3</div>
         </div>
         <p style="margin-top:var(--s4);text-align:center;max-width:280px">High-level graph mock. Selecting a node opens the Room scope with that room active.</p>
-      </div>
-
-      <div class="hud-stack">
-        <div class="hud-card"><b>Cursor</b> <span class="mono">896, 712</span></div>
-        <div class="hud-card screen-only screen-layout"><b>Selection</b> Platform · 384 × 48</div>
-        <div class="hud-card screen-only screen-environment"><b>Copilot</b> Draft ready · not applied</div>
-        <div class="hud-card screen-only screen-objects"><b>Objects</b> Step reserved</div>
-        <div class="hud-card screen-only screen-review"><b>Checks</b> 0 blocking · 1 warn</div>
       </div>
 
       <button type="button" class="copilot-fab" id="copilotFab" aria-expanded="false" aria-controls="copilotPanel">Copilot</button>
@@ -1783,19 +1691,19 @@ html[data-mock-screen="review"] .scope-chip[data-scope="world"] {
   var STEP_COPY = {
     layout: {
       title: "Layout",
-      desc: "Footprint and platforms — the horizontal rail above is the canonical wizard. Use the drawer for task-level checkpoints."
+      desc: "Top rail = wizard. Drawer = tasks. Tools = slim strip on the canvas."
     },
     environment: {
       title: "Environment",
-      desc: "Describe mood and run component builds. Copilot proposes changes; nothing applies without your confirmation."
+      desc: "Describe and build; Copilot proposes — you confirm before apply."
     },
     objects: {
       title: "Objects",
-      desc: "Reserved for a later pass. The rail still shows the full journey so the shell does not reshuffle when Objects ships."
+      desc: "Reserved. Rail stays complete so the shell stays stable when this ships."
     },
     review: {
       title: "Review",
-      desc: "Validation gates and export — JSON or runtime bundle when checks pass."
+      desc: "Validate, then export JSON or runtime bundle."
     }
   };
 
