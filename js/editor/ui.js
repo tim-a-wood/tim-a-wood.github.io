@@ -190,9 +190,12 @@ function initSidebarToggle() {
         const appShell = document.querySelector('.app-shell');
         const toggle = document.querySelector('.rail-toggle');
         if (!appShell || !toggle) return;
-        if (window.localStorage.getItem(RoomEditor.Constants.SIDEBAR_KEY) === '1') {
-          appShell.classList.add('sidebar-collapsed');
-        }
+        // Do not restore the old persisted collapsed state here. It hid the entire
+        // project list, making existing workbench projects look like they vanished.
+        appShell.classList.remove('sidebar-collapsed');
+        try {
+          window.localStorage.removeItem(RoomEditor.Constants.SIDEBAR_KEY);
+        } catch (_) {}
         const sync = () => {
           const collapsed = appShell.classList.contains('sidebar-collapsed');
           toggle.setAttribute('aria-label', collapsed ? 'Expand project panel' : 'Collapse project panel');
