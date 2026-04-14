@@ -31,6 +31,7 @@
 body{min-height:100vh; background:linear-gradient(180deg,#040608,#050709 52%,#060b0e);
   color:var(--text); font-family:var(--font-sans); font-size:var(--fs-b); overflow:hidden}
 button{font:inherit;color:inherit;background:transparent;border:0;cursor:pointer}
+button:focus-visible{outline:2px solid rgba(0,232,200,.35);outline-offset:2px}
 .uppercase{font-size:var(--fs-xs);font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
 .mono{font-family:var(--font-mono)}
 
@@ -206,6 +207,16 @@ button{font:inherit;color:inherit;background:transparent;border:0;cursor:pointer
 .zoom button{padding:4px 10px;font-size:var(--fs-xs);color:var(--muted)}
 .zoom button.active{background:var(--accent-soft);color:var(--accent)}
 
+/* Stage bar + canvas toolbar icons (inline SVG, currentColor) */
+.ico{display:block;flex-shrink:0}
+.ico--stage{width:18px;height:18px}
+.ico--tool{width:20px;height:20px}
+.stage-bar .btn.ghost.tb-icon{
+  min-width:44px;min-height:44px;padding:8px;display:inline-flex;align-items:center;justify-content:center;
+  color:var(--muted);border-radius:var(--r-tight);border:1px solid transparent;
+}
+.stage-bar .btn.ghost.tb-icon:hover{color:var(--text);border-color:var(--line-strong);background:rgba(255,255,255,.04)}
+
 .canvas-wrap{
   position:relative; min-height:0; overflow:hidden;
   background:
@@ -227,9 +238,10 @@ button{font:inherit;color:inherit;background:transparent;border:0;cursor:pointer
   border:1px solid var(--line-strong);
 }
 .ftool{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;color:var(--muted);position:relative}
+.ftool .ico--tool{pointer-events:none}
 .ftool:hover{background:rgba(255,255,255,.05);color:var(--text)}
 .ftool.active{background:var(--accent-soft);color:var(--accent);box-shadow:inset 0 0 0 1px var(--line-strong)}
-.ftool .kbd{position:absolute;right:-2px;bottom:-2px;font-family:var(--font-mono);font-size:8px;padding:1px 3px;background:var(--panel-3);border:1px solid var(--stroke);border-radius:3px;color:var(--muted)}
+.ftool .kbd{position:absolute;right:-2px;bottom:-2px;font-family:var(--font-mono);font-size:8px;padding:1px 3px;background:var(--panel-3);border:1px solid var(--stroke);border-radius:4px;color:var(--muted)}
 
 /* Canvas sample content */
 .room-poly{position:absolute;left:12%;top:10%;width:76%;height:76%;
@@ -360,12 +372,20 @@ button{font:inherit;color:inherit;background:transparent;border:0;cursor:pointer
         <span class="room-coord">R2 · 1600 × 1200 px · grid 32</span>
         <div class="spacer"></div>
         <div class="zoom">
-          <button>Fit</button><button>25%</button><button>50%</button><button class="active">100%</button><button>200%</button>
+          <button type="button">Fit</button><button type="button">25%</button><button type="button">50%</button><button type="button" class="active">100%</button><button type="button">200%</button>
         </div>
-        <button class="btn ghost">Grid ▢</button>
-        <button class="btn ghost">Snap ⊡</button>
-        <button class="btn ghost">↶</button>
-        <button class="btn ghost">↷</button>
+        <button class="btn ghost tb-icon" type="button" title="Toggle grid" aria-label="Toggle grid">
+          <svg class="ico ico--stage" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3h7.5v7.5H3zM13.5 3H21v7.5h-7.5zM3 13.5h7.5V21H3zM13.5 13.5H21V21h-7.5z"/></svg>
+        </button>
+        <button class="btn ghost tb-icon" type="button" title="Snap to grid" aria-label="Snap to grid">
+          <svg class="ico ico--stage" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5"/><circle cx="12" cy="12" r="2" fill="currentColor" stroke="none"/></svg>
+        </button>
+        <button class="btn ghost tb-icon" type="button" title="Undo" aria-label="Undo">
+          <svg class="ico ico--stage" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 00-9-9 9 9 0 00-6 2.3L3 13"/></svg>
+        </button>
+        <button class="btn ghost tb-icon" type="button" title="Redo" aria-label="Redo">
+          <svg class="ico ico--stage" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 019-9 9 9 0 016 2.3L21 13"/></svg>
+        </button>
       </div>
 
       <div class="canvas-wrap">
@@ -373,15 +393,42 @@ button{font:inherit;color:inherit;background:transparent;border:0;cursor:pointer
 
         <!-- floating tool palette -->
         <aside class="floating-tools" aria-label="Tools">
-          <button class="ftool active" title="Select (V)">▲<span class="kbd">V</span></button>
-          <button class="ftool" title="Vertex (N)">◆<span class="kbd">N</span></button>
-          <button class="ftool" title="Platform (P)" style="color:var(--ent-platform)">▬<span class="kbd">P</span></button>
-          <button class="ftool" title="Door (D)" style="color:var(--ent-door)">⎕<span class="kbd">D</span></button>
-          <button class="ftool" title="Key (K)" style="color:var(--ent-key)">●<span class="kbd">K</span></button>
-          <button class="ftool" title="Ability (A)" style="color:var(--ent-ability)">✦<span class="kbd">A</span></button>
-          <button class="ftool" title="Mover (M)" style="color:var(--ent-mover)">↔<span class="kbd">M</span></button>
-          <button class="ftool" title="Start (S)" style="color:var(--ent-start)">◆<span class="kbd">S</span></button>
-          <button class="ftool" title="Pan (H)">✥<span class="kbd">H</span></button>
+          <button class="ftool active" type="button" title="Select (V)" aria-label="Select tool, shortcut V">
+            <svg class="ico ico--tool" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M5.2 3.1L19.4 11.2c.6.4.3 1.3-.5 1.4l-5.5.9 2.1 5.8c.2.6-.5 1.1-1 .7l-6.3-5.4-2.1 4.4c-.3.7-1.3.5-1.4-.3L5.2 3.1z"/></svg>
+            <span class="kbd">V</span>
+          </button>
+          <button class="ftool" type="button" title="Vertex (N)" aria-label="Vertex tool, shortcut N">
+            <svg class="ico ico--tool" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="M12 4l7.5 8-7.5 8-7.5-8 7.5-8z"/></svg>
+            <span class="kbd">N</span>
+          </button>
+          <button class="ftool" type="button" title="Platform (P)" aria-label="Platform tool, shortcut P" style="color:var(--ent-platform)">
+            <svg class="ico ico--tool" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><rect x="3" y="10" width="18" height="4" rx="1"/></svg>
+            <span class="kbd">P</span>
+          </button>
+          <button class="ftool" type="button" title="Door (D)" aria-label="Door tool, shortcut D" style="color:var(--ent-door)">
+            <svg class="ico ico--tool" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="1"/><path d="M10 7h4"/><circle cx="14.5" cy="12.5" r="1.25" fill="currentColor" stroke="none"/></svg>
+            <span class="kbd">D</span>
+          </button>
+          <button class="ftool" type="button" title="Key (K)" aria-label="Key tool, shortcut K" style="color:var(--ent-key)">
+            <svg class="ico ico--tool" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="3"/><path d="M11 11l3 3"/><path d="M14 14l4 4"/><path d="M17 17l3 3"/></svg>
+            <span class="kbd">K</span>
+          </button>
+          <button class="ftool" type="button" title="Ability (A)" aria-label="Ability tool, shortcut A" style="color:var(--ent-ability)">
+            <svg class="ico ico--tool" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.2 3.6L17 8l-3.8 1.4L12 13l-1.2-3.6L7 8l3.8-1.4L12 3z"/></svg>
+            <span class="kbd">A</span>
+          </button>
+          <button class="ftool" type="button" title="Mover (M)" aria-label="Mover tool, shortcut M" style="color:var(--ent-mover)">
+            <svg class="ico ico--tool" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M8 8l-4 4 4 4"/><path d="M16 8l4 4-4 4"/></svg>
+            <span class="kbd">M</span>
+          </button>
+          <button class="ftool" type="button" title="Start (S)" aria-label="Start point tool, shortcut S" style="color:var(--ent-start)">
+            <svg class="ico ico--tool" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4v16"/><path d="M4 5l8-2v14l-8-2"/></svg>
+            <span class="kbd">S</span>
+          </button>
+          <button class="ftool" type="button" title="Pan (H)" aria-label="Pan tool, shortcut H">
+            <svg class="ico ico--tool" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="2"/><path d="M12 6V4M12 20v-2M6 12H4M20 12h-2"/></svg>
+            <span class="kbd">H</span>
+          </button>
         </aside>
 
         <div class="room-label mono">R2 · Flooded Hall · 1600 × 1200</div>
