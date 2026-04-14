@@ -181,6 +181,7 @@ function renderProjectList() {
     const regularProjects = sampleProject
         ? state.projects.filter((project) => project.project_id !== sampleProject.project_id)
         : state.projects.slice();
+    regularProjects.sort((a, b) => (a.archived_at ? 1 : 0) - (b.archived_at ? 1 : 0));
     if (!regularProjects.length) {
         root.innerHTML = `<div class="empty">${sampleProject ? "No other projects yet." : "No projects yet."}</div>`;
         return;
@@ -191,9 +192,13 @@ function renderProjectList() {
         const card = document.createElement("div");
         card.className = `project-card ${state.activeProject?.project_id === project.project_id ? "active" : ""}`;
         const nextStep = WIZARD_META[project.wizard_state?.current_step || "describe"]?.label || "Describe";
+        const archivedNote = project.archived_at
+            ? `<div class="small-note">Archived — opened from full list (Delete in this UI only archives).</div>`
+            : "";
         card.innerHTML = `
             <strong>${project.project_name}</strong>
             <small>${stageDisplayName(project.current_stage)} · ${nextStep}</small>
+            ${archivedNote}
             <div class="small-note">Last modified ${formatDate(project.updated_at)}</div>
             ${warningCount || missingCount ? `<div class="small-note" style="margin-top:8px;">Needs attention: ${warningCount} warning${warningCount === 1 ? "" : "s"}${missingCount ? ` · ${missingCount} missing file${missingCount === 1 ? "" : "s"}` : ""}</div>` : ""}
             <div class="project-actions">
@@ -209,7 +214,7 @@ function renderProjectList() {
 }
 
 async function refreshProjects() {
-    const data = await api(`/api/projects`);
+    const data = await api(`/api/projects?include_archived=1`);
     state.projects = data.projects;
     renderProjectList();
 }

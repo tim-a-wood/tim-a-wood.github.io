@@ -496,12 +496,18 @@
             </div>
           `);
         });
-        RoomEditor.State.projects.forEach((project) => {
+        [...RoomEditor.State.projects]
+          .sort((a, b) => (a.archived_at ? 1 : 0) - (b.archived_at ? 1 : 0))
+          .forEach((project) => {
           const active = project.project_id === PROJECT_ID ? 'active' : '';
+          const archivedLine = project.archived_at
+            ? '<div class="small-note">Archived in Sprite Workbench (sidebar <strong>Delete</strong> only hid it from the default list). You can still open room layout or Sprite Creation.</div>'
+            : '';
           cards.push(`
             <div class="project-card ${active}" data-room-url="${escapeHtml(roomEditorProjectUrl(project.project_id))}" data-sprite-url="${escapeHtml(spriteWorkbenchProjectUrl(project.project_id))}">
               <strong>${escapeHtml(project.project_name || project.project_id)}</strong>
               <small>${escapeHtml(project.current_stage || 'Sprite Creation')} · Last modified ${escapeHtml(formatDate(project.updated_at))}</small>
+              ${archivedLine}
               <div class="small-note">Open this project’s room layout without leaving the shared workbench project structure. After a refresh, keep <code>?project_id=…</code> in the address bar (reopen via <strong>Load Room</strong> here if it dropped) so platforms and doors load from the same workbench file.</div>
               <div class="project-actions">
                 <button class="secondary" data-action="open-room">Load Room</button>
@@ -536,12 +542,17 @@
 
       async function refreshProjectList() {
         try {
-          const response = await fetch('/api/projects', { cache: 'no-store' });
+          const response = await fetch('/api/projects?include_archived=1', { cache: 'no-store' });
           if (!response.ok) throw new Error(`Project load failed (${response.status})`);
           const payload = await response.json();
           RoomEditor.State.projects = Array.isArray(payload.projects) ? payload.projects : [];
-        } catch (_) {
+        } catch (err) {
           RoomEditor.State.projects = [];
+          const detail = err && err.message ? err.message : 'offline or blocked';
+          setStatus(
+            `Workbench project list unavailable (${detail}). Run ./scripts/start_sprite_workbench_with_env.sh and open this page from http://127.0.0.1:8766 (same host as the API). Local Layout and sandbox rows below still work.`,
+            'warning'
+          );
         }
         syncSidebarProjectName();
         renderProjectList();
