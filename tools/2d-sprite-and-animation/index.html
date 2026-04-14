@@ -3124,25 +3124,12 @@
             transition: grid-template-columns 180ms ease;
         }
 
-        .app-shell.sidebar-collapsed {
-            grid-template-columns: 64px minmax(0, 1fr);
-        }
-
         .sidebar {
             padding: 20px;
             border-right: 1px solid var(--border);
             background: rgba(3, 4, 6, 0.97);
             backdrop-filter: none;
             transition: padding 180ms ease, opacity 180ms ease;
-        }
-
-        .app-shell.sidebar-collapsed .sidebar {
-            padding: 16px 10px;
-        }
-
-        .app-shell.sidebar-collapsed .sidebar-copy,
-        .app-shell.sidebar-collapsed .sidebar-projects {
-            display: none;
         }
 
         .brand {
@@ -3200,10 +3187,6 @@
             writing-mode: vertical-rl;
             transform: rotate(180deg);
             text-align: center;
-        }
-
-        .app-shell.sidebar-collapsed .collapsed-mark {
-            display: block;
         }
 
         .sidebar-title h2 {
@@ -4751,12 +4734,12 @@ const FRIENDLY_STAGE_NAMES = {
 </script>
 <script src="./app/pixellab-animation-helpers.js"></script>
 <script src="./app/core-helpers.js"></script>
-<script src="./app/intake-stage.js?v=20260416"></script>
+<script src="./app/intake-stage.js?v=20260417"></script>
 <script src="./app/concept-view-stage.js"></script>
 <script src="./app/sprite-model-helpers.js"></script>
 <script src="./app/manual-pose-helpers.js"></script>
 <script src="./app/legacy-layout-helpers.js"></script>
-<script src="./app/project-shell.js?v=20260416"></script>
+<script src="./app/project-shell.js?v=20260417"></script>
 <script src="./app/workflow-shell.js"></script>
 <script src="./app/editor-helpers.js"></script>
 <script src="./app/describe-stage.js"></script>
