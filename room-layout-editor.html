@@ -7,9 +7,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/editor-tokens.css?v=20260418" />
-  <link rel="stylesheet" href="css/editor-shell.css?v=20260418" />
-  <link rel="stylesheet" href="css/room-wizard.css?v=20260418" />
+  <link rel="stylesheet" href="css/editor-tokens.css?v=20260414" />
+  <link rel="stylesheet" href="css/editor-shell.css?v=20260414" />
+  <link rel="stylesheet" href="css/room-wizard.css?v=20260414" />
 </head>
 <body>
   <nav class="site-nav" aria-label="Site navigation">
@@ -1195,31 +1195,94 @@
 
   <!-- Default layout seed is loaded from ./room-layout-seed.json at boot (js/editor/init.js). -->
 
-  <script src="js/editor/constants.js?v=20260418"></script>
-  <script src="js/editor/state.js?v=20260418"></script>
-  <script src="js/editor/model.js?v=20260418"></script>
-  <script src="js/editor/topology.js?v=20260418"></script>
-  <script src="js/editor/validation.js?v=20260418"></script>
-  <script src="js/editor/workflow.js?v=20260418"></script>
+  <script src="js/editor/constants.js?v=20260414"></script>
+  <script src="js/editor/state.js?v=20260414"></script>
+  <script src="js/editor/model.js?v=20260414"></script>
+  <script src="js/editor/topology.js?v=20260414"></script>
+  <script src="js/editor/validation.js?v=20260414"></script>
+  <script src="js/editor/workflow.js?v=20260414"></script>
 
-  <script src="js/wizard/export-package.js?v=20260418"></script>
-  <script src="js/wizard/footprint.js?v=20260418"></script>
-  <script src="js/wizard/neighbor-align.js?v=20260418"></script>
-  <script src="js/wizard/terrain.js?v=20260418"></script>
-  <script src="js/wizard/environment.js?v=20260418"></script>
-  <script src="js/wizard/environment-copilot.js?v=20260418"></script>
+  <script src="js/wizard/export-package.js?v=20260414"></script>
+  <script src="js/wizard/footprint.js?v=20260414"></script>
+  <script src="js/wizard/neighbor-align.js?v=20260414"></script>
+  <script src="js/wizard/terrain.js?v=20260414"></script>
+  <script src="js/wizard/environment.js?v=20260414"></script>
+  <script src="js/wizard/environment-copilot.js?v=20260414"></script>
 
-  <script src="js/editor/viewport.js?v=20260418"></script>
-  <script src="js/editor/render.js?v=20260418"></script>
-  <script src="js/editor/ui.js?v=20260418"></script>
-  <script src="js/editor/storage.js?v=20260418"></script>
-  <script src="js/editor/wizard.js?v=20260418"></script>
-  <script src="js/editor/wizard-async.js?v=20260418"></script>
-  <script src="js/editor/wizard-events.js?v=20260418"></script>
-  <script src="js/editor/room-wizard-option-b.js?v=20260418"></script>
-  <script src="js/editor/input.js?v=20260418"></script>
-  <script src="js/editor/game-preview.js?v=20260418"></script>
-  <script src="js/editor/init.js?v=20260418"></script>
-  <script src="js/editor/project-list-fallback.js?v=20260418"></script>
+  <script src="js/editor/viewport.js?v=20260414"></script>
+  <script src="js/editor/render.js?v=20260414"></script>
+  <script src="js/editor/ui.js?v=20260414"></script>
+  <script src="js/editor/storage.js?v=20260414"></script>
+  <script src="js/editor/wizard.js?v=20260414"></script>
+  <script src="js/editor/wizard-async.js?v=20260414"></script>
+  <script src="js/editor/wizard-events.js?v=20260414"></script>
+  <script src="js/editor/room-wizard-option-b.js?v=20260414"></script>
+  <script src="js/editor/input.js?v=20260414"></script>
+  <script src="js/editor/game-preview.js?v=20260414"></script>
+  <script src="js/editor/init.js?v=20260414"></script>
+  <script>
+    window.setTimeout(async () => {
+      const root = document.getElementById('room-project-list');
+      const currentText = (root?.textContent || '').trim();
+      const hasRealCards = root && root.children.length > 0 && !/^(No projects yet\\.?|Projects unavailable)$/i.test(currentText);
+      if (!root || hasRealCards) return;
+      const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (match) => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      }[match]));
+      const formatDate = (value) => {
+        if (!value) return 'Unknown';
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return String(value);
+        return date.toLocaleString([], {
+          month: 'numeric',
+          day: 'numeric',
+          year: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit'
+        });
+      };
+      try {
+        const response = await fetch(`${window.location.origin}/api/projects?include_archived=1`, { cache: 'no-store' });
+        if (!response.ok) throw new Error(`Project load failed (${response.status})`);
+        const payload = await response.json();
+        const projects = Array.isArray(payload.projects) ? payload.projects : [];
+        root.innerHTML = projects.map((project) => {
+          const url = new URL('./room-layout-editor.html', window.location.href);
+          url.searchParams.set('project_id', project.project_id);
+          return `
+            <div class="project-card" data-room-url="${escapeHtml(url.toString())}">
+              <strong>${escapeHtml(project.project_name || project.project_id)}</strong>
+              <small>${escapeHtml(project.current_stage || 'Sprite Creation')} · Last modified ${escapeHtml(formatDate(project.updated_at))}</small>
+              <div class="project-actions">
+                <button class="secondary" data-action="open-room">Load Room</button>
+              </div>
+            </div>
+          `;
+        }).join('');
+        Array.from(root.querySelectorAll('.project-card')).forEach((card) => {
+          const href = card.getAttribute('data-room-url');
+          card.addEventListener('click', (event) => {
+            if (event.target.closest('button')) return;
+            if (href) window.location.href = href;
+          });
+          card.querySelector('[data-action="open-room"]')?.addEventListener('click', (event) => {
+            event.stopPropagation();
+            if (href) window.location.href = href;
+          });
+        });
+      } catch (error) {
+        root.innerHTML = `
+          <div class="project-card project-card--load-error">
+            <strong>Projects unavailable</strong>
+            <div class="small-note">${escapeHtml(error?.message || 'unknown error')}</div>
+          </div>
+        `;
+      }
+    }, 1500);
+  </script>
 </body>
 </html>

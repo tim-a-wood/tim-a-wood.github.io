@@ -3124,12 +3124,25 @@
             transition: grid-template-columns 180ms ease;
         }
 
+        .app-shell.sidebar-collapsed {
+            grid-template-columns: 64px minmax(0, 1fr);
+        }
+
         .sidebar {
             padding: 20px;
             border-right: 1px solid var(--border);
             background: rgba(3, 4, 6, 0.97);
             backdrop-filter: none;
             transition: padding 180ms ease, opacity 180ms ease;
+        }
+
+        .app-shell.sidebar-collapsed .sidebar {
+            padding: 16px 10px;
+        }
+
+        .app-shell.sidebar-collapsed .sidebar-copy,
+        .app-shell.sidebar-collapsed .sidebar-projects {
+            display: none;
         }
 
         .brand {
@@ -3187,6 +3200,10 @@
             writing-mode: vertical-rl;
             transform: rotate(180deg);
             text-align: center;
+        }
+
+        .app-shell.sidebar-collapsed .collapsed-mark {
+            display: block;
         }
 
         .sidebar-title h2 {
@@ -4734,12 +4751,12 @@ const FRIENDLY_STAGE_NAMES = {
 </script>
 <script src="./app/pixellab-animation-helpers.js"></script>
 <script src="./app/core-helpers.js"></script>
-<script src="./app/intake-stage.js?v=20260418"></script>
+<script src="./app/intake-stage.js"></script>
 <script src="./app/concept-view-stage.js"></script>
 <script src="./app/sprite-model-helpers.js"></script>
 <script src="./app/manual-pose-helpers.js"></script>
 <script src="./app/legacy-layout-helpers.js"></script>
-<script src="./app/project-shell.js?v=20260418"></script>
+<script src="./app/project-shell.js"></script>
 <script src="./app/workflow-shell.js"></script>
 <script src="./app/editor-helpers.js"></script>
 <script src="./app/describe-stage.js"></script>
@@ -4752,8 +4769,74 @@ const FRIENDLY_STAGE_NAMES = {
 <script src="./app/legacy-production-stage.js"></script>
 <script src="./app/legacy-clips-stage.js"></script>
 <script src="./app/product-shell.js"></script>
-<script src="./app/project-list-fallback.js?v=20260418"></script>
 <script>
+window.__MV_WORKBENCH_FALLBACK_RENDER__ = async function () {
+    const root = document.querySelector("#project-list");
+    if (!root) return;
+    const currentText = (root.textContent || "").trim();
+    const hasRealCards = root.querySelector(".project-card");
+    if (hasRealCards && !/^(No projects yet\\.?|Projects unavailable)$/i.test(currentText)) return;
+    const escapeHtml = (value) => String(value ?? "").replace(/[&<>\"']/g, (match) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        "\"": "&quot;",
+        "'": "&#39;"
+    }[match]));
+    const formatDate = (value) => {
+        if (!value) return "Unknown";
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return String(value);
+        return date.toLocaleString([], {
+            month: "numeric",
+            day: "numeric",
+            year: "numeric",
+            hour: "numeric",
+            minute: "2-digit"
+        });
+    };
+    try {
+        const response = await fetch(`${window.location.origin}/api/projects?include_archived=1`, { cache: "no-store" });
+        if (!response.ok) throw new Error(`Project load failed (${response.status})`);
+        const payload = await response.json();
+        const projects = Array.isArray(payload.projects) ? payload.projects : [];
+        root.innerHTML = projects.map((project) => {
+            const url = new URL("./index.html", window.location.href);
+            url.searchParams.set("project", project.project_id);
+            return `
+                <div class="project-card" data-project-url="${escapeHtml(url.toString())}">
+                    <strong>${escapeHtml(project.project_name || project.project_id)}</strong>
+                    <small>${escapeHtml(project.current_stage || "Sprite Creation")}</small>
+                    <div class="small-note">Last modified ${escapeHtml(formatDate(project.updated_at))}</div>
+                    <div class="project-actions">
+                        <button class="secondary" data-action="load">Load Project</button>
+                    </div>
+                </div>
+            `;
+        }).join("");
+        Array.from(root.querySelectorAll(".project-card")).forEach((card) => {
+            const href = card.getAttribute("data-project-url");
+            card.addEventListener("click", (event) => {
+                if (event.target.closest("button")) return;
+                if (href) window.location.href = href;
+            });
+            card.querySelector("[data-action='load']")?.addEventListener("click", (event) => {
+                event.stopPropagation();
+                if (href) window.location.href = href;
+            });
+        });
+    } catch (error) {
+        root.innerHTML = `
+            <div class="project-card project-card--load-error">
+                <strong>Projects unavailable</strong>
+                <div class="small-note">${escapeHtml(error?.message || "unknown error")}</div>
+            </div>
+        `;
+    }
+};
+window.setTimeout(() => { window.__MV_WORKBENCH_FALLBACK_RENDER__(); }, 250);
+window.setTimeout(() => { window.__MV_WORKBENCH_FALLBACK_RENDER__(); }, 1500);
+
 boot().catch((error) => {
     const message = normalizeErrorMessage(`${error.message}. Open ${WORKBENCH_BASE}/index.html if you want the page and API on the same origin.`);
     log(message, "error");
