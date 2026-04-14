@@ -74,9 +74,11 @@ async function refreshProjectList() {
           if (!response.ok) throw new Error(`Project load failed (${response.status})`);
           const payload = await response.json();
           RoomEditor.State.projects = Array.isArray(payload.projects) ? payload.projects : [];
+          RoomEditor.State.projectsListLoadError = null;
         } catch (err) {
           RoomEditor.State.projects = [];
           const detail = err && err.message ? err.message : 'offline or blocked';
+          RoomEditor.State.projectsListLoadError = detail;
           RoomEditor.Ui.setStatus(
             `Workbench project list unavailable (${detail}). Run ./scripts/start_sprite_workbench_with_env.sh and open this page from http://127.0.0.1:8766 (same host as the API). Local Layout and sandbox rows below still work.`,
             'warning'

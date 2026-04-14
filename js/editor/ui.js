@@ -234,6 +234,16 @@ function renderProjectList() {
             </div>
           `);
         });
+        if (RoomEditor.State.projectsListLoadError) {
+          cards.push(`
+            <div class="project-card project-card--load-error" tabindex="0">
+              <strong>Workbench projects did not load</strong>
+              <div class="small-note project-card__error-detail">${escapeHtml(RoomEditor.State.projectsListLoadError)}</div>
+              <div class="small-note">Open this page from <code>http://127.0.0.1:8766/room-layout-editor.html</code> with <code>./scripts/start_sprite_workbench_with_env.sh</code> running. GitHub Pages and <code>file://</code> cannot reach <code>/api/projects</code>.</div>
+              <div class="small-note">If you already did that, hard-refresh so scripts reload (Safari: Shift+Reload, or Develop menu, Empty Caches). The <code>?v=</code> on each script URL changes when the editor updates.</div>
+            </div>
+          `);
+        }
         [...RoomEditor.State.projects]
           .sort((a, b) => (a.archived_at ? 1 : 0) - (b.archived_at ? 1 : 0))
           .forEach((project) => {

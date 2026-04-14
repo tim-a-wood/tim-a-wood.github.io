@@ -34,6 +34,8 @@ RoomEditor.State = {
         toastTimer: null,
         activity: null,
         projects: [],
+        /** Set when GET /api/projects fails so the sidebar can show a visible notice (not only the footer status). */
+        projectsListLoadError: null,
         isDirty: false,
         lastPlacedId: null,
         lastValidationReport: null,

@@ -207,6 +207,18 @@ a { color: var(--accent); }
   border-color: rgba(0,232,200,0.30);
   box-shadow: inset 0 0 0 1px var(--line);
 }
+.project-card.project-card--load-error {
+  border-color: var(--warning);
+  cursor: default;
+  background: var(--warning-soft);
+}
+.project-card.project-card--load-error strong {
+  color: var(--warning);
+}
+.project-card.project-card--load-error .project-card__error-detail {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+}
 .project-card:hover {
   border-color: rgba(0,232,200,0.28);
   background: rgba(7, 11, 15, 0.98);

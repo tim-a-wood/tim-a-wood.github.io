@@ -385,6 +385,7 @@
         toastTimer: null,
         activity: null,
         projects: [],
+        projectsListLoadError: null,
         isDirty: false,
         lastPlacedId: null,
         lastValidationReport: null,
@@ -496,6 +497,16 @@
             </div>
           `);
         });
+        if (RoomEditor.State.projectsListLoadError) {
+          cards.push(`
+            <div class="project-card project-card--load-error" tabindex="0">
+              <strong>Workbench projects did not load</strong>
+              <div class="small-note project-card__error-detail">${escapeHtml(RoomEditor.State.projectsListLoadError)}</div>
+              <div class="small-note">Open this page from <code>http://127.0.0.1:8766/room-layout-editor.html</code> with <code>./scripts/start_sprite_workbench_with_env.sh</code> running. GitHub Pages and <code>file://</code> cannot reach <code>/api/projects</code>.</div>
+              <div class="small-note">If you already did that, hard-refresh so scripts reload (Safari: Shift+Reload, or Develop menu, Empty Caches). The <code>?v=</code> on each script URL changes when the editor updates.</div>
+            </div>
+          `);
+        }
         [...RoomEditor.State.projects]
           .sort((a, b) => (a.archived_at ? 1 : 0) - (b.archived_at ? 1 : 0))
           .forEach((project) => {
@@ -546,9 +557,11 @@
           if (!response.ok) throw new Error(`Project load failed (${response.status})`);
           const payload = await response.json();
           RoomEditor.State.projects = Array.isArray(payload.projects) ? payload.projects : [];
+          RoomEditor.State.projectsListLoadError = null;
         } catch (err) {
           RoomEditor.State.projects = [];
           const detail = err && err.message ? err.message : 'offline or blocked';
+          RoomEditor.State.projectsListLoadError = detail;
           setStatus(
             `Workbench project list unavailable (${detail}). Run ./scripts/start_sprite_workbench_with_env.sh and open this page from http://127.0.0.1:8766 (same host as the API). Local Layout and sandbox rows below still work.`,
             'warning'
