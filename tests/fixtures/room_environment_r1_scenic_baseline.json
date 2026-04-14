@@ -1,0 +1,21 @@
+{
+  "contract": "room_environment_r1_scenic_shell",
+  "locked_at": "2026-04-14",
+  "minimum_code_commit_for_guide_only_background_refs": "688feae7d45fbb9f7a6974112f3a769c43a02816",
+  "decisions": ["214", "215", "216", "217", "226", "227", "228"],
+  "project": {
+    "project_id": "room-ai-helpfulness-qa-67562113",
+    "room_id": "R1"
+  },
+  "pipeline_contract": {
+    "background_far_plate_gemini_references": "guide_only",
+    "notes": "No footprint silhouette PNG in reference stack for background_far_plate (§227). Midground and structural slots may still use silhouette when polygon is valid."
+  },
+  "canonical_artifacts_relative": {
+    "runtime_review_png": "tools/2d-sprite-and-animation/projects-data/room-ai-helpfulness-qa-67562113/room_environment_assets/R1/review/runtime-review.png",
+    "background_bespoke_png": "tools/2d-sprite-and-animation/projects-data/room-ai-helpfulness-qa-67562113/room_environment_assets/R1/bespoke/R1-background.png",
+    "unified_shell_png": "tools/2d-sprite-and-animation/projects-data/room-ai-helpfulness-qa-67562113/room_environment_assets/R1/bespoke/R1-room-shell.png",
+    "midground_png": "tools/2d-sprite-and-animation/projects-data/room-ai-helpfulness-qa-67562113/room_environment_assets/R1/bespoke/R1-midground.png"
+  },
+  "source_note": "PNG paths live under projects-data (often gitignored). CI validates this JSON only; local full-room checks use the files when present."
+}

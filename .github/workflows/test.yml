@@ -24,6 +24,9 @@ jobs:
       - name: Unified shell hole baseline (Python)
         run: python3 tests/unified_shell_hole_baseline.test.py
 
+      - name: Room environment R1 scenic baseline fixture (Python)
+        run: python3 tests/room_environment_r1_scenic_baseline.test.py
+
       - name: Email digest theme (Python)
         run: python3 tests/send_weekly_digest_email_theme_test.py
 
