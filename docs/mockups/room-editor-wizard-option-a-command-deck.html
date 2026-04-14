@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Room Editor Wizard — Option A: Command Deck</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#050709; --bg-d:#040608; --bg-l:#060b0e;
+  --panel:rgba(4,6,10,0.96); --panel-2:#07090c; --panel-3:#0a0f14;
+  --accent:#00e8c8; --accent-hover:#20f4d4; --accent-soft:rgba(0,232,200,0.08);
+  --text:#cce8e0; --muted:#5d7870; --faint:rgba(204,232,224,0.25);
+  --stroke:rgba(0,232,200,0.07); --stroke-strong:rgba(0,232,200,0.14);
+  --line:rgba(0,232,200,0.10); --line-strong:rgba(0,232,200,0.18);
+  --good:#4ade80; --good-soft:rgba(74,222,128,0.12);
+  --warning:#d29922; --warning-soft:rgba(210,153,34,0.16);
+  --error:#f85149; --error-soft:rgba(248,81,73,0.16);
+  --gold:#d4a752; --gold-l:#f1d9a2; --gold-t:#151108;
+  --font-sans:"Plus Jakarta Sans",-apple-system,sans-serif;
+  --font-display:"Bebas Neue",sans-serif;
+  --font-mono:"DM Mono",ui-monospace,monospace;
+  --fs-xs:11px; --fs-sm:13px; --fs-b:14px; --fs-md:15px; --fs-lg:18px; --fs-xl:22px; --fs-2xl:26px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px; --s7:48px;
+  --r-sm:8px; --r-md:10px; --r-tight:14px; --r-card:18px; --r-lg:20px; --r-full:999px;
+  --ent-platform:#4a9eff; --ent-door:#ff9750; --ent-vertex:#ff6aa3;
+  --ent-key:#6ee792; --ent-ability:#a77dff; --ent-mover:#f5d54b; --ent-start:#d0b0ff;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{
+  min-height:100vh; background:linear-gradient(180deg,#040608,#050709 52%,#060b0e);
+  color:var(--text); font-family:var(--font-sans); font-size:var(--fs-b);
+  overflow:hidden;
+}
+button{font:inherit;color:inherit;background:transparent;border:0;cursor:pointer}
+:focus-visible{outline:2px solid rgba(0,232,200,.35);outline-offset:2px;border-radius:4px}
+.uppercase{font-size:var(--fs-xs);font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.mono{font-family:var(--font-mono)}
+
+/* Shell */
+.app{
+  display:grid;
+  grid-template-rows:52px 1fr 28px;
+  height:100vh;
+}
+.topbar{
+  display:flex; align-items:center; gap:var(--s4);
+  padding:0 var(--s4);
+  background:var(--panel);
+  border-bottom:1px solid var(--stroke);
+}
+.brand{
+  font-family:var(--font-display); font-size:20px; letter-spacing:.05em; color:var(--text);
+}
+.brand em{color:var(--accent);font-style:normal}
+.breadcrumb{
+  display:flex; align-items:center; gap:var(--s2); color:var(--muted); font-size:var(--fs-sm);
+}
+.breadcrumb b{color:var(--text);font-weight:600}
+.topbar-scope{
+  margin-left:auto; display:inline-flex; padding:3px;
+  background:var(--panel-2); border:1px solid var(--stroke);
+  border-radius:var(--r-full); gap:2px;
+}
+.scope-chip{
+  padding:6px 14px; border-radius:var(--r-full); font-size:var(--fs-sm); font-weight:600;
+  color:var(--muted); min-height:28px;
+}
+.scope-chip.active{background:var(--accent-soft); color:var(--accent); box-shadow:inset 0 0 0 1px var(--line-strong)}
+.topbar-actions{display:flex; gap:var(--s2); align-items:center}
+.btn{
+  min-height:32px; padding:6px 12px; border-radius:var(--r-tight);
+  border:1px solid var(--line); background:rgba(255,255,255,.03);
+  font-size:var(--fs-sm); font-weight:600; transition:background 120ms ease,border-color 120ms ease,transform 120ms ease;
+}
+.btn:hover{border-color:var(--line-strong); background:rgba(255,255,255,.05); transform:translateY(-1px)}
+.btn.primary{
+  background:linear-gradient(180deg,rgba(245,208,116,.92),rgba(220,176,73,.92));
+  color:var(--gold-t); border-color:rgba(245,208,116,.4);
+}
+.btn.accent{border-color:var(--accent); color:var(--accent); background:var(--accent-soft)}
+.btn.ghost{border-color:transparent}
+.btn.icon{width:32px; padding:0; justify-content:center; display:inline-flex; align-items:center}
+.dirty-dot{width:7px;height:7px;border-radius:50%;background:var(--warning);box-shadow:0 0 6px var(--warning)}
+
+/* Main grid */
+.main{
+  display:grid;
+  grid-template-columns:248px 56px 1fr 360px;
+  min-height:0;
+}
+.main > *{min-height:0}
+
+/* Left: phase rail + project */
+.rail{
+  background:var(--panel); border-right:1px solid var(--stroke);
+  display:flex; flex-direction:column; padding:var(--s4) var(--s3);
+  gap:var(--s3); overflow-y:auto;
+}
+.rail-section{display:flex;flex-direction:column;gap:var(--s2)}
+.phase-list{display:flex;flex-direction:column;gap:6px}
+.phase{
+  display:grid; grid-template-columns:28px 1fr auto; align-items:center; gap:var(--s3);
+  padding:10px 12px; border-radius:var(--r-tight);
+  border:1px solid transparent; background:transparent;
+  text-align:left; transition:background 120ms ease,border-color 120ms ease;
+}
+.phase:hover{background:rgba(255,255,255,.03)}
+.phase-num{
+  width:28px;height:28px; border-radius:var(--r-full); display:grid; place-items:center;
+  font-family:var(--font-display); font-size:15px; letter-spacing:.04em;
+  background:var(--panel-2); color:var(--muted); border:1px solid var(--stroke);
+}
+.phase-body strong{display:block;font-size:var(--fs-sm);font-weight:700;color:var(--text)}
+.phase-body small{display:block;font-size:var(--fs-xs);color:var(--muted);margin-top:2px}
+.phase-badge{font-size:var(--fs-xs); color:var(--muted)}
+.phase.done .phase-num{background:var(--good-soft);color:var(--good);border-color:transparent}
+.phase.done .phase-badge{color:var(--good)}
+.phase.active{background:var(--accent-soft); border-color:var(--line-strong)}
+.phase.active .phase-num{background:var(--accent); color:var(--gold-t); border-color:transparent}
+.phase.active .phase-body strong{color:var(--accent)}
+.phase.locked{opacity:.5; cursor:not-allowed}
+.phase.locked .phase-badge{color:var(--faint)}
+
+.rail-divider{height:1px; background:var(--line); margin:var(--s2) 0}
+.project-card{
+  padding:var(--s3); border:1px solid var(--stroke); border-radius:var(--r-tight);
+  background:var(--panel-2);
+}
+.project-card .name{font-family:var(--font-display);font-size:18px;letter-spacing:.04em;color:var(--text)}
+.project-meta{font-size:var(--fs-xs);color:var(--muted);margin-top:var(--s1); font-family:var(--font-mono)}
+.room-picker{
+  margin-top:var(--s2);
+  display:flex;flex-direction:column;gap:4px;
+}
+.room-picker button{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:8px 10px; border-radius:10px; font-size:var(--fs-sm);
+  color:var(--muted); border:1px solid transparent;
+}
+.room-picker button:hover{background:rgba(255,255,255,.03);color:var(--text)}
+.room-picker button.active{background:var(--accent-soft); color:var(--accent); border-color:var(--line-strong)}
+.room-picker .room-id{font-family:var(--font-mono);font-size:var(--fs-xs);color:var(--muted)}
+
+/* Tool palette (56px) */
+.tools{
+  background:var(--panel); border-right:1px solid var(--stroke);
+  display:flex; flex-direction:column; align-items:center; gap:4px;
+  padding:var(--s3) 0;
+}
+.tool{
+  width:40px;height:40px; border-radius:12px;
+  display:grid; place-items:center; color:var(--muted);
+  border:1px solid transparent; position:relative;
+}
+.tool:hover{background:rgba(255,255,255,.04); color:var(--text)}
+.tool.active{background:var(--accent-soft); color:var(--accent); border-color:var(--line-strong)}
+.tool .kbd{
+  position:absolute; right:-4px; bottom:-4px; font-family:var(--font-mono); font-size:9px;
+  padding:1px 4px; background:var(--panel-3); border:1px solid var(--stroke); border-radius:4px;
+  color:var(--muted);
+}
+.tool-sep{width:24px;height:1px;background:var(--line);margin:var(--s1) 0}
+
+/* Stage */
+.stage{
+  display:grid;
+  grid-template-rows:auto 1fr auto;
+  min-height:0;
+}
+.canvas-bar{
+  display:flex; align-items:center; gap:var(--s3);
+  padding:var(--s2) var(--s4);
+  border-bottom:1px solid var(--stroke);
+  background:rgba(7,9,12,.6);
+}
+.canvas-title{font-family:var(--font-display); font-size:18px; letter-spacing:.05em}
+.canvas-coords{font-family:var(--font-mono);font-size:var(--fs-xs);color:var(--muted)}
+.canvas-zoom{display:inline-flex;border:1px solid var(--stroke); border-radius:var(--r-full); overflow:hidden}
+.canvas-zoom button{padding:4px 10px;font-size:var(--fs-xs);color:var(--muted)}
+.canvas-zoom button.active{background:var(--accent-soft);color:var(--accent)}
+.canvas-bar .spacer{flex:1}
+.canvas-wrap{
+  position:relative; min-height:0;
+  background:
+    linear-gradient(#0a0f14,#0a0f14) padding-box,
+    radial-gradient(circle at 20% 30%, rgba(0,232,200,.05), transparent 50%);
+  overflow:hidden;
+}
+.grid-bg{
+  position:absolute; inset:0;
+  background-image:
+    linear-gradient(rgba(0,232,200,.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,232,200,.05) 1px, transparent 1px);
+  background-size:32px 32px;
+  pointer-events:none;
+}
+.room-poly{
+  position:absolute; left:14%; top:10%; width:72%; height:76%;
+  border:1.5px dashed rgba(0,232,200,.35);
+  background:rgba(0,232,200,.025);
+  border-radius:4px;
+}
+.room-label{
+  position:absolute; top:8%; left:14%;
+  font-family:var(--font-mono); font-size:var(--fs-xs); color:var(--muted);
+  background:rgba(4,6,10,.7); padding:2px 8px; border-radius:4px;
+  border:1px solid var(--stroke);
+}
+.plat{position:absolute; background:var(--ent-platform); border:1px solid rgba(74,158,255,.6); border-radius:3px; opacity:.85}
+.plat.sel{outline:2px solid var(--accent); outline-offset:2px}
+.door{position:absolute; width:22px; height:44px; background:var(--ent-door); border-radius:3px; border:1px solid rgba(255,151,80,.6)}
+.vert{position:absolute; width:10px; height:10px; background:var(--ent-vertex); border-radius:50%; transform:translate(-50%,-50%); border:1.5px solid #0a0f14}
+.vert.sel{box-shadow:0 0 0 3px rgba(0,232,200,.35)}
+.key{position:absolute; width:16px; height:16px; background:var(--ent-key); border-radius:50%; transform:translate(-50%,-50%)}
+.start{position:absolute; width:18px; height:18px; background:var(--ent-start); transform:translate(-50%,-50%) rotate(45deg); border-radius:3px}
+
+/* Floating canvas hud */
+.canvas-hud{
+  position:absolute; right:var(--s3); bottom:var(--s3);
+  display:flex; flex-direction:column; gap:var(--s2); align-items:flex-end;
+}
+.hud-card{
+  padding:var(--s2) var(--s3); border-radius:12px;
+  background:rgba(4,6,10,.8); border:1px solid var(--stroke);
+  backdrop-filter:blur(10px); font-size:var(--fs-xs); color:var(--muted);
+}
+.hud-card b{color:var(--text); font-weight:600}
+
+/* Copilot dock */
+.copilot-dock{
+  position:absolute; left:var(--s3); bottom:var(--s3);
+  width:320px;
+  background:rgba(4,6,10,.82); backdrop-filter:blur(14px);
+  border:1px solid var(--line-strong); border-radius:var(--r-card);
+  padding:var(--s3); display:flex; flex-direction:column; gap:var(--s2);
+  box-shadow:0 12px 32px rgba(0,0,0,.42);
+}
+.copilot-head{display:flex;align-items:center;gap:var(--s2)}
+.copilot-head .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent)}
+.copilot-head strong{font-family:var(--font-display); font-size:15px; letter-spacing:.05em}
+.copilot-suggest{
+  font-size:var(--fs-sm); color:var(--text);
+  padding:10px; border-radius:10px; background:var(--accent-soft);
+  border:1px solid var(--line);
+}
+.copilot-input{
+  display:flex; gap:var(--s2);
+}
+.copilot-input input{
+  flex:1; min-height:32px; border-radius:10px; padding:6px 10px;
+  background:var(--panel-2); border:1px solid var(--stroke); color:var(--text);
+  font:inherit; font-size:var(--fs-sm);
+}
+.copilot-input input:focus{outline:none; border-color:var(--accent)}
+
+/* Inspector */
+.inspector{
+  background:var(--panel); border-left:1px solid var(--stroke);
+  display:grid; grid-template-rows:auto auto 1fr; min-height:0;
+}
+.ins-head{
+  padding:var(--s4); border-bottom:1px solid var(--stroke);
+}
+.ins-head .eyebrow{font-family:var(--font-display); font-size:var(--fs-xs); letter-spacing:.16em; color:var(--muted)}
+.ins-head h2{font-family:var(--font-display); font-size:var(--fs-xl); letter-spacing:.05em; margin-top:6px}
+.ins-head p{color:var(--muted); font-size:var(--fs-sm); margin-top:var(--s2); line-height:1.55}
+.ins-tabs{
+  display:flex; gap:4px; padding:var(--s2) var(--s4); border-bottom:1px solid var(--stroke);
+  background:var(--panel-2);
+}
+.ins-tab{
+  padding:6px 10px; font-size:var(--fs-xs); font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--muted); border-radius:8px;
+}
+.ins-tab.active{background:var(--accent-soft); color:var(--accent)}
+.ins-body{padding:var(--s4); overflow-y:auto; display:flex; flex-direction:column; gap:var(--s3); min-height:0}
+.wizard-pane{display:none;flex-direction:column;gap:var(--s3)}
+.wizard-pane.active{display:flex}
+.stage-card{
+  border:1px solid var(--stroke); border-radius:var(--r-tight);
+  padding:var(--s3); background:var(--panel-2); display:flex; flex-direction:column; gap:var(--s2);
+}
+.stage-card h4{font-family:var(--font-display); font-size:15px; letter-spacing:.05em; color:var(--text)}
+.stage-card p.hint{font-size:var(--fs-xs); color:var(--muted); line-height:1.5}
+.field{display:flex; flex-direction:column; gap:6px}
+.field label{font-size:var(--fs-xs); color:var(--muted); font-weight:700; letter-spacing:.08em; text-transform:uppercase}
+.field input, .field select{
+  min-height:36px; border-radius:10px; padding:6px 10px;
+  background:var(--panel-3); border:1px solid var(--stroke); color:var(--text);
+  font:inherit; font-size:var(--fs-sm);
+}
+.field input:focus, .field select:focus{outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(0,232,200,.15)}
+.field-grid{display:grid; grid-template-columns:1fr 1fr; gap:var(--s2)}
+.preset-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:var(--s2)}
+.preset{
+  padding:10px; border:1px solid var(--stroke); border-radius:10px;
+  background:var(--panel-3); font-size:var(--fs-sm); font-weight:600; text-align:left;
+}
+.preset:hover{border-color:var(--line-strong)}
+.preset .preset-hint{display:block; font-size:var(--fs-xs); color:var(--muted); font-weight:400; margin-top:2px}
+.checklist{display:flex; flex-direction:column; gap:var(--s2)}
+.check{display:flex; gap:var(--s2); align-items:flex-start; font-size:var(--fs-sm)}
+.check .box{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--stroke);display:inline-grid;place-items:center; color:transparent; flex-shrink:0; margin-top:2px}
+.check.done .box{background:var(--good); border-color:var(--good); color:var(--gold-t)}
+.check.done{color:var(--muted); text-decoration:line-through}
+.badge{
+  display:inline-flex; align-items:center; gap:4px; padding:2px 8px;
+  font-size:var(--fs-xs); font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+  border-radius:var(--r-full); background:var(--accent-soft); color:var(--accent);
+}
+.badge.warn{background:var(--warning-soft); color:var(--warning)}
+.badge.good{background:var(--good-soft); color:var(--good)}
+
+/* Statusbar */
+.statusbar{
+  display:flex; align-items:center; gap:var(--s4);
+  padding:0 var(--s4);
+  background:var(--panel); border-top:1px solid var(--stroke);
+  font-size:var(--fs-xs); color:var(--muted); font-family:var(--font-mono);
+}
+.statusbar .dot{width:6px;height:6px;border-radius:50%;background:var(--good)}
+.statusbar b{color:var(--text); font-weight:600}
+.statusbar .spacer{flex:1}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="brand">sprite<em>·</em>workbench</div>
+    <div class="breadcrumb">
+      <span>Projects</span> <span>›</span>
+      <b>Ashen Hollow</b> <span>›</span>
+      <span>Room Creation</span>
+    </div>
+
+    <div class="topbar-scope" role="tablist" aria-label="Editor scope">
+      <button class="scope-chip" role="tab">World</button>
+      <button class="scope-chip active" role="tab" aria-selected="true">Room</button>
+      <button class="scope-chip" role="tab">Art Direction</button>
+    </div>
+
+    <div class="topbar-actions">
+      <button class="btn ghost" title="Command palette (⌘K)">⌘K</button>
+      <button class="btn" title="Keyboard shortcuts (?)">?</button>
+      <button class="btn accent">Validate</button>
+      <button class="btn primary">
+        Save local
+        <span class="dirty-dot" title="Unsaved changes"></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN GRID -->
+  <section class="main">
+
+    <!-- LEFT RAIL: phase rail + project -->
+    <aside class="rail" aria-label="Room workflow">
+      <div class="rail-section">
+        <span class="uppercase">Room phases</span>
+        <div class="phase-list" id="opta-phase-list">
+          <button type="button" class="phase done" data-phase="identity" aria-current="false">
+            <span class="phase-num">✓</span>
+            <span class="phase-body"><strong>Identity</strong><small>Name · id · footprint</small></span>
+            <span class="phase-badge">Done</span>
+          </button>
+          <button type="button" class="phase active" data-phase="layout" aria-current="step">
+            <span class="phase-num">1</span>
+            <span class="phase-body"><strong>Layout</strong><small>Geometry &amp; platforms</small></span>
+            <span class="phase-badge">3 / 5</span>
+          </button>
+          <button type="button" class="phase" data-phase="environment" aria-current="false">
+            <span class="phase-num">2</span>
+            <span class="phase-body"><strong>Environment</strong><small>Describe, preview, build</small></span>
+            <span class="phase-badge">—</span>
+          </button>
+          <button type="button" class="phase" data-phase="entities" aria-current="false">
+            <span class="phase-num">3</span>
+            <span class="phase-body"><strong>Entities</strong><small>Doors, keys, abilities</small></span>
+            <span class="phase-badge">—</span>
+          </button>
+          <button type="button" class="phase" data-phase="review" aria-current="false">
+            <span class="phase-num">4</span>
+            <span class="phase-body"><strong>Review &amp; export</strong><small>Validation · runtime pack</small></span>
+            <span class="phase-badge">Mock</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="rail-divider"></div>
+
+      <div class="rail-section">
+        <span class="uppercase">Project</span>
+        <div class="project-card">
+          <div class="name">Ashen Hollow</div>
+          <div class="project-meta">12 rooms · last saved 2m ago</div>
+          <div class="room-picker">
+            <button><span>Foyer of Ruin</span><span class="room-id">R1</span></button>
+            <button class="active"><span>Flooded Hall</span><span class="room-id">R2</span></button>
+            <button><span>Cistern Drop</span><span class="room-id">R3</span></button>
+            <button><span>Shrine Landing</span><span class="room-id">R4</span></button>
+            <button style="color:var(--accent)">+ New room</button>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- TOOL PALETTE -->
+    <aside class="tools" aria-label="Tool palette">
+      <button class="tool active" title="Select (V)">▲<span class="kbd">V</span></button>
+      <button class="tool" title="Vertex (N)">◆<span class="kbd">N</span></button>
+      <div class="tool-sep"></div>
+      <button class="tool" title="Platform (P)" style="color:var(--ent-platform)">▬<span class="kbd">P</span></button>
+      <button class="tool" title="Door (D)" style="color:var(--ent-door)">⎕<span class="kbd">D</span></button>
+      <button class="tool" title="Key (K)" style="color:var(--ent-key)">●<span class="kbd">K</span></button>
+      <button class="tool" title="Ability (A)" style="color:var(--ent-ability)">✦<span class="kbd">A</span></button>
+      <button class="tool" title="Mover (M)" style="color:var(--ent-mover)">↔<span class="kbd">M</span></button>
+      <button class="tool" title="Player Start (S)" style="color:var(--ent-start)">◆<span class="kbd">S</span></button>
+      <div class="tool-sep"></div>
+      <button class="tool" title="Pan (H)">✥<span class="kbd">H</span></button>
+      <button class="tool" title="Zoom (Z)">⌕<span class="kbd">Z</span></button>
+    </aside>
+
+    <!-- STAGE -->
+    <section class="stage">
+      <div class="canvas-bar">
+        <div class="canvas-title">Flooded Hall</div>
+        <span class="canvas-coords">1600 × 1200 px · grid 32</span>
+        <div class="spacer"></div>
+        <div class="canvas-zoom">
+          <button>Fit</button><button>25%</button><button>50%</button>
+          <button class="active">100%</button><button>200%</button>
+        </div>
+        <button class="btn ghost" title="Grid">Grid ▢</button>
+        <button class="btn ghost" title="Snap">Snap ⊡</button>
+        <button class="btn ghost" title="Undo (⌘Z)">↶</button>
+        <button class="btn ghost" title="Redo (⌘⇧Z)">↷</button>
+      </div>
+
+      <div class="canvas-wrap">
+        <div class="grid-bg"></div>
+        <div class="room-label mono">R2 · Flooded Hall · 1600 × 1200</div>
+        <div class="room-poly"></div>
+
+        <!-- platforms -->
+        <div class="plat" style="left:18%;top:78%;width:64%;height:4%"></div>
+        <div class="plat sel" style="left:30%;top:58%;width:22%;height:4%"></div>
+        <div class="plat" style="left:58%;top:40%;width:18%;height:4%"></div>
+        <div class="plat" style="left:20%;top:28%;width:14%;height:4%"></div>
+
+        <!-- doors -->
+        <div class="door" style="left:14%;top:52%"></div>
+        <div class="door" style="left:84%;top:52%"></div>
+
+        <!-- entities -->
+        <div class="key" style="left:66%;top:38%"></div>
+        <div class="start" style="left:24%;top:74%"></div>
+
+        <!-- vertices on polygon -->
+        <div class="vert" style="left:14%;top:10%"></div>
+        <div class="vert sel" style="left:86%;top:10%"></div>
+        <div class="vert" style="left:86%;top:86%"></div>
+        <div class="vert" style="left:14%;top:86%"></div>
+
+        <!-- HUD -->
+        <div class="canvas-hud">
+          <div class="hud-card"><b>Cursor</b> &nbsp; <span class="mono">x 896 · y 712</span></div>
+          <div class="hud-card"><b>Selection</b> &nbsp; Platform · 352 × 48 px</div>
+          <div class="hud-card"><b>Validation</b> &nbsp; <span style="color:var(--warning)">1 door overlaps platform</span></div>
+        </div>
+
+        <!-- Copilot dock -->
+        <div class="copilot-dock">
+          <div class="copilot-head">
+            <span class="dot"></span>
+            <strong>Level Copilot</strong>
+            <span class="badge">Room context</span>
+          </div>
+          <div class="copilot-suggest">
+            Noticed the west door sits inside a platform band. Want me to shift the platform down 32&nbsp;px or nudge the door up?
+          </div>
+          <div class="copilot-input">
+            <input placeholder="Ask about this room…  (⌘/)" />
+            <button class="btn accent">Send</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- no third row, statusbar is outside -->
+    </section>
+
+    <!-- INSPECTOR -->
+    <aside class="inspector" aria-label="Phase inspector" id="opta-inspector">
+      <div class="ins-head">
+        <span class="eyebrow" id="opta-ins-eyebrow">Phase 1 · Layout</span>
+        <h2 id="opta-ins-title">Shape the room</h2>
+        <p id="opta-ins-desc">Name it, set its footprint, then place platforms. Environment unlocks when Identity is valid and the footprint has at least one floor platform.</p>
+      </div>
+      <div class="ins-body" id="opta-ins-body">
+        <div class="wizard-pane" data-pane="identity" hidden>
+          <div class="stage-card">
+            <h4>Identity</h4>
+            <p class="hint">Everything downstream keys off a stable id and honest footprint. You can revisit this anytime.</p>
+            <div class="field-grid">
+              <div class="field"><label>Room name</label><input value="Flooded Hall"/></div>
+              <div class="field"><label>Room id</label><input value="R2" class="mono"/></div>
+            </div>
+            <div class="preset-grid">
+              <button type="button" class="preset">Small<span class="preset-hint">960 × 720</span></button>
+              <button type="button" class="preset" style="border-color:var(--accent); background:var(--accent-soft)">Medium<span class="preset-hint">1600 × 1200 · active</span></button>
+              <button type="button" class="preset">Large<span class="preset-hint">2240 × 1200</span></button>
+              <button type="button" class="preset">Custom<span class="preset-hint">W × H</span></button>
+            </div>
+          </div>
+        </div>
+
+        <div class="wizard-pane active" data-pane="layout">
+      <div class="ins-tabs" role="tablist">
+        <button type="button" class="ins-tab active">Guide</button>
+        <button type="button" class="ins-tab">Selection</button>
+        <button type="button" class="ins-tab">Neighbors</button>
+        <button type="button" class="ins-tab">Checks</button>
+      </div>
+        <div class="stage-card">
+          <h4>Checklist</h4>
+          <div class="checklist">
+            <div class="check done"><span class="box">✓</span>Room name &amp; id set</div>
+            <div class="check done"><span class="box">✓</span>Footprint chosen (Medium · 1600×1200)</div>
+            <div class="check done"><span class="box">✓</span>At least one floor platform</div>
+            <div class="check"><span class="box"></span>Two or more doors placed</div>
+            <div class="check"><span class="box"></span>No door / platform overlaps</div>
+          </div>
+        </div>
+
+        <div class="stage-card">
+          <h4>Identity</h4>
+          <div class="field-grid">
+            <div class="field"><label>Room name</label><input value="Flooded Hall"/></div>
+            <div class="field"><label>Room id</label><input value="R2" class="mono"/></div>
+          </div>
+        </div>
+
+        <div class="stage-card">
+          <h4>Footprint</h4>
+          <div class="preset-grid">
+            <button class="preset">Small<span class="preset-hint">960 × 720</span></button>
+            <button class="preset" style="border-color:var(--accent); background:var(--accent-soft)">Medium<span class="preset-hint">1600 × 1200 · active</span></button>
+            <button class="preset">Large<span class="preset-hint">2240 × 1200</span></button>
+            <button class="preset">Custom<span class="preset-hint">W × H</span></button>
+          </div>
+        </div>
+
+        <div class="stage-card">
+          <h4>Preset library <span class="badge">adds platforms</span></h4>
+          <p class="hint">Drops a starter shape inside the footprint. Adjust on canvas after placing.</p>
+          <div class="preset-grid">
+            <button class="preset">Ground band</button>
+            <button class="preset">Two levels</button>
+            <button class="preset">Step up</button>
+            <button class="preset">Ledge pair</button>
+            <button class="preset">Island</button>
+          </div>
+        </div>
+
+        <div class="stage-card">
+          <h4>Checks <span class="badge warn">1 warning</span></h4>
+          <p class="hint" style="color:var(--warning)">West door anchor overlaps the lower ledge platform — traversal check will fail.</p>
+          <button type="button" class="btn accent" style="align-self:flex-start">Auto-fix (shift platform -32 px)</button>
+        </div>
+        </div>
+
+        <div class="wizard-pane" data-pane="environment" hidden>
+          <div class="stage-card">
+            <h4>Mood &amp; theme</h4>
+            <p class="hint">Plain language first. Copilot proposes structured tags; you approve before anything hits export.</p>
+            <div class="field"><label>Describe the room in one sentence</label><input value="Flooded hall with cold cyan bloom and distant drip"/></div>
+            <div class="preset-grid">
+              <button type="button" class="preset">ruins</button>
+              <button type="button" class="preset">wet</button>
+              <button type="button" class="preset">cold</button>
+              <button type="button" class="preset">low-magic</button>
+            </div>
+          </div>
+          <div class="stage-card">
+            <h4>Preview &amp; build <span class="badge">RW-4</span></h4>
+            <p class="hint">Thumbnail grid and build receipts stay in this column in production; this mock shows the intent.</p>
+            <button type="button" class="btn accent">Open Environment Copilot</button>
+            <button type="button" class="btn">Regenerate preview strip</button>
+          </div>
+        </div>
+
+        <div class="wizard-pane" data-pane="entities" hidden>
+          <div class="stage-card">
+            <h4>Gameplay seeds</h4>
+            <p class="hint">Keep counts honest against your progression doc. Orange = door, green = key, purple = ability.</p>
+            <div class="checklist">
+              <div class="check done"><span class="box">✓</span>Player start placed</div>
+              <div class="check"><span class="box"></span>East door (progression) — missing</div>
+              <div class="check done"><span class="box">✓</span>West door (return)</div>
+              <div class="check done"><span class="box">✓</span>Key pickup (mid)</div>
+            </div>
+          </div>
+          <div class="stage-card">
+            <h4>World graph hints</h4>
+            <p class="hint">Links to neighbor alignment and hatch height live here in production.</p>
+            <button type="button" class="btn">Open neighbor matrix</button>
+          </div>
+        </div>
+
+        <div class="wizard-pane" data-pane="review" hidden>
+          <div class="stage-card">
+            <h4>Validation</h4>
+            <div class="checklist">
+              <div class="check done"><span class="box">✓</span>Footprint closed</div>
+              <div class="check done"><span class="box">✓</span>Platforms inside bounds</div>
+              <div class="check"><span class="box"></span>Door/platform overlap (1)</div>
+              <div class="check"><span class="box"></span>Environment approved</div>
+            </div>
+          </div>
+          <div class="stage-card">
+            <h4>Export</h4>
+            <p class="hint">Same actions as today — wizard just gathers confidence before download.</p>
+            <div style="display:flex;gap:var(--s2);flex-wrap:wrap">
+              <button type="button" class="btn primary">Export JSON</button>
+              <button type="button" class="btn accent">Export runtime pack</button>
+              <button type="button" class="btn">Open game</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+  </section>
+
+  <!-- STATUSBAR -->
+  <footer class="statusbar">
+    <span class="dot" title="Autosave healthy"></span>
+    <span>Autosave <b>on</b></span>
+    <span>· Project <b>ashen-hollow</b></span>
+    <span>· Room <b>R2</b></span>
+    <span>· Tool <b>Select</b></span>
+    <div class="spacer"></div>
+    <span>⌘Z undo · ⌘⇧Z redo · ⌘K palette · ? shortcuts</span>
+  </footer>
+
+</div>
+<script>
+(function () {
+  var order = ['identity', 'layout', 'environment', 'entities', 'review'];
+  var copy = {
+    identity: { eyebrow: 'Identity', title: 'Lock the room identity', desc: 'Stable id, readable name, and footprint preset set the contract for geometry, environment, and exports.' },
+    layout: { eyebrow: 'Phase 1 · Layout', title: 'Shape the room', desc: 'Name it, set its footprint, then place platforms. Environment unlocks when Identity is valid and the footprint has at least one floor platform.' },
+    environment: { eyebrow: 'Phase 2 · Environment', title: 'Dress the room', desc: 'Describe mood in plain language, curate tags, then run previews. Copilot proposes structured fields — nothing applies until you approve.' },
+    entities: { eyebrow: 'Phase 3 · Entities', title: 'Place gameplay seeds', desc: 'Doors, keys, abilities, movers, and start anchors should match your progression matrix before Review.' },
+    review: { eyebrow: 'Phase 4 · Review', title: 'Validate and ship', desc: 'Plain-language checklist, warnings, and export actions. Resolve blockers or capture them for later.' }
+  };
+  var eyebrowEl = document.getElementById('opta-ins-eyebrow');
+  var titleEl = document.getElementById('opta-ins-title');
+  var descEl = document.getElementById('opta-ins-desc');
+  var list = document.getElementById('opta-phase-list');
+  if (!list || !eyebrowEl) return;
+
+  function setPhase(phase) {
+    var meta = copy[phase];
+    if (!meta) return;
+    eyebrowEl.textContent = meta.eyebrow;
+    titleEl.textContent = meta.title;
+    descEl.textContent = meta.desc;
+    list.querySelectorAll('.phase').forEach(function (btn) {
+      var on = btn.getAttribute('data-phase') === phase;
+      btn.classList.toggle('active', on);
+      btn.setAttribute('aria-current', on ? 'step' : 'false');
+    });
+    document.querySelectorAll('#opta-ins-body .wizard-pane').forEach(function (pane) {
+      var on = pane.getAttribute('data-pane') === phase;
+      pane.classList.toggle('active', on);
+      pane.hidden = !on;
+    });
+  }
+
+  list.querySelectorAll('.phase').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      setPhase(btn.getAttribute('data-phase'));
+    });
+  });
+
+  document.addEventListener('keydown', function (e) {
+    var t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+    if (e.altKey || e.metaKey || e.ctrlKey) return;
+    var ap = list.querySelector('.phase.active');
+    var i = order.indexOf(ap && ap.getAttribute('data-phase'));
+    if (i < 0) i = 1;
+    if (e.key === 'ArrowRight' || e.key === ']') {
+      e.preventDefault();
+      setPhase(order[Math.min(order.length - 1, i + 1)]);
+    }
+    if (e.key === 'ArrowLeft' || e.key === '[') {
+      e.preventDefault();
+      setPhase(order[Math.max(0, i - 1)]);
+    }
+  });
+
+  setPhase('layout');
+})();
+</script>
+</body>
+</html>
