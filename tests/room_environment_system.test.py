@@ -3685,7 +3685,37 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.assertIn("interior depth only", " ".join(normalized["silhouette_rules"]).lower())
         self.assertIn("subordinate to the shell layer", " ".join(normalized["readability_constraints"]).lower())
         self.assertIn("duplicate perimeter shell", " ".join(normalized["negative_constraints"]).lower())
-        self.assertIn("inside the opening only", normalized["enclosure_architecture"].lower())
+        self.assertIn("unbounded far interior", normalized["enclosure_architecture"].lower())
+        self.assertIn("no near aperture", normalized["enclosure_architecture"].lower())
+
+    def test_normalize_background_schema_resets_portal_design_intent(self):
+        raw = {
+            "design_intent": "The hero looks through a massive stone portal framing the distant nave",
+            "visual_role": "far_depth",
+            "material_family": "far-depth architectural stone interior",
+            "silhouette_rules": ["interior depth only", "open center lane", "far-depth columns and arches only"],
+            "detail_density": "medium",
+            "value_contrast": "muted far-depth values with softened center",
+            "damage_profile": "aged architecture without focal props",
+            "readability_constraints": ["must stay subordinate to the shell layer", "center lane stays calm and open"],
+            "negative_constraints": [
+                "no altar",
+                "no brazier",
+                "no center dais",
+                "no near framing",
+                "no duplicate perimeter shell",
+            ],
+            "variation_rules": ["vary arch spacing and recess depth", "keep the middle quiet across variants"],
+            "enclosure_architecture": "rear wall depth only",
+            "center_openness": "fully open and calm center lane",
+            "far_depth_layers": "at least two depth bands of architecture",
+            "focal_suppression": "explicitly suppress altar, brazier, shrine, and dais imagery",
+            "floor_plane_suppression": "no near floor strip or scenic floor carryover",
+            "atmospheric_falloff": "soft haze into distance without bright focal hotspots",
+        }
+        normalized = envsys._normalize_single_component_schema("background", raw, "test room")
+        fallback = envsys._default_component_schema("background", "test room", None, None)
+        self.assertEqual(normalized["design_intent"], fallback["design_intent"])
 
     def test_background_bespoke_references_skip_template_image(self):
         template = self.root / "background-template.png"

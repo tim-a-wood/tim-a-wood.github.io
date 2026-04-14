@@ -210,7 +210,8 @@ function defaultEnvironmentComponentSchemas(description = '', components = {}) {
       readability_constraints: ['must stay subordinate to the shell layer', 'center lane stays calm'],
       negative_constraints: ['no altar', 'no brazier', 'no center dais', 'no near framing', 'no duplicate perimeter shell'],
       variation_rules: ['vary arch spacing and recess depth'],
-      enclosure_architecture: 'rear wall depth, side recesses, arches, and pillars read inside the opening only',
+      enclosure_architecture:
+        'unbounded far interior only — receding vaults, piers, and arches in depth; no near aperture, portal mouth, proscenium, or picture-frame edge hugging the canvas border',
       center_openness: 'fully open and calm center lane',
       far_depth_layers: 'at least two depth bands',
       focal_suppression: 'explicitly suppress altar, brazier, shrine, and dais imagery',

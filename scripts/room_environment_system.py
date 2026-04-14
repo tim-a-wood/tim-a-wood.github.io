@@ -2385,7 +2385,10 @@ COMPONENT_SCHEMA_DEFAULTS: Dict[str, Dict[str, Any]] = {
         "readability_constraints": ["must stay subordinate to the shell layer", "center lane stays calm and open"],
         "negative_constraints": ["no altar", "no brazier", "no center dais", "no near framing", "no duplicate perimeter shell"],
         "variation_rules": ["vary arch spacing and recess depth", "keep the middle quiet across variants"],
-        "enclosure_architecture": "rear wall depth, side recesses, arches, and pillars read inside the opening only",
+        "enclosure_architecture": (
+            "unbounded far interior only — receding vaults, piers, and arches in depth; "
+            "no near aperture, portal mouth, proscenium, or picture-frame edge hugging the canvas border"
+        ),
         "center_openness": "fully open and calm center lane",
         "far_depth_layers": "at least two depth bands of architecture",
         "focal_suppression": "explicitly suppress altar, brazier, shrine, and dais imagery",
@@ -2684,7 +2687,10 @@ def _default_component_prompts(description: str, direction: Optional[Dict[str, A
         },
         "background": {
             "label": "Background",
-            "prompt": f"{base} Describe the background and midground architecture, silhouettes, depth, fog, landmarks, and distant atmosphere.{suffix}".strip(),
+            "prompt": (
+                f"{base} Describe far-depth architecture, fog, and distant atmosphere only — vaults, recesses, and parallax depth inside the hall. "
+                f"Do not describe an enclosing border, outer stone frame, portal mouth, or picture-window composition; those belong to other layers.{suffix}"
+            ).strip(),
         },
     }
 
@@ -2779,6 +2785,21 @@ def _normalize_single_component_schema(
             "enclosing hall shell",
             "enclosing shell",
             "must read as enclosing shell",
+            "perimeter frame",
+            "portal frame",
+            "picture frame",
+            "proscenium",
+            "looking through",
+            "looks through",
+            "view through",
+            "peering through",
+            "through a massive arch",
+            "through a massive",
+            "through the arch",
+            "framed by thick",
+            "thick stone frame",
+            "outer stone frame",
+            "chamber border",
         )
         joined_lists = {
             field: " ".join(_coerce_string_list(out.get(field))).lower()
@@ -2800,6 +2821,9 @@ def _normalize_single_component_schema(
         if "duplicate perimeter shell" not in " ".join(negatives).lower():
             negatives = list(fallback["negative_constraints"])
         out["negative_constraints"] = negatives
+        di = str(out.get("design_intent") or "").lower()
+        if any(token in di for token in stale_tokens):
+            out["design_intent"] = fallback["design_intent"]
     return out
 
 
@@ -6903,13 +6927,16 @@ def _build_bespoke_prompt(
     placement = plan_entry.get("placement") if isinstance(plan_entry.get("placement"), dict) else {}
     component_rules = {
         "background_far_plate": (
-            "Build ONLY the far INTERIOR DEPTH — atmospheric hall space, rear vaults, distant arches, fog, and stone mass seen through the walkable opening. "
+            "Build ONLY the far INTERIOR DEPTH — atmospheric hall space, rear vaults, distant arches, fog, and stone mass filling the view as if the camera is already well inside the chamber. "
             "Perspective: 2D side-scroller / gameplay orthographic read — keep verticals near-parallel, no one-point perspective tunnel, no strong vanishing-point corridor matting toward a single centered gate. "
             "Depth is layered tone and overlap (parallax-style), not camera perspective convergence. "
+            "NO PORTAL / NO PROSCENIUM COMPOSITION: do not depict the scene as seen through a thick stone window, carved rectangular hole, tunnel mouth, stage arch, or postcard mat around a central vista. "
+            "Do not place a near foreground wall plane with a cut-out aperture that duplicates the job of `room_shell_foreground` — there is no 'picture window' or second rim here. "
             "NOT a second chamber shell: a separate `room_shell_foreground` asset renders the masonry border, rim, and outer frame. "
             "Do NOT paint a duplicate perimeter frame, thick enclosing border band, postcard surround, nested picture-frame, or stage skirting that reads as a second shell inside this plate. "
             "Do NOT trace or hug the footprint void outline with a stone lip, arch mouth, or masonry ring that mirrors the silhouette — push first readable wall mass inward from that edge. "
             "Do NOT repeat top/side/bottom structural bands meant for the unified shell layer — this image is depth-only inside the void, not a second copy of the rim. "
+            "Do NOT add a stair plinth, step skirt, or platform lip that forms a new outer frame along the bottom or sides of the canvas unless it reads as distant floor mass deep in the hall (not a chamber border). "
             "When a footprint silhouette reference is attached, the walkable opening shape (including L-shapes and concave outlines) is locked — do not substitute a generic centered rectangular nave. "
             "Treat the approved room preview as context only and explicitly reject carryover of any altar, brazier energy, shrine focal landmark, center dais, near framing, "
             "or pasted-in floor strip from that preview. Use walls, arches, pillars, recesses, and bay rhythm in the DEPTH FIELD with calm falloff and an open center lane. "
@@ -6919,6 +6946,7 @@ def _build_bespoke_prompt(
             "Do not open the roof into a bright skylight or exterior breach; the far ceiling in-frame should stay enclosed, dark, and interior-facing."
             "Avoid a broad bright fog bank across the lower half; mist can exist, but lower wall structure and rear floor depth still need to read behind it. "
             "Favor continuous side-wall depth and a darker rear chamber body over decorative floating arches. "
+            "Corners of the image must not be empty matte-black wedges or unmotivated void blocks — fill with fog, deep shadow, or distant masonry continuity; black only as soft atmospheric shadow, not rectangular gutters. "
             "No thin cyan, teal, or electric accent lines tracing the chamber silhouette; depth and separation come from occlusion, mortar, and value steps in the stone family, not chromatic rim glow. "
             "Push contrast between far depth and mid-depth with value and cool-warm separation, not a clashing saturated accent band."
         ),
@@ -7062,6 +7090,7 @@ def _build_bespoke_prompt(
             "Far hall depth, vaulting, and recesses must follow the interior void shape—including L-shapes, steps, re-entrant corners, and diagonal edges—"
             "not a substitute centered rectangle or generic nave. "
             "Paint depth and atmosphere inside the void only — do not add a second masonry rim, outer border frame, or duplicate chamber shell; the unified shell layer owns the perimeter. "
+            "Do not compose 'looking through' a near wall opening, tunnel mouth, or proscenium — the void is open depth, not a hole cut through a foreground frame. "
             "If stone masses approach the void boundary, they must read as interior walls/vaults set back from the crop line — not a shell band that follows the L-shape step-for-step. "
             "The interior void should read as continuous atmospheric depth; avoid tall near-black vertical slats, matte poster bars, or hard occluder strips there.\n"
             f"{_chamber_bounds_line}"
@@ -7128,7 +7157,8 @@ def _build_bespoke_prompt(
         prompt_opening = (
             "Create a single 2D metroidvania far-depth background component from the attached references "
             "(footprint silhouette + flat depth/layout guide). "
-            "Use a side-scroller orthographic depth read, not a one-point perspective 3D corridor."
+            "Use a side-scroller orthographic depth read, not a one-point perspective 3D corridor. "
+            "The camera is already inside the hall — do not add a second stone frame, portal, or window cutting through a near wall."
         )
     return textwrap.dedent(
         f"""\
