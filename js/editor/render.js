@@ -528,7 +528,13 @@ function redraw() {
         RoomEditor.Ui.refs.globalCanvasBox.classList.toggle('hidden', RoomEditor.State.viewMode !== 'global');
         RoomEditor.Ui.refs.globalLinkPanel.classList.toggle('hidden', RoomEditor.State.viewMode !== 'global');
         document.getElementById('canvasToolButtons').classList.toggle('hidden', !showRoomCanvas);
-        document.getElementById('roomViewControls')?.classList.toggle('hidden', !showRoomCanvas);
+        const optionBRoomStageChrome =
+          RoomEditor.State.roomWizard.active &&
+          RoomEditor.State.workflowScope === 'room' &&
+          (RoomEditor.State.roomWizard.phase === 'identity' || RoomEditor.State.roomWizard.phase === 'layout');
+        document
+          .getElementById('roomViewControls')
+          ?.classList.toggle('hidden', !showRoomCanvas || optionBRoomStageChrome);
         if (!showRoomCanvas) RoomEditor.Ui.refs.selectionInspector.classList.add('hidden');
         RoomEditor.Ui.updateGlobalLinkControls();
         if (showRoomCanvas) {

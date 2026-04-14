@@ -2346,7 +2346,13 @@
         RoomEditor.Ui.refs.globalCanvasBox.classList.toggle('hidden', RoomEditor.State.viewMode !== 'global');
         RoomEditor.Ui.refs.globalLinkPanel.classList.toggle('hidden', RoomEditor.State.viewMode !== 'global');
         document.getElementById('canvasToolButtons').classList.toggle('hidden', !showRoomCanvas);
-        document.getElementById('roomViewControls')?.classList.toggle('hidden', !showRoomCanvas);
+        const optionBRoomStageChrome =
+          RoomEditor.State.roomWizard.active &&
+          RoomEditor.State.workflowScope === 'room' &&
+          (RoomEditor.State.roomWizard.phase === 'identity' || RoomEditor.State.roomWizard.phase === 'layout');
+        document
+          .getElementById('roomViewControls')
+          ?.classList.toggle('hidden', !showRoomCanvas || optionBRoomStageChrome);
         if (!showRoomCanvas) RoomEditor.Ui.refs.selectionInspector.classList.add('hidden');
         updateGlobalLinkControls();
         if (showRoomCanvas) {
@@ -7148,8 +7154,13 @@
             initializeData(saved, `Loaded ${saved.rooms.length} rooms from browser scratch save.`);
             return;
           }
+          const sd = RoomEditor.State.SEED_DATA;
+          const seedSnapshot =
+            sd && typeof sd === 'object'
+              ? structuredClone(sd)
+              : createEmptyLayoutData();
           initializeData(
-            structuredClone(SEED_DATA),
+            seedSnapshot,
             forceDisk
               ? `Disk reload unavailable under file:// (${error.message}) — showing embedded seed layout.`
               : `Using embedded seed data. Canonical file unavailable and no scratch save found (${error.message})`

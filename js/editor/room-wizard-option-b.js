@@ -62,7 +62,7 @@
   function updateStageBarFromRoom() {
     const titleEl = document.getElementById('rwStageRoomTitle');
     const metaEl = document.getElementById('rwStageRoomMeta');
-    const room = RoomEditor.Wizard.getRoomWizardRoom();
+    const room = RoomEditor.Wizard.getRoomWizardRoom() || RoomEditor.Model.currentRoom();
     if (!titleEl || !metaEl) return;
     if (!room) {
       titleEl.textContent = 'Room';

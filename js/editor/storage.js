@@ -239,8 +239,12 @@ async function loadData(forceDisk = false) {
             initializeData(saved, `Loaded ${saved.rooms.length} rooms from browser scratch save.`);
             return;
           }
+          const seedSnapshot =
+            RoomEditor.State.SEED_DATA && typeof RoomEditor.State.SEED_DATA === 'object'
+              ? structuredClone(RoomEditor.State.SEED_DATA)
+              : RoomEditor.Model.createEmptyLayoutData();
           initializeData(
-            structuredClone(RoomEditor.State.SEED_DATA),
+            seedSnapshot,
             forceDisk
               ? `Disk reload unavailable under file:// (${error.message}) — showing embedded seed layout.`
               : `Using embedded seed data. Canonical file unavailable and no scratch save found (${error.message})`
