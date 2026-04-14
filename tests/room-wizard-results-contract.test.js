@@ -6,21 +6,14 @@ const path = require('path');
 
 const html = fs.readFileSync(path.join(__dirname, '..', 'room-layout-editor.html'), 'utf8');
 
-function readRoomEditorChunkBundle() {
+function readRoomEditorModuleBundle() {
   const ed = path.join(__dirname, '..', 'js/editor');
-  let s = '';
-  for (let i = 0; i < 20; i += 1) {
-    const f = path.join(ed, `chunk-${i}.js`);
-    if (!fs.existsSync(f)) break;
-    const t = fs.readFileSync(f, 'utf8');
-    const m = t.match(/push\((.*)\);\s*$/s);
-    if (!m) continue;
-    s += JSON.parse(m[1]);
-  }
-  return s;
+  if (!fs.existsSync(ed)) return '';
+  const files = fs.readdirSync(ed).filter((f) => f.endsWith('.js')).sort();
+  return files.map((f) => fs.readFileSync(path.join(ed, f), 'utf8')).join('\n');
 }
 
-const editorJs = readRoomEditorChunkBundle();
+const editorJs = readRoomEditorModuleBundle();
 
 function assertIncludes(snippet, message) {
   assert.ok(

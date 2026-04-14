@@ -22,3 +22,6 @@ artifacts/ashen-hollow-art-bible-v0.3-*.pdf
 # Python caches
 __pycache__/
 *.pyc
+
+# Node (room editor module builder devDependencies)
+node_modules/

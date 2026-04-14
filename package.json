@@ -1,0 +1,33 @@
+{
+  "name": "mv",
+  "version": "1.0.0",
+  "description": "Dark-fantasy metroidvania prototype built as a single-file Phaser game in `index.html`.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tim-a-wood/tim-a-wood.github.io.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/tim-a-wood/tim-a-wood.github.io/issues"
+  },
+  "homepage": "https://github.com/tim-a-wood/tim-a-wood.github.io#readme",
+  "devDependencies": {
+    "acorn": "^8.16.0",
+    "astring": "^1.9.0",
+    "eslint-scope": "^9.1.2",
+    "eslint-visitor-keys": "^5.0.1",
+    "espree": "^11.2.0",
+    "jscodeshift": "^17.3.0"
+  }
+}

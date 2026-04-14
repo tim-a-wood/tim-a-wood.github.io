@@ -822,21 +822,14 @@ function simulateSequenceAttempt(order) {
     const htmlPath = path.join(__dirname, '../room-layout-editor.html');
     if (!fs.existsSync(htmlPath)) return;
     const html = fs.readFileSync(htmlPath, 'utf8');
-    function readRoomEditorChunkBundle() {
+    function readRoomEditorModuleBundle() {
         const ed = path.join(__dirname, '../js/editor');
-        let s = '';
-        for (let i = 0; i < 20; i += 1) {
-            const f = path.join(ed, `chunk-${i}.js`);
-            if (!fs.existsSync(f)) break;
-            const t = fs.readFileSync(f, 'utf8');
-            const m = t.match(/push\((.*)\);\s*$/s);
-            if (!m) continue;
-            s += JSON.parse(m[1]);
-        }
-        return s;
+        if (!fs.existsSync(ed)) return '';
+        const files = fs.readdirSync(ed).filter((f) => f.endsWith('.js')).sort();
+        return files.map((f) => fs.readFileSync(path.join(ed, f), 'utf8')).join('\n');
     }
-    const editorJs = readRoomEditorChunkBundle();
-    assert.ok(editorJs.includes('function validateLayout'), 'validateLayout should exist in js/editor chunk bundle');
+    const editorJs = readRoomEditorModuleBundle();
+    assert.ok(editorJs.includes('function validateLayout'), 'validateLayout should exist in js/editor modules');
     assert.ok(editorJs.includes('L1-001') && editorJs.includes('L2-003'), 'validation rule IDs should be present');
     assert.ok(editorJs.includes('renderValidationResults'), 'renderValidationResults should exist');
     assert.ok(editorJs.includes('VALIDATION_L2'), 'VALIDATION_L2 tunable thresholds should exist');
