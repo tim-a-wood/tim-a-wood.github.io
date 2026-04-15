@@ -497,6 +497,50 @@
   color: var(--text-muted);
 }
 
+/* Layout phase compact pass: keep more controls above the fold without visual noise */
+.room-wizard-dock #roomWizardPanelLayout {
+  display: grid;
+  gap: 12px;
+}
+
+.room-wizard-dock #roomWizardPanelLayout .phase-header {
+  margin-bottom: 8px;
+  padding-bottom: 12px;
+}
+
+.room-wizard-dock #roomWizardPanelLayout .phase-header-desc {
+  margin-top: 2px;
+  font-size: var(--font-size-xs);
+  line-height: 1.4;
+}
+
+.room-wizard-dock #roomWizardPanelLayout .rw-layout-primary-grid {
+  display: grid;
+  gap: 12px;
+}
+
+@media (min-width: 1100px) {
+  .room-wizard-dock #roomWizardPanelLayout .rw-layout-primary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+}
+
+.room-wizard-dock #roomWizardPanelLayout .stage-card {
+  margin-bottom: 8px;
+  gap: 10px;
+  padding: 12px;
+}
+
+.room-wizard-dock #roomWizardPanelLayout .stage-card-head {
+  gap: 4px;
+}
+
+.room-wizard-dock #roomWizardPanelLayout .info-box {
+  margin-bottom: 8px;
+  padding: 8px 10px;
+}
+
 /* Stage card (Sprite) */
 .room-wizard-dock .stage-card {
   padding: 14px;

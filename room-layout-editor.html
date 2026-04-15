@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/editor-tokens.css?v=20260415" />
   <link rel="stylesheet" href="css/editor-shell.css?v=20260428" />
-  <link rel="stylesheet" href="css/room-wizard.css?v=20260415" />
+  <link rel="stylesheet" href="css/room-wizard.css?v=20260429" />
 </head>
 <body id="optb-app" data-phase="layout">
   <header class="optb-topbar" aria-label="Editor navigation">
@@ -223,20 +223,21 @@
             <button type="button" class="btn-icon" id="roomWizardClose" aria-label="Dismiss room setup">×</button>
           </div>
           <div class="room-wizard-scroll" id="optb-ins-body">
-            <div id="roomWizardPanelLayout">
+            <div id="roomWizardPanelLayout" class="rw-layout-panel">
               <div class="phase-header">
                 <div class="phase-header-left">
                   <span class="phase-header-num">Room setup · Identity &amp; layout</span>
                   <h2>Layout</h2>
                   <p class="phase-header-desc">
-                    Name the room, set its id, define the footprint polygon, then add walkable platforms (axis-aligned rects for Phaser Arcade) with the canvas tools or presets below.
+                    Set name/id, choose footprint, align neighbors, then add platforms with presets or canvas tools.
                   </p>
                 </div>
               </div>
+              <div class="rw-layout-primary-grid">
               <div class="stage-card">
                 <div class="stage-card-head">
                   <h4>Identity</h4>
-                  <p class="small-note">Display name and canonical id are used in the editor, map graph, and exports.</p>
+                  <p class="small-note">Used in editor labels, map graph, and exports.</p>
                 </div>
                 <div class="field-grid">
                   <label>
@@ -245,7 +246,7 @@
                   </label>
                   <label>
                     <span class="field-label">Room id</span>
-                    <span class="field-help">Use ids like R1 or biome-scoped ids like RG-R1</span>
+                    <span class="field-help">Use `R1` or scoped ids like `RG-R1`.</span>
                     <input type="text" id="roomWizardRoomId" autocomplete="off" spellcheck="false" />
                   </label>
                 </div>
@@ -253,10 +254,7 @@
               <div class="stage-card">
                 <div class="stage-card-head">
                   <h4>Footprint</h4>
-                  <p class="small-note">Preset sizes match common viewports; custom uses your width and height in pixels.</p>
-                </div>
-                <div class="info-box">
-                  <p>Pick a preset or custom dimensions. Changing footprint rescales room-local coordinates — review doors and platforms after large changes.</p>
+                  <p class="small-note">Presets fit common views. Custom uses width/height in px.</p>
                 </div>
                 <div class="rw-footprint-grid" id="roomWizardFootprintGroup">
                   <label><input type="radio" name="roomWizardFootprint" value="small" /> Small (960×720)</label>
@@ -278,13 +276,14 @@
                   </div>
                 </div>
               </div>
+              </div>
               <div class="stage-card" id="roomWizardNeighborsCard">
                 <div class="stage-card-head">
                   <h4>Neighbors &amp; alignment</h4>
-                  <p class="small-note">Connect this room to another, align edges, optionally match wall length (rectangle rooms), then match opening along the wall.</p>
+                  <p class="small-note">Link adjacent rooms, align edges, and match opening height along the shared wall.</p>
                 </div>
                 <div class="info-box" id="roomWizardNeighborHint">
-                  <p>Pick a neighboring room and which edges meet. <strong>Align</strong> snaps the shared edges flush in world space (perpendicular only, no doors required). <strong>Match opening height</strong> slides <em>along</em> that wall (doors or edge midpoints). <strong>Match wall length</strong> resizes <em>this</em> room’s rectangle footprint so the selected edge length (local px) matches the neighbor’s edge — use for axis-aligned rectangle rooms only; recheck doors/platforms after. With only one room in the project, add another room first.</p>
+                  <p><strong>Align</strong> snaps shared edges flush. <strong>Match opening height</strong> slides along the wall. <strong>Match wall length</strong> resizes this room edge (rectangle rooms only).</p>
                 </div>
                 <div class="field-grid rw-neighbor-grid">
                   <label>
@@ -309,7 +308,7 @@
               <div class="stage-card" id="roomWizardTerrainPresetsCard">
                 <div class="stage-card-head">
                   <h4>Preset library</h4>
-                  <p class="small-note">Appends platforms inside the room footprint (unlocks when name, id, and footprint are valid). Adjust or delete on the canvas after placing.</p>
+                  <p class="small-note">Adds starter platforms inside the footprint. Tweak on canvas after placing.</p>
                 </div>
                 <div class="rw-terrain-preset-grid" id="roomWizardTerrainPresets">
                   <button type="button" class="btn-secondary" data-terrain-preset="ground_band" title="Wide run along the bottom of the room (shrinks to fit odd footprints)">Ground band</button>
@@ -319,20 +318,18 @@
                   <button type="button" class="btn-secondary" data-terrain-preset="island" title="One platform near the middle of the room">Island</button>
                 </div>
               </div>
-              <div class="stage-card">
+              <div class="stage-card" id="roomWizardLayoutToolsCard">
                 <div class="stage-card-head">
-                  <h4>Platform selection</h4>
-                  <p class="small-note">Duplicate uses editor snap step for horizontal offset. Mirror clones across room horizontal center.</p>
+                  <h4>Selection tools &amp; checks</h4>
+                  <p class="small-note">Duplicate uses snap step offset. Mirror clones across horizontal center.</p>
                 </div>
                 <div class="toolbar">
                   <button type="button" class="btn-secondary" id="roomWizardTerrainDuplicate">Duplicate platform</button>
                   <button type="button" class="btn-secondary" id="roomWizardTerrainMirror">Mirror platform</button>
                 </div>
-              </div>
-              <div class="stage-card">
                 <div class="stage-card-head">
                   <h4>Door / platform checks</h4>
-                  <p class="small-note">Warns when a door anchor sits inside a platform’s walkable band.</p>
+                  <p class="small-note">Flags when a door anchor overlaps a platform walk band.</p>
                 </div>
                 <div class="info-box" id="roomWizardTerrainWarnings"><p class="hint">Complete layout (name, id, footprint) to refresh checks.</p></div>
               </div>
