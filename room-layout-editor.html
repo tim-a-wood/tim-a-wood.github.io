@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/editor-tokens.css?v=20260415" />
   <link rel="stylesheet" href="css/editor-shell.css?v=20260428" />
-  <link rel="stylesheet" href="css/room-wizard.css?v=20260429" />
+  <link rel="stylesheet" href="css/room-wizard.css?v=20260430" />
 </head>
 <body id="optb-app" data-phase="layout">
   <header class="optb-topbar" aria-label="Editor navigation">
@@ -214,12 +214,9 @@
       <div id="roomWizardDock" class="room-wizard-dock" hidden aria-hidden="true">
         <div class="room-wizard-sheet">
           <aside id="optb-inspector" class="optb-inspector">
-          <div class="room-wizard-sheet-top" id="optb-ins-head">
-            <div>
-              <div class="eyebrow">Room setup</div>
-              <h2 id="roomWizardTitle" class="room-wizard-sheet-title">Room wizard</h2>
-              <p class="room-wizard-sub">Layout sets the room shell and traversal footprint. Environment unlocks once name, id, and footprint are valid; Objects is still reserved for a later pass.</p>
-            </div>
+          <div class="room-wizard-sheet-top room-wizard-sheet-top--compact" id="optb-ins-head">
+            <h2 id="roomWizardTitle" class="room-wizard-sheet-title rw-visually-hidden">Room wizard</h2>
+            <p class="room-wizard-sub rw-visually-hidden">Layout sets the room shell and traversal footprint. Environment unlocks once name, id, and footprint are valid; Objects is still reserved for a later pass.</p>
             <button type="button" class="btn-icon" id="roomWizardClose" aria-label="Dismiss room setup">×</button>
           </div>
           <div class="room-wizard-scroll" id="optb-ins-body">
@@ -1140,7 +1137,7 @@
         <div id="optb-wide-main-slot" class="optb-wide-main-slot"></div>
       </div>
       <!-- P4: Reference rail — phase-specific blocks + preview CTAs (spec §7) -->
-      <aside class="optb-ref-rail" aria-label="Reference">
+      <aside class="optb-ref-rail" aria-label="Reference" hidden aria-hidden="true">
         <div class="optb-ref-eyebrow" aria-hidden="true">Reference</div>
         <div class="optb-ref-block" data-ref="identity">
           <p class="optb-ref-hint">Name and canonical ID set this room's identity in exports and the world graph.</p>
