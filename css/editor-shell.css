@@ -2334,9 +2334,28 @@ body#optb-app #workflowRailsStack {
   display: none !important;
 }
 
-/* stage-layout hidden in non-layout phases */
-#optb-stage-layout.is-hidden {
+/* Canvas / inventory / validation hidden outside Layout phase (Option B §3) */
+.optb-layout-only.is-hidden {
   display: none !important;
+}
+
+/* Wizard shell hidden while inspector nodes live in focus workspace */
+#roomWizardDock.optb-wizard-dock--off-layout {
+  display: none !important;
+}
+
+body#optb-app .app {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+body#optb-app #optb-stage-layout {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
 }
 
 /* stage-focus fills available space */
@@ -2349,6 +2368,28 @@ body#optb-app #workflowRailsStack {
   background: var(--bg-soft);
   min-height: 0;
   flex: 1;
+}
+
+.optb-stage-focus .optb-wide-head-slot,
+.optb-stage-focus .optb-wide-main-slot {
+  min-width: 0;
+}
+
+.optb-stage-focus .optb-wide-main-slot {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+#optb-inspector.optb-inspector {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
 }
 
 /* --- Topbar ------------------------------------------------ */
@@ -2548,18 +2589,6 @@ body#optb-app #workflowRailsStack {
   outline-offset: 2px;
 }
 
-/* subtitle text — hidden at default size, shown when there's room */
-.optb-pill small {
-  display: none;
-}
-@media (min-width: 1400px) {
-  .optb-pill small {
-    display: inline;
-    color: var(--text-faint);
-    font-weight: 500;
-  }
-}
-
 .optb-pill-num {
   width: 24px;
   height: 24px;
@@ -2585,13 +2614,6 @@ body#optb-app #workflowRailsStack {
   color: #151108;
   border-color: transparent;
 }
-@media (min-width: 1400px) {
-  .optb-pill--active small {
-    display: inline;
-    color: rgba(0, 232, 200, 0.6);
-  }
-}
-
 .optb-pill--done {
   color: var(--text);
   border-color: var(--line-strong);
@@ -2624,8 +2646,4 @@ body#optb-app #workflowRailsStack {
   border-radius: var(--radius-lg);
 }
 
-/* Wide-slot placeholders for P2 inspector teleport */
-.optb-wide-head-slot,
-.optb-wide-main-slot {
-  min-height: 0;
-}
+/* Wide slots: layout lives under .optb-stage-focus (spec §5–7) */

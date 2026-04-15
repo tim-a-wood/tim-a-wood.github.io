@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/editor-tokens.css?v=20260415" />
-  <link rel="stylesheet" href="css/editor-shell.css?v=20260418" />
+  <link rel="stylesheet" href="css/editor-shell.css?v=20260419" />
   <link rel="stylesheet" href="css/room-wizard.css?v=20260415" />
 </head>
 <body id="optb-app" data-phase="layout">
@@ -31,23 +31,23 @@
   <nav class="optb-phase-bar" aria-label="Room wizard">
     <div class="optb-pill-rail" id="optb-phase-rail" role="tablist" aria-label="Room wizard phases">
       <button type="button" class="optb-pill" data-phase="identity" role="tab" aria-selected="false">
-        <span class="optb-pill-num">1</span>Identity<small>· name · id</small>
+        <span class="optb-pill-num">1</span>Identity
       </button>
       <div class="optb-pill-connector" aria-hidden="true"></div>
       <button type="button" class="optb-pill optb-pill--active" data-phase="layout" role="tab" aria-selected="true">
-        <span class="optb-pill-num">2</span>Layout<small>· geometry</small>
+        <span class="optb-pill-num">2</span>Layout
       </button>
       <div class="optb-pill-connector" aria-hidden="true"></div>
       <button type="button" class="optb-pill" data-phase="environment" role="tab" aria-selected="false">
-        <span class="optb-pill-num">3</span>Environment<small>· art</small>
+        <span class="optb-pill-num">3</span>Environment
       </button>
       <div class="optb-pill-connector" aria-hidden="true"></div>
       <button type="button" class="optb-pill" data-phase="entities" role="tab" aria-selected="false">
-        <span class="optb-pill-num">4</span>Entities<small>· doors · keys</small>
+        <span class="optb-pill-num">4</span>Entities
       </button>
       <div class="optb-pill-connector" aria-hidden="true"></div>
       <button type="button" class="optb-pill" data-phase="review" role="tab" aria-selected="false">
-        <span class="optb-pill-num">5</span>Review<small>· export</small>
+        <span class="optb-pill-num">5</span>Review
       </button>
     </div>
     <div class="optb-nav-actions">
@@ -159,7 +159,7 @@
         <p><strong>Placeholder</strong> — a future world-level phase will live here.</p>
       </div>
 
-      <div class="canvas-header-bar">
+      <div class="canvas-header-bar optb-layout-only">
         <!-- Left: Room selector -->
         <div class="canvas-header-group">
           <label class="header-label">Room
@@ -191,7 +191,8 @@
       <!-- Room setup (compact strip) — shown under header when room workflow step is active -->
       <div id="roomWizardDock" class="room-wizard-dock" hidden aria-hidden="true">
         <div class="room-wizard-sheet">
-          <div class="room-wizard-sheet-top">
+          <aside id="optb-inspector" class="optb-inspector">
+          <div class="room-wizard-sheet-top" id="optb-ins-head">
             <div>
               <div class="eyebrow">Room setup</div>
               <h2 id="roomWizardTitle" class="room-wizard-sheet-title">Room wizard</h2>
@@ -199,7 +200,7 @@
             </div>
             <button type="button" class="btn-icon" id="roomWizardClose" aria-label="Dismiss room setup">×</button>
           </div>
-          <div class="room-wizard-scroll">
+          <div class="room-wizard-scroll" id="optb-ins-body">
             <div id="roomWizardPanelLayout">
               <div class="phase-header">
                 <div class="phase-header-left">
@@ -699,8 +700,11 @@
               </div>
             </div>
           </div>
+          </aside>
         </div>
       </div>
+
+      <div id="optb-layout-surface" class="optb-layout-surface optb-layout-only">
 
       <!-- Collapsible settings (hidden by default) -->
       <div class="canvas-settings-panel collapsible-body" id="canvasSettingsBody" hidden>
@@ -921,9 +925,10 @@
         </div>
       </div>
       <div class="status" id="statusText">Loading layout data…</div>
+      </div><!-- #optb-layout-surface -->
     </section>
 
-    <section class="panel sidebar-panel" id="activeRoomPanel" hidden>
+    <section class="panel sidebar-panel optb-layout-only" id="activeRoomPanel" hidden>
       <div class="sidebar-header">
         <div class="eyebrow">Active Room</div>
         <h2 id="inventoryRoomName">Room Contents</h2>
@@ -1026,7 +1031,7 @@
       </div>
     </section>
 
-    <section class="panel validation-panel" id="validationPanel">
+    <section class="panel validation-panel optb-layout-only" id="validationPanel">
       <div class="validation-header">
         <div>
           <div class="eyebrow">Level Design</div>
@@ -1321,7 +1326,7 @@
   <script src="js/editor/chunk-4.js?v=202604133"></script>
   <script src="js/editor/load-chunks.js?v=202604133"></script>
 
-  <!-- Option B shell — P1: phase machine, keyboard nav, topbar proxies -->
+  <!-- Option B shell — phase machine, inspector teleport (spec §5), keyboard nav, topbar proxies -->
   <script>
   (function () {
     'use strict';
@@ -1333,10 +1338,14 @@
 
     var appEl   = document.getElementById('optb-app');
     var rail    = document.getElementById('optb-phase-rail');
-    var stageLayout = document.getElementById('optb-stage-layout');
     var stageFocus  = document.getElementById('optb-stage-focus');
     var prevBtn = document.getElementById('optb-prev');
     var nextBtn = document.getElementById('optb-next');
+    var ins     = document.getElementById('optb-inspector');
+    var insHead = document.getElementById('optb-ins-head');
+    var insBody = document.getElementById('optb-ins-body');
+    var slotHead = document.getElementById('optb-wide-head-slot');
+    var slotBody = document.getElementById('optb-wide-main-slot');
 
     if (!appEl || !rail) return;
 
@@ -1358,14 +1367,32 @@
         pill.setAttribute('aria-selected', on ? 'true' : 'false');
       });
 
-      var isLayout = phase === 'layout';
-      if (stageLayout) {
-        stageLayout.classList.toggle('is-hidden', !isLayout);
-        stageLayout.setAttribute('aria-hidden', isLayout ? 'false' : 'true');
+      var isLayoutPhase = phase === 'layout';
+
+      /* Spec §5: same #optb-ins-head / #optb-ins-body nodes — layout vs focus workspace */
+      if (ins && insHead && insBody && slotHead && slotBody) {
+        if (isLayoutPhase) {
+          ins.appendChild(insHead);
+          ins.appendChild(insBody);
+        } else {
+          slotHead.appendChild(insHead);
+          slotBody.appendChild(insBody);
+        }
       }
+
+      document.querySelectorAll('.optb-layout-only').forEach(function (el) {
+        el.classList.toggle('is-hidden', !isLayoutPhase);
+        el.setAttribute('aria-hidden', isLayoutPhase ? 'false' : 'true');
+      });
+
+      var dock = document.getElementById('roomWizardDock');
+      if (dock) {
+        dock.classList.toggle('optb-wizard-dock--off-layout', !isLayoutPhase);
+      }
+
       if (stageFocus) {
-        stageFocus.hidden = isLayout;
-        stageFocus.setAttribute('aria-hidden', isLayout ? 'true' : 'false');
+        stageFocus.hidden = isLayoutPhase;
+        stageFocus.setAttribute('aria-hidden', isLayoutPhase ? 'true' : 'false');
       }
 
       if (prevBtn) {
