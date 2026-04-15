@@ -223,10 +223,50 @@
             <button type="button" class="btn-icon" id="roomWizardClose" aria-label="Dismiss room setup">×</button>
           </div>
           <div class="room-wizard-scroll" id="optb-ins-body">
+            <div id="roomWizardPanelIdentity" class="rw-layout-panel" hidden>
+              <div class="phase-header">
+                <div class="phase-header-left">
+                  <span class="phase-header-num">Phase 1 · Identity</span>
+                  <h2>Identity</h2>
+                  <p class="phase-header-desc">
+                    Set the room name and canonical id. Continue to Layout to define footprint and geometry.
+                  </p>
+                </div>
+              </div>
+              <div class="rw-layout-primary-grid">
+                <div class="stage-card">
+                  <div class="stage-card-head">
+                    <h4>Room identity</h4>
+                    <p class="small-note">Used in editor labels, map graph, and exports.</p>
+                  </div>
+                  <div class="field-grid">
+                    <label>
+                      <span class="field-label">Room name</span>
+                      <input type="text" id="roomWizardRoomName" autocomplete="off" />
+                    </label>
+                    <label>
+                      <span class="field-label">Room id</span>
+                      <span class="field-help">Use `R1` or scoped ids like `RG-R1`.</span>
+                      <input type="text" id="roomWizardRoomId" autocomplete="off" spellcheck="false" />
+                    </label>
+                  </div>
+                </div>
+                <div class="stage-card">
+                  <div class="stage-card-head">
+                    <h4>Before you continue</h4>
+                    <p class="small-note">Layout unlocks once name/id are valid.</p>
+                  </div>
+                  <div class="info-box">
+                    <p>Tip: keep ids short and stable so exports and map links stay readable.</p>
+                  </div>
+                  <button type="button" class="btn-secondary" id="roomWizardToLayout">Go to Layout →</button>
+                </div>
+              </div>
+            </div>
             <div id="roomWizardPanelLayout" class="rw-layout-panel">
               <div class="phase-header">
                 <div class="phase-header-left">
-                  <span class="phase-header-num">Room setup · Identity &amp; layout</span>
+                  <span class="phase-header-num">Phase 2 · Layout</span>
                   <h2>Layout</h2>
                   <p class="phase-header-desc">
                     Set name/id, choose footprint, align neighbors, then add platforms with presets or canvas tools.
@@ -234,23 +274,6 @@
                 </div>
               </div>
               <div class="rw-layout-primary-grid">
-              <div class="stage-card">
-                <div class="stage-card-head">
-                  <h4>Identity</h4>
-                  <p class="small-note">Used in editor labels, map graph, and exports.</p>
-                </div>
-                <div class="field-grid">
-                  <label>
-                    <span class="field-label">Room name</span>
-                    <input type="text" id="roomWizardRoomName" autocomplete="off" />
-                  </label>
-                  <label>
-                    <span class="field-label">Room id</span>
-                    <span class="field-help">Use `R1` or scoped ids like `RG-R1`.</span>
-                    <input type="text" id="roomWizardRoomId" autocomplete="off" spellcheck="false" />
-                  </label>
-                </div>
-              </div>
               <div class="stage-card">
                 <div class="stage-card-head">
                   <h4>Footprint</h4>
@@ -1466,16 +1489,19 @@
     }
 
     function syncWizardPanelsForPhase(phase) {
+      var panelIdentity = document.getElementById('roomWizardPanelIdentity');
       var panelLayout = document.getElementById('roomWizardPanelLayout');
       var panelEnv = document.getElementById('roomWizardPanelEnvironment');
       var panelArt = document.getElementById('roomWizardPanelArtDirection');
       var panelReview = document.getElementById('roomWizardPanelReview');
       var show = {
-        layout: phase === 'layout' || phase === 'identity',
+        identity: phase === 'identity',
+        layout: phase === 'layout',
         environment: phase === 'environment',
         art: phase === 'entities',
         review: phase === 'review'
       };
+      if (panelIdentity) panelIdentity.hidden = !show.identity;
       if (panelLayout) panelLayout.hidden = !show.layout;
       if (panelEnv) panelEnv.hidden = !show.environment;
       if (panelArt) panelArt.hidden = !show.art;
@@ -1797,6 +1823,15 @@
     var legacySetup = document.getElementById('roomSetupBtn');
     if (drawerSetup && legacySetup) {
       drawerSetup.addEventListener('click', function () { legacySetup.click(); });
+    }
+
+    /* Identity panel quick action */
+    var toLayout = document.getElementById('roomWizardToLayout');
+    if (toLayout) {
+      toLayout.addEventListener('click', function () {
+        var layoutPill = document.querySelector('.optb-pill[data-phase="layout"]');
+        if (layoutPill) layoutPill.click();
+      });
     }
   }());
   </script>

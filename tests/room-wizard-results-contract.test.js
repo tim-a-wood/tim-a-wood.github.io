@@ -195,7 +195,8 @@ function assertIncludes(snippet, message) {
 
 (function testOptionBPhaseRailDrivesWizardPanels() {
   assertIncludes('function syncWizardPanelsForPhase(phase)', 'Option B phase machine should include wizard panel synchronization');
-  assertIncludes("layout: phase === 'layout' || phase === 'identity'", 'Identity should map to the layout/identity wizard pane');
+  assertIncludes("identity: phase === 'identity'", 'Identity phase should map to a dedicated identity wizard pane');
+  assertIncludes("layout: phase === 'layout'", 'Layout phase should map to the layout wizard pane');
   assertIncludes("environment: phase === 'environment'", 'Environment phase should map to the environment wizard pane');
   assertIncludes("art: phase === 'entities'", 'Entities phase should map to the art-direction pane');
   assertIncludes("review: phase === 'review'", 'Review phase should map to the review pane');
@@ -209,6 +210,10 @@ function assertIncludes(snippet, message) {
 })();
 
 (function testOptionBCssEnforcesPanelVisibilityPerPhase() {
+  assertIncludes(
+    'body#optb-app[data-phase="identity"] #roomWizardPanelIdentity',
+    'CSS should force Identity panel visible when Option B phase is identity'
+  );
   assertIncludes(
     'body#optb-app[data-phase="environment"] #roomWizardPanelEnvironment',
     'CSS should force Environment panel visible when Option B phase is environment'
