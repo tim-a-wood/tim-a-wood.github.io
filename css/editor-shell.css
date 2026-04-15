@@ -2393,6 +2393,47 @@ body#optb-app #roomWizardDock {
   display: none !important;
 }
 
+/* Option B phase shell is source-of-truth for wizard panel visibility */
+body#optb-app[data-phase="identity"] #roomWizardPanelLayout,
+body#optb-app[data-phase="layout"] #roomWizardPanelLayout {
+  display: block !important;
+}
+body#optb-app[data-phase="identity"] #roomWizardPanelEnvironment,
+body#optb-app[data-phase="identity"] #roomWizardPanelArtDirection,
+body#optb-app[data-phase="identity"] #roomWizardPanelReview,
+body#optb-app[data-phase="layout"] #roomWizardPanelEnvironment,
+body#optb-app[data-phase="layout"] #roomWizardPanelArtDirection,
+body#optb-app[data-phase="layout"] #roomWizardPanelReview {
+  display: none !important;
+}
+
+body#optb-app[data-phase="environment"] #roomWizardPanelEnvironment {
+  display: block !important;
+}
+body#optb-app[data-phase="environment"] #roomWizardPanelLayout,
+body#optb-app[data-phase="environment"] #roomWizardPanelArtDirection,
+body#optb-app[data-phase="environment"] #roomWizardPanelReview {
+  display: none !important;
+}
+
+body#optb-app[data-phase="entities"] #roomWizardPanelArtDirection {
+  display: block !important;
+}
+body#optb-app[data-phase="entities"] #roomWizardPanelLayout,
+body#optb-app[data-phase="entities"] #roomWizardPanelEnvironment,
+body#optb-app[data-phase="entities"] #roomWizardPanelReview {
+  display: none !important;
+}
+
+body#optb-app[data-phase="review"] #roomWizardPanelReview {
+  display: block !important;
+}
+body#optb-app[data-phase="review"] #roomWizardPanelLayout,
+body#optb-app[data-phase="review"] #roomWizardPanelEnvironment,
+body#optb-app[data-phase="review"] #roomWizardPanelArtDirection {
+  display: none !important;
+}
+
 @media (max-width: 1100px) {
   body#optb-app #optb-stage-layout {
     grid-template-columns: minmax(0, 1fr);

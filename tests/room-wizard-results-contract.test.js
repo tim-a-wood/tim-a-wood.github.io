@@ -203,6 +203,21 @@ function assertIncludes(snippet, message) {
   assertIncludes('syncWizardPanelsForPhase(phase);', 'Phase changes should actively update visible wizard panes');
 })();
 
+(function testOptionBCssEnforcesPanelVisibilityPerPhase() {
+  assertIncludes(
+    'body#optb-app[data-phase="environment"] #roomWizardPanelEnvironment',
+    'CSS should force Environment panel visible when Option B phase is environment'
+  );
+  assertIncludes(
+    'body#optb-app[data-phase="entities"] #roomWizardPanelArtDirection',
+    'CSS should force Entities panel visible via art-direction panel'
+  );
+  assertIncludes(
+    'body#optb-app[data-phase="review"] #roomWizardPanelReview',
+    'CSS should force Review panel visible when Option B phase is review'
+  );
+})();
+
 (function testRuntimeReviewOpensGameWithoutDuplicateButton() {
   assert.ok(
     !html.includes('id="roomWizardPreviewOpenGame"'),
