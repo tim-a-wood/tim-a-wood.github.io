@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 
 const html = fs.readFileSync(path.join(__dirname, '..', 'room-layout-editor.html'), 'utf8');
+const shellCss = fs.readFileSync(path.join(__dirname, '..', 'css', 'editor-shell.css'), 'utf8');
 
 function readRoomEditorChunkBundle() {
   const ed = path.join(__dirname, '..', 'js/editor');
@@ -24,7 +25,7 @@ const editorJs = readRoomEditorChunkBundle();
 
 function assertIncludes(snippet, message) {
   assert.ok(
-    html.includes(snippet) || editorJs.includes(snippet),
+    html.includes(snippet) || editorJs.includes(snippet) || shellCss.includes(snippet),
     message || `Expected HTML or editor bundle to include: ${snippet}`
   );
 }
@@ -153,6 +154,43 @@ function assertIncludes(snippet, message) {
   assertIncludes('startRoomWizardWaitbar(', 'Wait bar entry point should remain');
   assertIncludes('roomWizardEstimateBespokeAssetWaitMs(room, { slotId })', 'Per-slot build should pass timed wait estimate');
   assertIncludes('roomWizardEstimateBespokeAssetWaitMs(room, { forFullBuild: true })', 'Full kit build should pass timed wait estimate');
+})();
+
+(function testOptionBStageFirstShellContract() {
+  [
+    'id="optbStageBar"',
+    'id="optbToolPalette"',
+    'id="optbTaskDrawer"',
+    'id="optb-modal"',
+    'id="optb-wide-head-slot"',
+    'id="optb-wide-main-slot"',
+  ].forEach((snippet) => assertIncludes(snippet, `Missing Option B shell node ${snippet}`));
+
+  assertIncludes("if (e.key === 'ArrowRight' || e.key === ']')", 'Option B phase keyboard nav should handle ArrowRight and ]');
+  assertIncludes("if (e.key === 'ArrowLeft' || e.key === '[')", 'Option B phase keyboard nav should handle ArrowLeft and [');
+  assertIncludes("if (e.key === 'Escape')", 'Option B modal should close on Escape');
+})();
+
+(function testOptionBInspectorTeleportDoesNotAbsorbLegacyRailPanels() {
+  assert.ok(
+    !html.includes('sideRail.remove()'),
+    'Option B inspector hoist should not remove the legacy side rail container'
+  );
+  assert.ok(
+    !html.includes('ins.appendChild(child)'),
+    'Option B inspector hoist should not append legacy side-rail panels into the inspector column'
+  );
+})();
+
+(function testOptionBMainGridUsesStagePlusInspectorColumns() {
+  assertIncludes(
+    'grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);',
+    'Option B stage layout should use a two-column stage + inspector grid'
+  );
+  assertIncludes(
+    'body#optb-app #optb-stage-layout > #optbSideRail {\n  display: none !important;',
+    'Legacy side rail should stay hidden in Option B shell'
+  );
 })();
 
 (function testRuntimeReviewOpensGameWithoutDuplicateButton() {

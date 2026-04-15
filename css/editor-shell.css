@@ -2351,17 +2351,17 @@ body#optb-app .app {
 }
 
 /*
- * Main workbench: two columns — canvas (minmax 0) | right rail (inventory + validation stacked).
- * Three sibling columns squeezed the canvas and caused overlap; matches Option B mockup (1fr + ~360px rail).
+ * Main workbench: two columns — canvas | wizard inspector (spec §3.1).
+ * Inspector is hoisted into this grid at runtime by the phase-machine script.
  */
 body#optb-app #optb-stage-layout {
   flex: 1 1 auto;
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 400px);
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
   grid-template-rows: minmax(0, 1fr);
   align-items: stretch;
-  gap: 14px;
+  gap: var(--space-4);
   overflow: hidden;
 }
 
@@ -2371,28 +2371,26 @@ body#optb-app #optb-stage-layout > section.canvas-wrap {
   align-self: stretch;
 }
 
-body#optb-app #optb-stage-layout > #optbSideRail {
+/* Inspector column — hoisted here by JS; hidden outside Layout via .optb-layout-only */
+body#optb-app #optb-stage-layout > #optb-inspector {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: var(--space-3);
   min-width: 0;
   min-height: 0;
   max-height: 100%;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
-body#optb-app #optb-stage-layout #optbSideRail > #activeRoomPanel,
-body#optb-app #optb-stage-layout #optbSideRail > #validationPanel {
-  flex: 1 1 auto;
-  min-height: 0;
-  min-width: 0;
-  overflow: auto;
-  max-width: none;
+/* Legacy inventory/validation rail is not part of Option B shell */
+body#optb-app #optb-stage-layout > #optbSideRail {
+  display: none !important;
 }
 
-/* Validation shorter: don’t force equal flex with inventory — shrink-to-content preference */
-body#optb-app #optb-stage-layout #optbSideRail > #validationPanel {
-  flex: 0 1 auto;
+/* Suppress the now-empty wizard dock in Option B — inspector lives in the column */
+body#optb-app #roomWizardDock {
+  display: none !important;
 }
 
 @media (max-width: 1100px) {
@@ -2401,7 +2399,7 @@ body#optb-app #optb-stage-layout #optbSideRail > #validationPanel {
     grid-template-rows: minmax(280px, 1fr) auto;
   }
 
-  body#optb-app #optb-stage-layout > #optbSideRail {
+  body#optb-app #optb-stage-layout > #optb-inspector {
     max-height: none;
     overflow: visible;
   }
@@ -2518,10 +2516,6 @@ body#optb-app #optb-stage-layout #optbSideRail > #validationPanel {
   color: var(--text);
 }
 
-/* Scope chips: topbar right cluster (before global actions), not the wizard strip */
-.optb-topbar .optb-scope-toggle {
-  flex-shrink: 0;
-}
 
 .optb-topbar-spacer {
   flex: 1;
@@ -2594,17 +2588,17 @@ body#optb-app #optb-stage-layout #optbSideRail > #validationPanel {
 .optb-phase-bar {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
   background: var(--panel);
   border-bottom: 1px solid var(--border);
   overflow: hidden;
-  min-height: 52px;
+  min-height: 48px;
 }
 
 .optb-scope-toggle {
   display: inline-flex;
-  padding: 3px;
+  padding: 2px;
   background: var(--bg-soft);
   border: 1px solid var(--border);
   border-radius: var(--radius-full);
@@ -2613,13 +2607,13 @@ body#optb-app #optb-stage-layout #optbSideRail > #validationPanel {
 }
 
 .optb-scope-chip {
-  padding: 8px 16px;
+  padding: 4px 10px;
   border-radius: var(--radius-full);
   font-family: var(--font-sans);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
   font-weight: 600;
   color: var(--muted);
-  min-height: 32px;
+  min-height: 26px;
   cursor: pointer;
   border: 0;
   background: transparent;
@@ -2652,16 +2646,16 @@ body#optb-app #optb-stage-layout #optbSideRail > #validationPanel {
 .optb-pill {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: 10px 16px;
+  gap: var(--space-1);
+  padding: 6px 10px;
   border-radius: var(--radius-full);
   border: 1px solid var(--border);
   background: var(--bg-soft);
   font-family: var(--font-sans);
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-xs);
   font-weight: 600;
   color: var(--muted);
-  min-height: 44px;
+  min-height: 32px;
   cursor: pointer;
   position: relative;
   transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
@@ -2677,13 +2671,13 @@ body#optb-app #optb-stage-layout #optbSideRail > #validationPanel {
 }
 
 .optb-pill-num {
-  width: 24px;
-  height: 24px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   display: grid;
   place-items: center;
   font-family: var(--font-display);
-  font-size: var(--font-size-sm);
+  font-size: 11px;
   background: var(--bg-soft);
   color: var(--muted);
   border: 1px solid var(--border);
@@ -2725,12 +2719,477 @@ body#optb-app #optb-stage-layout #optbSideRail > #validationPanel {
   flex-shrink: 0;
 }
 
-.optb-nav-actions .optb-btn {
-  min-height: 44px;
-  padding: 10px 20px;
-  font-size: var(--font-size-md);
-  font-weight: 700;
-  border-radius: var(--radius-lg);
-}
+/* nav buttons inherit base .optb-btn sizing — no overrides needed */
 
 /* Wide slots: layout lives under .optb-stage-focus (spec §5–7) */
+
+/* ============================================================
+   P3: Canvas chrome — stage bar, tool palette, task drawer
+   ============================================================ */
+
+/* canvas-wrap becomes a flex column so stage bar + surface stack correctly */
+body#optb-app .canvas-wrap {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Hide legacy canvas header — replaced by optb-stage-bar */
+body#optb-app .canvas-header-bar {
+  display: none !important;
+}
+
+/* Hide legacy text toolbar — floating palette delegates to it programmatically */
+body#optb-app #canvasToolButtons {
+  position: absolute !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* Hide legacy zoom/pan bar — stage bar zoom handles it */
+body#optb-app #roomViewControls {
+  display: none !important;
+}
+
+/* --- Stage bar (spec §4.1) --------------------------------------- */
+.optb-stage-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-4);
+  min-height: 44px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  gap: var(--space-4);
+  flex-shrink: 0;
+}
+
+.optb-stage-left {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  min-width: 0;
+  overflow: hidden;
+}
+
+.optb-stage-room-name {
+  font-family: var(--font-display);
+  font-size: 20px;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 240px;
+}
+
+.optb-stage-room-meta {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.optb-stage-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-shrink: 0;
+}
+
+.optb-stage-actions {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+}
+
+/* Zoom segmented control */
+.optb-zoom-seg {
+  display: inline-flex;
+  padding: 2px;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  gap: 2px;
+}
+
+.optb-zoom-btn {
+  padding: 4px 8px;
+  border-radius: var(--radius-xs);
+  border: 0;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  color: var(--muted);
+  min-height: 28px;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+  white-space: nowrap;
+}
+.optb-zoom-btn:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.04);
+}
+.optb-zoom-btn--active {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+}
+.optb-zoom-btn:focus-visible {
+  outline: 2px solid rgba(0, 232, 200, 0.35);
+  outline-offset: 2px;
+}
+
+/* Stage icon buttons (grid / snap / undo / redo) */
+.optb-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+}
+.optb-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  border-color: var(--border);
+}
+.optb-icon-btn[aria-pressed="true"] {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: var(--border-strong);
+}
+.optb-icon-btn:focus-visible {
+  outline: 2px solid rgba(0, 232, 200, 0.35);
+  outline-offset: 2px;
+}
+
+/* --- Floating tool palette (spec §4.2) -------------------------- */
+#roomCanvasBox {
+  position: relative;
+}
+
+.optb-tool-palette {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+  background: rgba(7, 9, 12, 0.88);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-tight);
+  box-shadow: var(--shadow-md);
+}
+
+.optb-tool-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+.optb-tool-btn:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+.optb-tool-btn--active,
+.optb-tool-btn[aria-pressed="true"] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px rgba(0, 232, 200, 0.2);
+}
+.optb-tool-btn:focus-visible {
+  outline: 2px solid rgba(0, 232, 200, 0.35);
+  outline-offset: 2px;
+}
+
+/* Shortcut key badge */
+.optb-tool-key {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 500;
+  color: var(--muted);
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  padding: 0 2px;
+  line-height: 14px;
+  min-width: 14px;
+  text-align: center;
+  pointer-events: none;
+}
+
+/* Tool icon colors */
+.optb-tool-btn[data-optb-tool="platform"] { color: var(--platform); }
+.optb-tool-btn[data-optb-tool="door"]     { color: var(--door); }
+.optb-tool-btn[data-optb-tool="vertex"]   { color: var(--vertex); }
+.optb-tool-btn[data-optb-tool="key"]      { color: var(--color-key); }
+.optb-tool-btn[data-optb-tool="ability"]  { color: var(--color-ability); }
+.optb-tool-btn[data-optb-tool="mover"]    { color: var(--color-mover); }
+.optb-tool-btn[data-optb-tool="start"]    { color: var(--color-start); }
+.optb-tool-btn[data-optb-tool="select"],
+.optb-tool-btn[data-optb-tool="pan"]      { color: var(--muted); }
+
+/* --- Task drawer (spec §4.3) ------------------------------------ */
+.optb-task-drawer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 3;
+  background: linear-gradient(to top, var(--bg-soft) 64%, transparent);
+  padding: var(--space-6) var(--space-4) var(--space-4);
+  pointer-events: none;
+}
+.optb-task-drawer > * {
+  pointer-events: auto;
+}
+
+.optb-drawer-handle {
+  width: 40px;
+  height: 4px;
+  background: var(--border-strong);
+  border-radius: var(--radius-full);
+  margin: 0 auto var(--space-3);
+  cursor: ns-resize;
+  opacity: 0.6;
+}
+
+.optb-drawer-inner {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-3);
+}
+
+.optb-drawer-tasks {
+  display: flex;
+  gap: var(--space-3);
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: thin;
+}
+
+.optb-task-card {
+  flex-shrink: 0;
+  width: 160px;
+  padding: var(--space-3);
+  border-radius: var(--radius-default);
+  border: 1px solid var(--border);
+  background: rgba(7, 9, 12, 0.88);
+  backdrop-filter: blur(12px);
+}
+.optb-task-card--active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px rgba(0, 232, 200, 0.1), 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+.optb-task-card--done {
+  opacity: 0.4;
+}
+.optb-task-card--pending {
+  opacity: 0.6;
+  border-color: transparent;
+}
+
+.optb-task-card-label {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.optb-task-card--active .optb-task-card-label {
+  color: var(--accent);
+}
+
+.optb-task-card-title {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.3;
+}
+
+.optb-drawer-actions {
+  flex-shrink: 0;
+  padding-bottom: 2px;
+}
+
+/* ============================================================
+   P4: Non-layout focus workspace — 2-col layout, ref rail, modal
+   ============================================================ */
+
+/* Replace old flex-column stage-focus with 2-col grid (spec §3.2) */
+.optb-stage-focus {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) min(280px, 30vw);
+  gap: var(--space-5);
+  padding: var(--space-5);
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
+  background: var(--bg-soft);
+}
+
+.optb-focus-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+  min-height: 0;
+}
+
+.optb-wide-head-slot {
+  flex-shrink: 0;
+}
+
+.optb-wide-main-slot {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Reference rail — sticky */
+.optb-ref-rail {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  align-self: start;
+  max-height: 100vh;
+  overflow-y: auto;
+}
+
+.optb-ref-eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--border);
+}
+
+.optb-ref-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.optb-ref-hint {
+  font-size: var(--font-size-xs);
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.optb-mini-canvas {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius-default);
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  position: relative;
+}
+
+.optb-mini-canvas::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(0deg, transparent, transparent 15px, rgba(0, 232, 200, 0.04) 16px),
+    repeating-linear-gradient(90deg, transparent, transparent 15px, rgba(0, 232, 200, 0.04) 16px);
+}
+
+.optb-ref-cta {
+  width: 100%;
+  justify-content: center;
+  font-size: var(--font-size-xs);
+}
+
+/* --- Preview modal (spec §7) ------------------------------------ */
+.optb-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.optb-modal[hidden] {
+  display: none !important;
+}
+
+.optb-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(4px);
+}
+
+.optb-modal-dialog {
+  position: relative;
+  width: min(860px, 90vw);
+  max-height: 90vh;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.optb-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.optb-modal-title {
+  font-family: var(--font-display);
+  font-size: var(--font-size-xl);
+  letter-spacing: 0.04em;
+  color: var(--text);
+}
+
+.optb-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-5);
+}
+
+.optb-modal-canvas-placeholder {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-default);
+  background-image:
+    repeating-linear-gradient(0deg, transparent, transparent 31px, rgba(0, 232, 200, 0.04) 32px),
+    repeating-linear-gradient(90deg, transparent, transparent 31px, rgba(0, 232, 200, 0.04) 32px);
+}

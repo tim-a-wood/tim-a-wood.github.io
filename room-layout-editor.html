@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/editor-tokens.css?v=20260415" />
-  <link rel="stylesheet" href="css/editor-shell.css?v=20260422" />
+  <link rel="stylesheet" href="css/editor-shell.css?v=20260425" />
   <link rel="stylesheet" href="css/room-wizard.css?v=20260415" />
 </head>
 <body id="optb-app" data-phase="layout">
@@ -16,11 +16,6 @@
     <a class="optb-brand" href="./tools/2d-sprite-and-animation/index.html">sprite<em class="optb-brand-dot">·</em>workbench</a>
     <div class="optb-crumb"><b id="optbCrumbProject">Ashen Hollow</b> · Room Creation</div>
     <div class="optb-topbar-spacer"></div>
-    <div class="optb-scope-toggle" role="tablist" aria-label="Editor scope">
-      <button type="button" class="optb-scope-chip" role="tab" aria-selected="false" data-optb-scope="world">World</button>
-      <button type="button" class="optb-scope-chip optb-scope-chip--active" role="tab" aria-selected="true" data-optb-scope="room">Room</button>
-      <button type="button" class="optb-scope-chip" role="tab" aria-selected="false" data-optb-scope="art-direction">Art Direction</button>
-    </div>
     <div class="optb-topbar-actions">
       <button type="button" class="optb-btn optb-btn--ghost" id="optbCmdPalette" aria-label="Command palette (coming soon)">⌘K</button>
       <button type="button" class="optb-btn optb-btn--accent" id="optbValidate" aria-label="Run validation">Validate</button>
@@ -29,6 +24,11 @@
   </header>
 
   <nav class="optb-phase-bar" aria-label="Room wizard">
+    <div class="optb-scope-toggle" role="tablist" aria-label="Editor scope">
+      <button type="button" class="optb-scope-chip" role="tab" aria-selected="false" data-optb-scope="world">World</button>
+      <button type="button" class="optb-scope-chip optb-scope-chip--active" role="tab" aria-selected="true" data-optb-scope="room">Room</button>
+      <button type="button" class="optb-scope-chip" role="tab" aria-selected="false" data-optb-scope="art-direction">Art Direction</button>
+    </div>
     <div class="optb-pill-rail" id="optb-phase-rail" role="tablist" aria-label="Room wizard phases">
       <button type="button" class="optb-pill" data-phase="identity" role="tab" aria-selected="false">
         <span class="optb-pill-num">1</span>Identity
@@ -157,6 +157,28 @@
     <section class="panel canvas-wrap">
       <div id="worldWorkflowPlaceholderPanel" class="world-workflow-placeholder" hidden aria-hidden="true">
         <p><strong>Placeholder</strong> — a future world-level phase will live here.</p>
+      </div>
+
+      <!-- P3: Stage bar (spec §4.1) -->
+      <div class="optb-stage-bar optb-layout-only" id="optbStageBar">
+        <div class="optb-stage-left">
+          <span class="optb-stage-room-name" id="optbStageRoomName">Room</span>
+          <span class="optb-stage-room-meta" id="optbStageRoomMeta" aria-live="polite">—</span>
+        </div>
+        <div class="optb-stage-right">
+          <div class="optb-zoom-seg" role="group" aria-label="Zoom level">
+            <button class="optb-zoom-btn" data-zoom="fit" type="button" title="Fit room to view">Fit</button>
+            <button class="optb-zoom-btn" data-zoom="50" type="button" title="50% zoom">50%</button>
+            <button class="optb-zoom-btn optb-zoom-btn--active" data-zoom="100" type="button" title="100% zoom">100%</button>
+            <button class="optb-zoom-btn" data-zoom="200" type="button" title="200% zoom">200%</button>
+          </div>
+          <div class="optb-stage-actions" role="group" aria-label="Canvas controls">
+            <button class="optb-icon-btn" id="optbGridToggle" type="button" title="Toggle grid overlay" aria-label="Toggle grid overlay" aria-pressed="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M8 3v18M16 3v18M3 8h18M3 16h18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+            <button class="optb-icon-btn" id="optbSnapToggle" type="button" title="Toggle snap to grid" aria-label="Toggle snap to grid" aria-pressed="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 9V3h6M15 3h6v6M21 15v6h-6M9 21H3v-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg></button>
+            <button class="optb-icon-btn" id="optbUndoBtn" type="button" title="Undo" aria-label="Undo last action"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 8h10a6 6 0 0 1 0 12h-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M7 5l-3 3 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+            <button class="optb-icon-btn" id="optbRedoBtn" type="button" title="Redo" aria-label="Redo last action"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 8H10a6 6 0 0 0 0 12h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M17 5l3 3-3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          </div>
+        </div>
       </div>
 
       <div class="canvas-header-bar optb-layout-only">
@@ -751,6 +773,18 @@
 
       <div class="canvas-with-inspector" id="canvasWithInspector">
         <div class="canvas-box" id="roomCanvasBox">
+          <!-- P3: Floating tool palette (spec §4.2) -->
+          <div class="optb-tool-palette" id="optbToolPalette" role="toolbar" aria-label="Drawing tools">
+            <button class="optb-tool-btn optb-tool-btn--active" data-optb-tool="select" type="button" title="Select (V)" aria-label="Select tool" aria-pressed="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 3l14 9-7 1-3 7L5 3z" fill="currentColor"/></svg><span class="optb-tool-key" aria-hidden="true">V</span></button>
+            <button class="optb-tool-btn" data-optb-tool="vertex" type="button" title="Add Vertex (N)" aria-label="Vertex tool" aria-pressed="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3l9 9-9 9-9-9 9-9z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg><span class="optb-tool-key" aria-hidden="true">N</span></button>
+            <button class="optb-tool-btn" data-optb-tool="platform" type="button" title="Add Platform (P)" aria-label="Platform tool" aria-pressed="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="9" width="18" height="6" rx="2" stroke="currentColor" stroke-width="1.5"/></svg><span class="optb-tool-key" aria-hidden="true">P</span></button>
+            <button class="optb-tool-btn" data-optb-tool="door" type="button" title="Add Door (D)" aria-label="Door tool" aria-pressed="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 21V4a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v17M4 21h16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="15" cy="12" r="1.5" fill="currentColor"/></svg><span class="optb-tool-key" aria-hidden="true">D</span></button>
+            <button class="optb-tool-btn" data-optb-tool="key" type="button" title="Add Key (K)" aria-label="Key tool" aria-pressed="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="9" cy="9" r="4" stroke="currentColor" stroke-width="1.5"/><path d="M13 13l6 6M16 17l2 2M19 14l2 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><span class="optb-tool-key" aria-hidden="true">K</span></button>
+            <button class="optb-tool-btn" data-optb-tool="ability" type="button" title="Add Ability (A)" aria-label="Ability tool" aria-pressed="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2v5M12 17v5M2 12h5M17 12h5M5.6 5.6l3.5 3.5M14.9 14.9l3.5 3.5M18.4 5.6l-3.5 3.5M9.1 14.9l-3.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><span class="optb-tool-key" aria-hidden="true">A</span></button>
+            <button class="optb-tool-btn" data-optb-tool="mover" type="button" title="Add Mover (M)" aria-label="Mover tool" aria-pressed="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14M8 9l-3 3 3 3M16 9l3 3-3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="optb-tool-key" aria-hidden="true">M</span></button>
+            <button class="optb-tool-btn" data-optb-tool="start" type="button" title="Set Start (S)" aria-label="Start point tool" aria-pressed="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 3v18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M5 3h12l-3 5 3 5H5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="optb-tool-key" aria-hidden="true">S</span></button>
+            <button class="optb-tool-btn" data-optb-tool="pan" type="button" title="Pan canvas (H)" aria-label="Pan tool" aria-pressed="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="2" fill="currentColor"/><path d="M12 4v4M12 16v4M4 12h4M16 12h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M10 6l2-2 2 2M10 18l2 2 2-2M6 10l-2 2 2 2M18 10l2 2-2 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="optb-tool-key" aria-hidden="true">H</span></button>
+          </div>
           <div class="canvas-toolbar" id="canvasToolButtons">
           <button data-tool="select" class="active" type="button">Select <kbd>V</kbd></button>
           <button data-tool="vertex" type="button">Add Vertex <kbd>E</kbd></button>
@@ -797,6 +831,33 @@
           </div>
         </div>
           <canvas id="roomCanvas" width="960" height="720"></canvas>
+          <!-- P3: Task drawer (spec §4.3) -->
+          <div class="optb-task-drawer" id="optbTaskDrawer" aria-label="Phase tasks">
+            <div class="optb-drawer-handle" aria-hidden="true"></div>
+            <div class="optb-drawer-inner">
+              <div class="optb-drawer-tasks" id="optbDrawerTasks">
+                <div class="optb-task-card optb-task-card--done">
+                  <div class="optb-task-card-label">Done</div>
+                  <div class="optb-task-card-title">Name &amp; ID</div>
+                </div>
+                <div class="optb-task-card optb-task-card--active">
+                  <div class="optb-task-card-label">Active</div>
+                  <div class="optb-task-card-title">Draw room footprint</div>
+                </div>
+                <div class="optb-task-card optb-task-card--pending">
+                  <div class="optb-task-card-label">Next</div>
+                  <div class="optb-task-card-title">Add platforms</div>
+                </div>
+                <div class="optb-task-card optb-task-card--pending">
+                  <div class="optb-task-card-label">Later</div>
+                  <div class="optb-task-card-title">Link neighbors</div>
+                </div>
+              </div>
+              <div class="optb-drawer-actions">
+                <button class="optb-btn optb-btn--ghost" type="button" id="optbRoomSetup" title="Open room setup wizard">Room setup</button>
+              </div>
+            </div>
+          </div>
         </div>
         <div class="inspector hidden" id="selectionInspector">
           <div class="inspector-header">
@@ -1053,9 +1114,35 @@
     </div><!-- #optb-stage-layout -->
 
     <div id="optb-stage-focus" class="optb-stage-focus" hidden aria-hidden="true">
-      <!-- P2: inspector teleport slots + focus workspace rendered here -->
-      <div id="optb-wide-head-slot" class="optb-wide-head-slot"></div>
-      <div id="optb-wide-main-slot" class="optb-wide-main-slot"></div>
+      <!-- P4: Focus main column — inspector nodes teleport here (spec §3.2, §5) -->
+      <div class="optb-focus-main">
+        <div id="optb-wide-head-slot" class="optb-wide-head-slot"></div>
+        <div id="optb-wide-main-slot" class="optb-wide-main-slot"></div>
+      </div>
+      <!-- P4: Reference rail — phase-specific blocks + preview CTAs (spec §7) -->
+      <aside class="optb-ref-rail" aria-label="Reference">
+        <div class="optb-ref-eyebrow" aria-hidden="true">Reference</div>
+        <div class="optb-ref-block" data-ref="identity">
+          <p class="optb-ref-hint">Name and canonical ID set this room's identity in exports and the world graph.</p>
+          <div class="optb-mini-canvas" role="img" aria-label="Layout thumbnail"></div>
+          <button class="optb-btn optb-btn--ghost optb-ref-cta" data-modal-type="layout" type="button">Open layout preview</button>
+        </div>
+        <div class="optb-ref-block" data-ref="environment" hidden>
+          <p class="optb-ref-hint">Environment sets the room's visual direction and drives AI-generated art assets.</p>
+          <div class="optb-mini-canvas" role="img" aria-label="Decorated preview thumbnail"></div>
+          <button class="optb-btn optb-btn--ghost optb-ref-cta" data-modal-type="decor" type="button">Open decorated preview</button>
+        </div>
+        <div class="optb-ref-block" data-ref="entities" hidden>
+          <p class="optb-ref-hint">Place entity objects — doors, keys, abilities, movers — that define room traversal rules.</p>
+          <div class="optb-mini-canvas" role="img" aria-label="Entity placement thumbnail"></div>
+          <button class="optb-btn optb-btn--ghost optb-ref-cta" data-modal-type="layout" type="button">Open layout preview</button>
+        </div>
+        <div class="optb-ref-block" data-ref="review" hidden>
+          <p class="optb-ref-hint">Review validation results, approve the room, and export the runtime package.</p>
+          <div class="optb-mini-canvas" role="img" aria-label="Final room thumbnail"></div>
+          <button class="optb-btn optb-btn--ghost optb-ref-cta" data-modal-type="layout" type="button">Open final preview</button>
+        </div>
+      </aside>
     </div>
 
   </div>
@@ -1083,6 +1170,20 @@
         title="Ashen Hollow playtest"
         src="about:blank"
       ></iframe>
+    </div>
+  </div>
+
+  <!-- P4: Preview modal (spec §7) -->
+  <div id="optb-modal" class="optb-modal" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="optbModalTitle">
+    <div class="optb-modal-backdrop" id="optbModalBackdrop" aria-hidden="true"></div>
+    <div class="optb-modal-dialog">
+      <header class="optb-modal-header">
+        <h2 class="optb-modal-title" id="optbModalTitle">Preview</h2>
+        <button class="optb-icon-btn" id="optbModalClose" type="button" aria-label="Close preview"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+      </header>
+      <div class="optb-modal-body" id="optbModalBody">
+        <div class="optb-modal-canvas-placeholder" role="img" aria-label="Room preview snapshot — live render will appear here"></div>
+      </div>
     </div>
   </div>
 
@@ -1351,6 +1452,16 @@
 
     if (!appEl || !rail) return;
 
+    /* One-time DOM setup (spec §5): hoist #optb-inspector out of the wizard dock
+       so it becomes the second column of #optb-stage-layout. */
+    (function hoistInspector() {
+      var stageLayout = document.getElementById('optb-stage-layout');
+      if (!stageLayout || !ins) return;
+      if (ins.parentElement === stageLayout) return;
+      stageLayout.appendChild(ins);           // second grid column
+      ins.classList.add('optb-layout-only');  // hide outside Layout phase
+    }());
+
     function currentPhase() {
       var active = rail.querySelector('.optb-pill--active');
       var ph = active && active.getAttribute('data-phase');
@@ -1406,6 +1517,9 @@
         var nextIdx = (i + 1) % PHASES.length;
         nextBtn.textContent = 'Next: ' + PHASE_LABEL[PHASES[nextIdx]] + ' \u2192';
       }
+
+      /* P4: sync reference rail blocks to current phase */
+      if (typeof syncRefRail === 'function') syncRefRail(phase);
     }
 
     rail.querySelectorAll('.optb-pill').forEach(function (pill) {
@@ -1445,6 +1559,201 @@
       optbValidate.addEventListener('click', function () { runValidation.click(); });
     }
     setPhase('layout');
+  }());
+  </script>
+
+  <!-- P3: Stage bar wiring — room name, zoom delegation, icon button toggles -->
+  <script>
+  (function () {
+    'use strict';
+    var stageBar = document.getElementById('optbStageBar');
+    if (!stageBar) return;
+
+    var roomNameEl = document.getElementById('optbStageRoomName');
+    var roomMetaEl = document.getElementById('optbStageRoomMeta');
+    var roomSelect  = document.getElementById('roomSelect');
+
+    function syncRoomName() {
+      var opt = roomSelect && roomSelect.selectedOptions[0];
+      if (roomNameEl) roomNameEl.textContent = opt ? opt.textContent.trim() : 'Room';
+    }
+    if (roomSelect) {
+      roomSelect.addEventListener('change', syncRoomName);
+      /* Poll until editor JS populates the select, then stop */
+      var poll = setInterval(function () {
+        if (roomSelect.options.length > 0) { syncRoomName(); clearInterval(poll); }
+      }, 200);
+    }
+
+    /* Zoom delegation */
+    stageBar.querySelectorAll('.optb-zoom-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        stageBar.querySelectorAll('.optb-zoom-btn').forEach(function (b) {
+          b.classList.toggle('optb-zoom-btn--active', b === btn);
+        });
+        var zoom = btn.dataset.zoom;
+        if (zoom === 'fit')  { var f = document.getElementById('roomZoomFit');   f && f.click(); }
+        if (zoom === '100')  { var r = document.getElementById('roomZoomReset'); r && r.click(); }
+        if (zoom === '50' || zoom === '200') {
+          var gz = document.getElementById('globalZoom');
+          if (gz) { gz.value = zoom; gz.dispatchEvent(new Event('input', { bubbles: true })); }
+        }
+      });
+    });
+
+    /* Grid toggle — visual only (grid drawn by canvas) */
+    var gridBtn = document.getElementById('optbGridToggle');
+    if (gridBtn) {
+      gridBtn.addEventListener('click', function () {
+        var on = gridBtn.getAttribute('aria-pressed') !== 'true';
+        gridBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+    }
+
+    /* Snap toggle — wires to legacy #snapSize select */
+    var snapBtn  = document.getElementById('optbSnapToggle');
+    var snapSel  = document.getElementById('snapSize');
+    var _lastSnap = '32';
+    if (snapBtn && snapSel) {
+      /* Seed from current select value */
+      if (snapSel.value && snapSel.value !== '0') _lastSnap = snapSel.value;
+      snapBtn.addEventListener('click', function () {
+        var on = snapBtn.getAttribute('aria-pressed') !== 'true';
+        snapBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+        if (on) {
+          snapSel.value = _lastSnap;
+        } else {
+          if (snapSel.value !== '0') _lastSnap = snapSel.value;
+          snapSel.value = '0';
+        }
+        snapSel.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+    }
+
+    /* Room meta — dimensions from legacy inputs */
+    var roomWidthIn  = document.getElementById('roomWidth');
+    var roomHeightIn = document.getElementById('roomHeight');
+    function syncRoomMeta() {
+      if (!roomMetaEl) return;
+      var w = roomWidthIn && roomWidthIn.value;
+      var h = roomHeightIn && roomHeightIn.value;
+      roomMetaEl.textContent = (w && h) ? w + ' × ' + h + ' px' : '—';
+    }
+    if (roomWidthIn)  roomWidthIn.addEventListener('change',  syncRoomMeta);
+    if (roomHeightIn) roomHeightIn.addEventListener('change', syncRoomMeta);
+    /* Poll once until editor JS populates the inputs */
+    var metaPoll = setInterval(function () {
+      if (roomWidthIn && roomWidthIn.value) { syncRoomMeta(); clearInterval(metaPoll); }
+    }, 300);
+  }());
+  </script>
+
+  <!-- P3: Floating tool palette — delegates clicks to legacy toolbar, mirrors active state -->
+  <script>
+  (function () {
+    'use strict';
+    var palette      = document.getElementById('optbToolPalette');
+    var legacyBar    = document.getElementById('canvasToolButtons');
+    if (!palette || !legacyBar) return;
+
+    function syncActive() {
+      var activeBtn = legacyBar.querySelector('[data-tool].active');
+      var activeTool = activeBtn ? activeBtn.dataset.tool : null;
+      palette.querySelectorAll('.optb-tool-btn[data-optb-tool]').forEach(function (btn) {
+        var on = btn.dataset.optbTool === activeTool;
+        btn.classList.toggle('optb-tool-btn--active', on);
+        btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+    }
+
+    palette.querySelectorAll('.optb-tool-btn[data-optb-tool]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var tool = btn.dataset.optbTool;
+        /* map palette tool names to legacy data-tool values */
+        var toolMap = { pan: 'room-move' };
+        var legacyTool = toolMap[tool] || tool;
+        var target = legacyBar.querySelector('[data-tool="' + legacyTool + '"]');
+        if (target) target.click();
+        /* Optimistic update while MutationObserver catches up */
+        palette.querySelectorAll('.optb-tool-btn').forEach(function (b) {
+          b.classList.toggle('optb-tool-btn--active', b === btn);
+          b.setAttribute('aria-pressed', b === btn ? 'true' : 'false');
+        });
+      });
+    });
+
+    new MutationObserver(syncActive).observe(legacyBar, {
+      attributes: true, subtree: true, attributeFilter: ['class']
+    });
+    syncActive();
+  }());
+  </script>
+
+  <!-- P4: Reference rail phase sync + preview modal -->
+  <script>
+  /* syncRefRail is called from setPhase in the phase-machine script above */
+  function syncRefRail(phase) {
+    var refPhaseMap = { identity: 'identity', environment: 'environment', entities: 'entities', review: 'review' };
+    var target = refPhaseMap[phase] || 'identity';
+    document.querySelectorAll('.optb-ref-block[data-ref]').forEach(function (block) {
+      block.hidden = block.dataset.ref !== target;
+    });
+  }
+
+  (function () {
+    'use strict';
+    var modal    = document.getElementById('optb-modal');
+    var backdrop = document.getElementById('optbModalBackdrop');
+    var closeBtn = document.getElementById('optbModalClose');
+    var titleEl  = document.getElementById('optbModalTitle');
+    if (!modal) return;
+
+    var TITLES = { layout: 'Layout Preview', decor: 'Decorated Preview' };
+
+    function openModal(type) {
+      titleEl.textContent = TITLES[type] || 'Preview';
+      modal.hidden = false;
+      modal.setAttribute('aria-hidden', 'false');
+      document.body.setAttribute('inert-except-modal', '');
+      closeBtn.focus();
+      document.addEventListener('keydown', onModalKey);
+    }
+
+    function closeModal() {
+      modal.hidden = true;
+      modal.setAttribute('aria-hidden', 'true');
+      document.body.removeAttribute('inert-except-modal');
+      document.removeEventListener('keydown', onModalKey);
+    }
+
+    function onModalKey(e) {
+      if (e.key === 'Escape') { e.preventDefault(); closeModal(); return; }
+      if (e.key === 'Tab') {
+        var focusable = Array.from(modal.querySelectorAll(
+          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        ));
+        if (!focusable.length) { e.preventDefault(); return; }
+        var first = focusable[0], last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    }
+
+    if (backdrop) backdrop.addEventListener('click', closeModal);
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+
+    /* Wire CTA buttons anywhere in the page */
+    document.addEventListener('click', function (e) {
+      var cta = e.target.closest('.optb-ref-cta[data-modal-type]');
+      if (cta) openModal(cta.dataset.modalType);
+    });
+
+    /* Task drawer room-setup proxy */
+    var drawerSetup = document.getElementById('optbRoomSetup');
+    var legacySetup = document.getElementById('roomSetupBtn');
+    if (drawerSetup && legacySetup) {
+      drawerSetup.addEventListener('click', function () { legacySetup.click(); });
+    }
   }());
   </script>
 </body>
