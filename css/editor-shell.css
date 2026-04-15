@@ -2355,7 +2355,45 @@ body#optb-app #optb-stage-layout {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  overflow: auto;
+  overflow: hidden;
+}
+
+/* Workbench region below header / wizard: must flex so canvas + inventory get height */
+.canvas-wrap > #optb-layout-surface {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  gap: 14px;
+}
+
+.canvas-wrap:has(#roomWizardDock:not([hidden])) > #optb-layout-surface {
+  flex: 1 1 38%;
+  min-height: 160px;
+}
+
+.canvas-wrap:not(:has(#roomWizardDock:not([hidden]))) > #optb-layout-surface {
+  flex: 1;
+  min-height: 0;
+}
+
+/* Restore flex chain inside the surface wrapper (was direct under .canvas-wrap) */
+#optb-layout-surface .canvas-with-inspector {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+#optb-layout-surface .canvas-with-inspector .canvas-box:not(.hidden) {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* Room vs global canvas: never show both; JS toggles .hidden on these boxes */
+.canvas-box.hidden,
+#globalCanvasBox.hidden,
+#roomCanvasBox.hidden {
+  display: none !important;
 }
 
 /* stage-focus fills available space */
