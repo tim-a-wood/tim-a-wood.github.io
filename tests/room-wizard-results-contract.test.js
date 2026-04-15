@@ -193,6 +193,16 @@ function assertIncludes(snippet, message) {
   );
 })();
 
+(function testOptionBPhaseRailDrivesWizardPanels() {
+  assertIncludes('function syncWizardPanelsForPhase(phase)', 'Option B phase machine should include wizard panel synchronization');
+  assertIncludes("layout: phase === 'layout' || phase === 'identity'", 'Identity should map to the layout/identity wizard pane');
+  assertIncludes("environment: phase === 'environment'", 'Environment phase should map to the environment wizard pane');
+  assertIncludes("art: phase === 'entities'", 'Entities phase should map to the art-direction pane');
+  assertIncludes("review: phase === 'review'", 'Review phase should map to the review pane');
+  assertIncludes("var isMainLayoutWorkspace = phase === 'layout';", 'Only Layout should stay in stage mode');
+  assertIncludes('syncWizardPanelsForPhase(phase);', 'Phase changes should actively update visible wizard panes');
+})();
+
 (function testRuntimeReviewOpensGameWithoutDuplicateButton() {
   assert.ok(
     !html.includes('id="roomWizardPreviewOpenGame"'),

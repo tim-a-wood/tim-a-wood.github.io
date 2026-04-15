@@ -1468,6 +1468,23 @@
       return (ph && PHASES.indexOf(ph) >= 0) ? ph : 'layout';
     }
 
+    function syncWizardPanelsForPhase(phase) {
+      var panelLayout = document.getElementById('roomWizardPanelLayout');
+      var panelEnv = document.getElementById('roomWizardPanelEnvironment');
+      var panelArt = document.getElementById('roomWizardPanelArtDirection');
+      var panelReview = document.getElementById('roomWizardPanelReview');
+      var show = {
+        layout: phase === 'layout' || phase === 'identity',
+        environment: phase === 'environment',
+        art: phase === 'entities',
+        review: phase === 'review'
+      };
+      if (panelLayout) panelLayout.hidden = !show.layout;
+      if (panelEnv) panelEnv.hidden = !show.environment;
+      if (panelArt) panelArt.hidden = !show.art;
+      if (panelReview) panelReview.hidden = !show.review;
+    }
+
     function setPhase(phase) {
       if (PHASES.indexOf(phase) < 0) return;
       var i = PHASES.indexOf(phase);
@@ -1480,8 +1497,8 @@
         pill.setAttribute('aria-selected', on ? 'true' : 'false');
       });
 
-      /* Identity + Layout both use the main canvas / inventory / validation (§9). Teleport only for Environment+. */
-      var isMainLayoutWorkspace = phase === 'identity' || phase === 'layout';
+      /* Spec §3: only Layout keeps stage; all other phases use the focus workspace. */
+      var isMainLayoutWorkspace = phase === 'layout';
 
       /* Spec §5: same #optb-ins-head / #optb-ins-body nodes — main workbench vs focus workspace */
       if (ins && insHead && insBody && slotHead && slotBody) {
@@ -1508,6 +1525,9 @@
         stageFocus.hidden = isMainLayoutWorkspace;
         stageFocus.setAttribute('aria-hidden', isMainLayoutWorkspace ? 'true' : 'false');
       }
+
+      /* Ensure phase rail drives the actual wizard pane content (no stale Layout clone). */
+      syncWizardPanelsForPhase(phase);
 
       if (prevBtn) {
         var prevIdx = (i - 1 + PHASES.length) % PHASES.length;
