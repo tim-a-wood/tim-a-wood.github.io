@@ -2350,12 +2350,38 @@ body#optb-app .app {
   overflow: hidden;
 }
 
+/* Main workbench: canvas + Active Room + Validation are siblings — must be columns, not stacked (fixes overlap). */
 body#optb-app #optb-stage-layout {
-  flex: 1;
+  flex: 1 1 auto;
   min-height: 0;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 360px) minmax(220px, 400px);
+  grid-template-rows: minmax(0, 1fr);
+  align-items: stretch;
+  gap: 14px;
   overflow: hidden;
+}
+
+body#optb-app #optb-stage-layout > section.canvas-wrap {
+  min-width: 0;
+  min-height: 0;
+  align-self: stretch;
+}
+
+body#optb-app #optb-stage-layout > #activeRoomPanel,
+body#optb-app #optb-stage-layout > #validationPanel {
+  min-height: 0;
+  min-width: 0;
+  overflow: auto;
+  align-self: stretch;
+  max-width: none;
+}
+
+@media (max-width: 1200px) {
+  body#optb-app #optb-stage-layout {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(200px, 1fr) auto auto;
+  }
 }
 
 /* Workbench region below header / wizard: must flex so canvas + inventory get height */
