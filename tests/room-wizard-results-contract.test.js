@@ -218,6 +218,17 @@ function assertIncludes(snippet, message) {
   );
 })();
 
+(function testOptionBDockFallbackVisibilityContract() {
+  assertIncludes(
+    'body#optb-app #roomWizardDock:not(:has(#optb-inspector))',
+    'Option B should hide wizard dock only after inspector hoist removes #optb-inspector'
+  );
+  assert.ok(
+    !shellCss.includes('body#optb-app #roomWizardDock {\n  display: none !important;'),
+    'Option B should not hard-hide roomWizardDock unconditionally'
+  );
+})();
+
 (function testRuntimeReviewOpensGameWithoutDuplicateButton() {
   assert.ok(
     !html.includes('id="roomWizardPreviewOpenGame"'),

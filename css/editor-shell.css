@@ -2388,8 +2388,12 @@ body#optb-app #optb-stage-layout > #optbSideRail {
   display: none !important;
 }
 
-/* Suppress the now-empty wizard dock in Option B — inspector lives in the column */
-body#optb-app #roomWizardDock {
+/* Option B dock fallback:
+   keep dock available when it still owns #optb-inspector; hide only when hoist moved it out. */
+body#optb-app #roomWizardDock[hidden] {
+  display: none !important;
+}
+body#optb-app #roomWizardDock:not(:has(#optb-inspector)) {
   display: none !important;
 }
 
