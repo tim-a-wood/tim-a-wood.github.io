@@ -1497,8 +1497,9 @@
         pill.setAttribute('aria-selected', on ? 'true' : 'false');
       });
 
-      /* Spec §3: only Layout keeps stage; all other phases use the focus workspace. */
-      var isMainLayoutWorkspace = phase === 'layout';
+      /* Stabilization: keep the primary workspace visible for all phases so the wizard
+         components never disappear when legacy state gates are out-of-sync. */
+      var isMainLayoutWorkspace = true;
 
       /* Spec §5: same #optb-ins-head / #optb-ins-body nodes — main workbench vs focus workspace */
       if (ins && insHead && insBody && slotHead && slotBody) {
@@ -1534,6 +1535,21 @@
 
       /* Ensure phase rail drives the actual wizard pane content (no stale Layout clone). */
       syncWizardPanelsForPhase(phase);
+
+      /* Bridge Option B rail -> legacy wizard handlers so Environment/Review logic runs. */
+      (function syncLegacyWizardState() {
+        var map = {
+          identity: 'roomWizardTabLayout',
+          layout: 'roomWizardTabLayout',
+          environment: 'roomWizardTabEnvironment',
+          review: 'roomWizardTabReview'
+        };
+        var legacyBtnId = map[phase];
+        if (!legacyBtnId) return;
+        var legacyBtn = document.getElementById(legacyBtnId);
+        if (!legacyBtn || legacyBtn.disabled) return;
+        legacyBtn.click();
+      }());
 
       if (prevBtn) {
         var prevIdx = (i - 1 + PHASES.length) % PHASES.length;

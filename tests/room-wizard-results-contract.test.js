@@ -199,9 +199,11 @@ function assertIncludes(snippet, message) {
   assertIncludes("environment: phase === 'environment'", 'Environment phase should map to the environment wizard pane');
   assertIncludes("art: phase === 'entities'", 'Entities phase should map to the art-direction pane');
   assertIncludes("review: phase === 'review'", 'Review phase should map to the review pane');
-  assertIncludes("var isMainLayoutWorkspace = phase === 'layout';", 'Only Layout should stay in stage mode');
+  assertIncludes("var isMainLayoutWorkspace = true;", 'Stabilization keeps wizard workspace visible for all phases');
   assertIncludes('dock.hidden = false;', 'Option B phase machine should force wizard dock visible independent of legacy roomWizard.active');
   assertIncludes("dock.setAttribute('aria-hidden', 'false');", 'Option B phase machine should keep wizard dock aria state visible');
+  assertIncludes("environment: 'roomWizardTabEnvironment'", 'Option B phase machine should bridge Environment phase to legacy wizard handlers');
+  assertIncludes('legacyBtn.click();', 'Option B phase machine should trigger legacy wizard handlers when available');
   assertIncludes('syncWizardPanelsForPhase(phase);', 'Phase changes should actively update visible wizard panes');
 })();
 
