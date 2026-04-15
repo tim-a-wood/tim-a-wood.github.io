@@ -1518,6 +1518,12 @@
 
       var dock = document.getElementById('roomWizardDock');
       if (dock) {
+        /* Option B owns phase visibility; do not rely on legacy roomWizard.active gating. */
+        dock.hidden = false;
+        dock.setAttribute('aria-hidden', 'false');
+        dock.classList.add('room-wizard-dock--compact');
+        /* Keep legacy phase-dependent styling hooks coherent for any dependent CSS/JS. */
+        dock.dataset.phase = (phase === 'identity') ? 'layout' : (phase === 'entities' ? 'environment' : phase);
         dock.classList.toggle('optb-wizard-dock--off-layout', !isMainLayoutWorkspace);
       }
 

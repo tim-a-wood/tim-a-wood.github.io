@@ -200,6 +200,8 @@ function assertIncludes(snippet, message) {
   assertIncludes("art: phase === 'entities'", 'Entities phase should map to the art-direction pane');
   assertIncludes("review: phase === 'review'", 'Review phase should map to the review pane');
   assertIncludes("var isMainLayoutWorkspace = phase === 'layout';", 'Only Layout should stay in stage mode');
+  assertIncludes('dock.hidden = false;', 'Option B phase machine should force wizard dock visible independent of legacy roomWizard.active');
+  assertIncludes("dock.setAttribute('aria-hidden', 'false');", 'Option B phase machine should keep wizard dock aria state visible');
   assertIncludes('syncWizardPanelsForPhase(phase);', 'Phase changes should actively update visible wizard panes');
 })();
 
