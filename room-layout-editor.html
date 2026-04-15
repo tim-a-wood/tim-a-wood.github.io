@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/editor-tokens.css?v=20260415" />
-  <link rel="stylesheet" href="css/editor-shell.css?v=20260427" />
+  <link rel="stylesheet" href="css/editor-shell.css?v=20260428" />
   <link rel="stylesheet" href="css/room-wizard.css?v=20260415" />
 </head>
 <body id="optb-app" data-phase="layout">
@@ -1497,9 +1497,8 @@
         pill.setAttribute('aria-selected', on ? 'true' : 'false');
       });
 
-      /* Stabilization: keep the primary workspace visible for all phases so the wizard
-         components never disappear when legacy state gates are out-of-sync. */
-      var isMainLayoutWorkspace = true;
+      /* Spec §3: only Layout keeps stage; all other phases use focus workspace. */
+      var isMainLayoutWorkspace = phase === 'layout';
 
       /* Spec §5: same #optb-ins-head / #optb-ins-body nodes — main workbench vs focus workspace */
       if (ins && insHead && insBody && slotHead && slotBody) {
@@ -1531,6 +1530,12 @@
       if (stageFocus) {
         stageFocus.hidden = isMainLayoutWorkspace;
         stageFocus.setAttribute('aria-hidden', isMainLayoutWorkspace ? 'true' : 'false');
+      }
+
+      var stageLayout = document.getElementById('optb-stage-layout');
+      if (stageLayout) {
+        stageLayout.classList.toggle('is-hidden', !isMainLayoutWorkspace);
+        stageLayout.setAttribute('aria-hidden', isMainLayoutWorkspace ? 'false' : 'true');
       }
 
       /* Ensure phase rail drives the actual wizard pane content (no stale Layout clone). */

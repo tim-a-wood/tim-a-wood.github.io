@@ -2365,6 +2365,10 @@ body#optb-app #optb-stage-layout {
   overflow: hidden;
 }
 
+body#optb-app #optb-stage-layout.is-hidden {
+  display: none !important;
+}
+
 body#optb-app #optb-stage-layout > section.canvas-wrap {
   min-width: 0;
   min-height: 0;
