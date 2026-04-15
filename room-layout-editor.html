@@ -24,7 +24,6 @@
     <div class="optb-topbar-actions">
       <button type="button" class="optb-btn optb-btn--ghost" id="optbCmdPalette" aria-label="Command palette (coming soon)">⌘K</button>
       <button type="button" class="optb-btn optb-btn--accent" id="optbValidate" aria-label="Run validation">Validate</button>
-      <button type="button" class="optb-btn" id="optbExportRuntime" title="Download runtime bundle: manifest, world graph, per-room JSON, and full layout">Export runtime</button>
       <button type="button" class="optb-btn optb-btn--save" id="savePermanent" title="Save this layout in your browser/device only">Save local<span class="dirty-dot" id="dirtyDot" style="display:none;"></span></button>
     </div>
   </header>
@@ -1415,12 +1414,6 @@
     if (optbValidate && runValidation) {
       optbValidate.addEventListener('click', function () { runValidation.click(); });
     }
-    var optbExportRuntime = document.getElementById('optbExportRuntime');
-    var downloadRuntimePackage = document.getElementById('downloadRuntimePackage');
-    if (optbExportRuntime && downloadRuntimePackage) {
-      optbExportRuntime.addEventListener('click', function () { downloadRuntimePackage.click(); });
-    }
-
     setPhase('layout');
   }());
   </script>
