@@ -2390,10 +2390,9 @@ body#optb-app #workflowRailsStack {
   color: var(--text);
 }
 
-/* Scope chips live in the topbar (global authoring context), not the wizard strip */
+/* Scope chips: topbar right cluster (before global actions), not the wizard strip */
 .optb-topbar .optb-scope-toggle {
   flex-shrink: 0;
-  margin-left: var(--space-2);
 }
 
 .optb-topbar-spacer {
