@@ -7,21 +7,53 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/editor-tokens.css?v=20260413" />
-  <link rel="stylesheet" href="css/editor-shell.css?v=20260413" />
-  <link rel="stylesheet" href="css/room-wizard.css?v=20260413" />
+  <link rel="stylesheet" href="css/editor-tokens.css?v=20260415" />
+  <link rel="stylesheet" href="css/editor-shell.css?v=20260417" />
+  <link rel="stylesheet" href="css/room-wizard.css?v=20260415" />
 </head>
-<body>
-  <nav class="site-nav" aria-label="Site navigation">
-    <div class="site-nav-brand">
-      <a class="site-nav-logo" id="navLogo" href="./tools/2d-sprite-and-animation/index.html">Sprite Workbench</a>
+<body id="optb-app" data-phase="layout">
+  <header class="optb-topbar" aria-label="Editor navigation">
+    <a class="optb-brand" href="./tools/2d-sprite-and-animation/index.html">sprite<em class="optb-brand-dot">·</em>workbench</a>
+    <div class="optb-crumb"><b id="optbCrumbProject">Ashen Hollow</b> · Room Creation</div>
+    <div class="optb-scope-toggle" role="tablist" aria-label="Editor scope">
+      <button type="button" class="optb-scope-chip" role="tab" aria-selected="false" data-optb-scope="world">World</button>
+      <button type="button" class="optb-scope-chip optb-scope-chip--active" role="tab" aria-selected="true" data-optb-scope="room">Room</button>
+      <button type="button" class="optb-scope-chip" role="tab" aria-selected="false" data-optb-scope="art-direction">Art Direction</button>
     </div>
-    <div class="site-nav-divider" aria-hidden="true"></div>
-    <div class="site-nav-links" role="list">
-      <a class="site-nav-link" id="navHome" href="./tools/2d-sprite-and-animation/index.html" role="listitem">Home</a>
-      <a class="site-nav-link" id="navSpriteCreation" href="./tools/2d-sprite-and-animation/index.html" role="listitem">Sprite Creation</a>
-      <a class="site-nav-link active" id="navRoomCreation" href="./room-layout-editor.html" role="listitem">Room Creation</a>
-      <a class="site-nav-link" id="navDocs" href="./tools/2d-sprite-and-animation/index.html" role="listitem">Docs</a>
+    <div class="optb-topbar-spacer"></div>
+    <div class="optb-topbar-actions">
+      <button type="button" class="optb-btn optb-btn--ghost" id="optbCmdPalette" aria-label="Command palette (coming soon)">⌘K</button>
+      <button type="button" class="optb-btn optb-btn--accent" id="optbValidate" aria-label="Run validation">Validate</button>
+      <button type="button" class="optb-btn" id="optbExportRuntime" title="Download runtime bundle: manifest, world graph, per-room JSON, and full layout">Export runtime</button>
+      <button type="button" class="optb-btn optb-btn--save" id="savePermanent" title="Save this layout in your browser/device only">Save local<span class="dirty-dot" id="dirtyDot" style="display:none;"></span></button>
+    </div>
+  </header>
+
+  <nav class="optb-phase-bar" aria-label="Room wizard">
+    <div class="optb-pill-rail" id="optb-phase-rail" role="tablist" aria-label="Room wizard phases">
+      <button type="button" class="optb-pill" data-phase="identity" role="tab" aria-selected="false">
+        <span class="optb-pill-num">1</span>Identity<small>· name · id</small>
+      </button>
+      <div class="optb-pill-connector" aria-hidden="true"></div>
+      <button type="button" class="optb-pill optb-pill--active" data-phase="layout" role="tab" aria-selected="true">
+        <span class="optb-pill-num">2</span>Layout<small>· geometry</small>
+      </button>
+      <div class="optb-pill-connector" aria-hidden="true"></div>
+      <button type="button" class="optb-pill" data-phase="environment" role="tab" aria-selected="false">
+        <span class="optb-pill-num">3</span>Environment<small>· art</small>
+      </button>
+      <div class="optb-pill-connector" aria-hidden="true"></div>
+      <button type="button" class="optb-pill" data-phase="entities" role="tab" aria-selected="false">
+        <span class="optb-pill-num">4</span>Entities<small>· doors · keys</small>
+      </button>
+      <div class="optb-pill-connector" aria-hidden="true"></div>
+      <button type="button" class="optb-pill" data-phase="review" role="tab" aria-selected="false">
+        <span class="optb-pill-num">5</span>Review<small>· export</small>
+      </button>
+    </div>
+    <div class="optb-nav-actions">
+      <button type="button" class="optb-btn optb-btn--ghost" id="optb-prev">← Identity</button>
+      <button type="button" class="optb-btn optb-btn--accent" id="optb-next">Next: Environment →</button>
     </div>
   </nav>
   <div class="app-shell">
@@ -122,6 +154,7 @@
         </div>
       </div>
 
+    <div id="optb-stage-layout">
     <section class="panel canvas-wrap">
       <div id="worldWorkflowPlaceholderPanel" class="world-workflow-placeholder" hidden aria-hidden="true">
         <p><strong>Placeholder</strong> — a future world-level phase will live here.</p>
@@ -140,8 +173,8 @@
 
         <!-- Right: Primary actions -->
         <div class="canvas-header-actions">
-          <button id="savePermanent" class="btn-save good" title="Save this layout in your browser/device only">Save Local
-            <span class="dirty-dot" id="dirtyDot" style="display:none;"></span>
+          <button id="legacySavePermanent" class="btn-save good" title="Save this layout in your browser/device only">Save Local
+            <span class="dirty-dot" id="legacyDirtyDot" style="display:none;"></span>
           </button>
           <button type="button" id="syncCanonicalJson" class="btn-secondary" title="Save this layout into the active workbench project">Sync Canonical</button>
           <button type="button" id="downloadJson" class="btn-secondary" title="Download full editor document (git-friendly JSON)">Export JSON</button>
@@ -1011,6 +1044,13 @@
         </div>
       </div>
     </section>
+    </div><!-- #optb-stage-layout -->
+
+    <div id="optb-stage-focus" class="optb-stage-focus" hidden aria-hidden="true">
+      <!-- P2: inspector teleport slots + focus workspace rendered here -->
+      <div id="optb-wide-head-slot" class="optb-wide-head-slot"></div>
+      <div id="optb-wide-main-slot" class="optb-wide-main-slot"></div>
+    </div>
 
   </div>
     </main>
@@ -1281,5 +1321,108 @@
   <script src="js/editor/chunk-3.js?v=202604133"></script>
   <script src="js/editor/chunk-4.js?v=202604133"></script>
   <script src="js/editor/load-chunks.js?v=202604133"></script>
+
+  <!-- Option B shell — P1: phase machine, keyboard nav, topbar proxies -->
+  <script>
+  (function () {
+    'use strict';
+    var PHASES = ['identity', 'layout', 'environment', 'entities', 'review'];
+    var PHASE_LABEL = {
+      identity: 'Identity', layout: 'Layout', environment: 'Environment',
+      entities: 'Entities', review: 'Review'
+    };
+
+    var appEl   = document.getElementById('optb-app');
+    var rail    = document.getElementById('optb-phase-rail');
+    var stageLayout = document.getElementById('optb-stage-layout');
+    var stageFocus  = document.getElementById('optb-stage-focus');
+    var prevBtn = document.getElementById('optb-prev');
+    var nextBtn = document.getElementById('optb-next');
+
+    if (!appEl || !rail) return;
+
+    function currentPhase() {
+      var active = rail.querySelector('.optb-pill--active');
+      var ph = active && active.getAttribute('data-phase');
+      return (ph && PHASES.indexOf(ph) >= 0) ? ph : 'layout';
+    }
+
+    function setPhase(phase) {
+      if (PHASES.indexOf(phase) < 0) return;
+      var i = PHASES.indexOf(phase);
+
+      appEl.setAttribute('data-phase', phase);
+
+      rail.querySelectorAll('.optb-pill').forEach(function (pill) {
+        var on = pill.getAttribute('data-phase') === phase;
+        pill.classList.toggle('optb-pill--active', on);
+        pill.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+
+      var isLayout = phase === 'layout';
+      if (stageLayout) {
+        stageLayout.classList.toggle('is-hidden', !isLayout);
+        stageLayout.setAttribute('aria-hidden', isLayout ? 'false' : 'true');
+      }
+      if (stageFocus) {
+        stageFocus.hidden = isLayout;
+        stageFocus.setAttribute('aria-hidden', isLayout ? 'true' : 'false');
+      }
+
+      if (prevBtn) {
+        var prevIdx = (i - 1 + PHASES.length) % PHASES.length;
+        prevBtn.textContent = '\u2190 ' + PHASE_LABEL[PHASES[prevIdx]];
+      }
+      if (nextBtn) {
+        var nextIdx = (i + 1) % PHASES.length;
+        nextBtn.textContent = 'Next: ' + PHASE_LABEL[PHASES[nextIdx]] + ' \u2192';
+      }
+    }
+
+    rail.querySelectorAll('.optb-pill').forEach(function (pill) {
+      pill.addEventListener('click', function () {
+        setPhase(pill.getAttribute('data-phase'));
+      });
+    });
+
+    if (prevBtn) prevBtn.addEventListener('click', function () {
+      var i = PHASES.indexOf(currentPhase());
+      setPhase(PHASES[Math.max(0, i - 1)]);
+    });
+    if (nextBtn) nextBtn.addEventListener('click', function () {
+      var i = PHASES.indexOf(currentPhase());
+      setPhase(PHASES[Math.min(PHASES.length - 1, i + 1)]);
+    });
+
+    document.addEventListener('keydown', function (e) {
+      var t = e.target;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+      if (e.altKey || e.metaKey || e.ctrlKey) return;
+      var i = PHASES.indexOf(currentPhase());
+      if (e.key === 'ArrowRight' || e.key === ']') {
+        e.preventDefault();
+        setPhase(PHASES[Math.min(PHASES.length - 1, i + 1)]);
+      }
+      if (e.key === 'ArrowLeft' || e.key === '[') {
+        e.preventDefault();
+        setPhase(PHASES[Math.max(0, i - 1)]);
+      }
+    });
+
+    /* Topbar button proxies */
+    var optbValidate = document.getElementById('optbValidate');
+    var runValidation = document.getElementById('runValidation');
+    if (optbValidate && runValidation) {
+      optbValidate.addEventListener('click', function () { runValidation.click(); });
+    }
+    var optbExportRuntime = document.getElementById('optbExportRuntime');
+    var downloadRuntimePackage = document.getElementById('downloadRuntimePackage');
+    if (optbExportRuntime && downloadRuntimePackage) {
+      optbExportRuntime.addEventListener('click', function () { downloadRuntimePackage.click(); });
+    }
+
+    setPhase('layout');
+  }());
+  </script>
 </body>
 </html>

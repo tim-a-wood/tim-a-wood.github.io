@@ -2301,3 +2301,332 @@ body.game-preview-open {
   font-weight: 600;
 }
 
+/* ============================================================
+   Option B Shell — P1: app grid, topbar, phase bar
+   ============================================================ */
+
+/* Body becomes 3-row grid when Option B shell is active */
+body#optb-app {
+  display: grid;
+  grid-template-rows: 52px auto 1fr;
+  height: 100vh;
+  overflow: hidden;
+  /* override flex from base body */
+  flex-direction: unset;
+  min-height: unset;
+}
+
+/* app-shell fills the 1fr row without overflow */
+body#optb-app .app-shell {
+  min-height: 0;
+  overflow: hidden;
+  flex: unset;
+}
+
+/* main-column fills height without overflow */
+body#optb-app .main-column {
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Suppress legacy workflow rail — phase bar is now at body grid level */
+body#optb-app #workflowRailsStack {
+  display: none !important;
+}
+
+/* stage-layout hidden in non-layout phases */
+#optb-stage-layout.is-hidden {
+  display: none !important;
+}
+
+/* stage-focus fills available space */
+.optb-stage-focus {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  overflow-y: auto;
+  background: var(--bg-soft);
+  min-height: 0;
+  flex: 1;
+}
+
+/* --- Topbar ------------------------------------------------ */
+.optb-topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: 0 var(--space-4);
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(14px);
+  z-index: 10;
+  min-height: 52px;
+}
+
+.optb-brand {
+  font-family: var(--font-display);
+  font-size: 20px;
+  letter-spacing: 0.05em;
+  color: var(--text);
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.optb-brand-dot {
+  color: var(--accent);
+  font-style: normal;
+}
+
+.optb-crumb {
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.optb-crumb b {
+  color: var(--text);
+}
+
+/* Scope chips live in the topbar (global authoring context), not the wizard strip */
+.optb-topbar .optb-scope-toggle {
+  flex-shrink: 0;
+  margin-left: var(--space-2);
+}
+
+.optb-topbar-spacer {
+  flex: 1;
+  min-width: var(--space-2);
+}
+
+.optb-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+/* --- Topbar buttons --------------------------------------- */
+.optb-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 32px;
+  padding: 6px 12px;
+  border-radius: var(--radius-tight);
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
+}
+.optb-btn:hover {
+  border-color: var(--line-strong);
+  transform: translateY(-1px);
+}
+.optb-btn:focus-visible {
+  outline: 2px solid rgba(0, 232, 200, 0.35);
+  outline-offset: 2px;
+}
+
+.optb-btn--ghost {
+  border-color: transparent;
+  background: transparent;
+  color: var(--muted);
+}
+.optb-btn--ghost:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--line);
+  color: var(--text);
+}
+
+.optb-btn--accent {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.optb-btn--accent:hover {
+  background: rgba(0, 232, 200, 0.14);
+}
+
+.optb-btn--save {
+  background: linear-gradient(180deg, rgba(245, 208, 116, 0.92), rgba(220, 176, 73, 0.92));
+  color: #151108;
+  border-color: rgba(245, 208, 116, 0.4);
+}
+.optb-btn--save:hover {
+  background: linear-gradient(180deg, rgba(250, 215, 130, 0.96), rgba(228, 185, 85, 0.96));
+}
+
+/* --- Phase bar -------------------------------------------- */
+.optb-phase-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  overflow: hidden;
+  min-height: 52px;
+}
+
+.optb-scope-toggle {
+  display: inline-flex;
+  padding: 3px;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.optb-scope-chip {
+  padding: 8px 16px;
+  border-radius: var(--radius-full);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--muted);
+  min-height: 32px;
+  cursor: pointer;
+  border: 0;
+  background: transparent;
+  transition: background var(--transition-fast), color var(--transition-fast);
+  white-space: nowrap;
+}
+.optb-scope-chip:hover {
+  color: var(--text);
+}
+.optb-scope-chip--active {
+  background: var(--accent-soft);
+  color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+.optb-scope-chip:focus-visible {
+  outline: 2px solid rgba(0, 232, 200, 0.35);
+  outline-offset: 2px;
+}
+
+.optb-pill-rail {
+  display: flex;
+  gap: var(--space-2);
+  flex: 1;
+  justify-content: center;
+  align-items: center;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.optb-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 10px 16px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+  background: var(--bg-soft);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--muted);
+  min-height: 44px;
+  cursor: pointer;
+  position: relative;
+  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+  white-space: nowrap;
+}
+.optb-pill:hover {
+  color: var(--text);
+  border-color: var(--line-strong);
+}
+.optb-pill:focus-visible {
+  outline: 2px solid rgba(0, 232, 200, 0.35);
+  outline-offset: 2px;
+}
+
+/* subtitle text — hidden at default size, shown when there's room */
+.optb-pill small {
+  display: none;
+}
+@media (min-width: 1400px) {
+  .optb-pill small {
+    display: inline;
+    color: var(--text-faint);
+    font-weight: 500;
+  }
+}
+
+.optb-pill-num {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-size: var(--font-size-sm);
+  background: var(--bg-soft);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.optb-pill--active {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: 0 0 0 3px rgba(0, 232, 200, 0.08);
+}
+.optb-pill--active .optb-pill-num {
+  background: var(--accent);
+  color: #151108;
+  border-color: transparent;
+}
+@media (min-width: 1400px) {
+  .optb-pill--active small {
+    display: inline;
+    color: rgba(0, 232, 200, 0.6);
+  }
+}
+
+.optb-pill--done {
+  color: var(--text);
+  border-color: var(--line-strong);
+}
+.optb-pill--done .optb-pill-num {
+  background: var(--good-soft);
+  color: var(--good);
+  border-color: transparent;
+}
+
+.optb-pill-connector {
+  width: 12px;
+  height: 1px;
+  background: var(--line);
+  flex-shrink: 0;
+}
+
+.optb-nav-actions {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.optb-nav-actions .optb-btn {
+  min-height: 44px;
+  padding: 10px 20px;
+  font-size: var(--font-size-md);
+  font-weight: 700;
+  border-radius: var(--radius-lg);
+}
+
+/* Wide-slot placeholders for P2 inspector teleport */
+.optb-wide-head-slot,
+.optb-wide-main-slot {
+  min-height: 0;
+}
