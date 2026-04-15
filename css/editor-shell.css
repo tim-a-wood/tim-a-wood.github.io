@@ -2350,12 +2350,15 @@ body#optb-app .app {
   overflow: hidden;
 }
 
-/* Main workbench: canvas + Active Room + Validation are siblings — must be columns, not stacked (fixes overlap). */
+/*
+ * Main workbench: two columns — canvas (minmax 0) | right rail (inventory + validation stacked).
+ * Three sibling columns squeezed the canvas and caused overlap; matches Option B mockup (1fr + ~360px rail).
+ */
 body#optb-app #optb-stage-layout {
   flex: 1 1 auto;
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(260px, 360px) minmax(220px, 400px);
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 400px);
   grid-template-rows: minmax(0, 1fr);
   align-items: stretch;
   gap: 14px;
@@ -2368,19 +2371,39 @@ body#optb-app #optb-stage-layout > section.canvas-wrap {
   align-self: stretch;
 }
 
-body#optb-app #optb-stage-layout > #activeRoomPanel,
-body#optb-app #optb-stage-layout > #validationPanel {
+body#optb-app #optb-stage-layout > #optbSideRail {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  min-height: 0;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+body#optb-app #optb-stage-layout #optbSideRail > #activeRoomPanel,
+body#optb-app #optb-stage-layout #optbSideRail > #validationPanel {
+  flex: 1 1 auto;
   min-height: 0;
   min-width: 0;
   overflow: auto;
-  align-self: stretch;
   max-width: none;
 }
 
-@media (max-width: 1200px) {
+/* Validation shorter: don’t force equal flex with inventory — shrink-to-content preference */
+body#optb-app #optb-stage-layout #optbSideRail > #validationPanel {
+  flex: 0 1 auto;
+}
+
+@media (max-width: 1100px) {
   body#optb-app #optb-stage-layout {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(200px, 1fr) auto auto;
+    grid-template-rows: minmax(280px, 1fr) auto;
+  }
+
+  body#optb-app #optb-stage-layout > #optbSideRail {
+    max-height: none;
+    overflow: visible;
   }
 }
 
