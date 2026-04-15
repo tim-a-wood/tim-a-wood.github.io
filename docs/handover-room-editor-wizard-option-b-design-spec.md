@@ -19,8 +19,8 @@
 | Region | Behavior |
 |--------|----------|
 | **App grid** | `grid-template-rows: 52px auto 1fr` — topbar, phase bar, main. |
-| **Topbar** | Brand, crumb, global actions (command palette stub, Validate, Export, Save). |
-| **Phase bar** | Scope chips (World / Room / Art Direction) + **centered horizontal phase rail** (pills) + **Prev / Next** actions. |
+| **Topbar** | Brand, crumb, **scope chips (World / Room / Art Direction)** — global authoring scope, grouped with context — then global actions (command palette stub, Validate, Export, Save). |
+| **Phase bar** | **Centered horizontal phase rail** (pills) + **Prev / Next** actions only — scope lives in the topbar so the wizard strip stays dedicated to phase navigation. |
 | **Main** | **Layout:** `1fr | 360px` — stage + right inspector. **Non-layout:** `1fr` only — inspector column hidden; focus panel fills width below top chrome. |
 
 ---
