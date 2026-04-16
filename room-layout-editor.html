@@ -8,8 +8,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/editor-tokens.css?v=20260415" />
-  <link rel="stylesheet" href="css/editor-shell.css?v=20260428" />
-  <link rel="stylesheet" href="css/room-wizard.css?v=20260430" />
+  <link rel="stylesheet" href="css/editor-shell.css?v=20260415o" />
+  <link rel="stylesheet" href="css/room-wizard.css?v=20260415e" />
 </head>
 <body id="optb-app" data-phase="layout">
   <header class="optb-topbar" aria-label="Editor navigation">
@@ -51,8 +51,7 @@
       </button>
     </div>
     <div class="optb-nav-actions">
-      <button type="button" class="optb-btn optb-btn--ghost" id="optb-prev">← Identity</button>
-      <button type="button" class="optb-btn optb-btn--accent" id="optb-next">Next: Environment →</button>
+      <button type="button" class="optb-btn optb-btn--ghost" id="optb-prev">← Back</button>
     </div>
   </nav>
   <div class="app-shell">
@@ -215,152 +214,70 @@
         <div class="room-wizard-sheet">
           <aside id="optb-inspector" class="optb-inspector">
           <div class="room-wizard-sheet-top room-wizard-sheet-top--compact" id="optb-ins-head">
-            <h2 id="roomWizardTitle" class="room-wizard-sheet-title rw-visually-hidden">Room wizard</h2>
-            <p class="room-wizard-sub rw-visually-hidden">Layout sets the room shell and traversal footprint. Environment unlocks once name, id, and footprint are valid; Objects is still reserved for a later pass.</p>
+            <div class="eyebrow" id="optbHeaderEyebrow">Phase 1 · Identity</div>
             <button type="button" class="btn-icon" id="roomWizardClose" aria-label="Dismiss room setup">×</button>
           </div>
           <div class="room-wizard-scroll" id="optb-ins-body">
             <div id="roomWizardPanelIdentity" class="rw-layout-panel" hidden>
-              <div class="phase-header">
-                <div class="phase-header-left">
-                  <span class="phase-header-num">Phase 1 · Identity</span>
-                  <h2>Identity</h2>
-                  <p class="phase-header-desc">
-                    Set the room name and canonical id. Continue to Layout to define footprint and geometry.
-                  </p>
+              <div class="rw-identity-2col">
+
+                <!-- Left column: name + biome -->
+                <div class="rw-identity-col">
+                  <div class="rw-identity-field-group">
+                    <label class="rw-identity-field-label" for="roomWizardRoomName">Room name</label>
+                    <input type="text" id="roomWizardRoomName" class="rw-identity-input" autocomplete="off" placeholder="e.g. Entry Hall, Flooded Catacombs…" />
+                    <div class="rw-identity-id-badge">
+                      <span class="rw-identity-id-prefix">id:</span><span id="roomWizardRoomIdDisplay">not set yet</span>
+                      <input type="hidden" id="roomWizardRoomId" autocomplete="off" spellcheck="false" />
+                    </div>
+                  </div>
+                  <div class="rw-identity-field-group">
+                    <label class="rw-identity-field-label" for="roomWizardIdentityBiome">Biome</label>
+                    <select id="roomWizardIdentityBiome" class="rw-identity-input rw-identity-select">
+                      <option value="">Select biome</option>
+                      <option value="ruined-catacombs">Ruined Catacombs</option>
+                      <option value="fungal-caverns">Fungal Caverns</option>
+                      <option value="sunken-archives">Sunken Archives</option>
+                      <option value="ashen-keep">Ashen Keep</option>
+                      <option value="obsidian-foundry">Obsidian Foundry</option>
+                    </select>
+                  </div>
                 </div>
+
+                <!-- Right column: description + AI -->
+                <div class="rw-identity-col">
+                  <div class="rw-identity-field-group">
+                    <span class="rw-identity-field-label">
+                      Room description <span class="rw-identity-optional">(optional)</span>
+                    </span>
+                    <div id="roomWizardIdentityDescribeMount" class="rw-identity-describe-mount"></div>
+                    <button type="button" class="rw-identity-btn-ai" id="rw-identity-ai-suggest">
+                      <span class="rw-identity-ai-icon" aria-hidden="true">✦</span>Suggest with AI
+                    </button>
+                  </div>
+                </div>
+
               </div>
-              <div class="rw-layout-primary-grid">
-                <div class="stage-card">
-                  <div class="stage-card-head">
-                    <h4>Room identity</h4>
-                    <p class="small-note">Used in editor labels, map graph, and exports.</p>
-                  </div>
-                  <div class="field-grid">
-                    <label>
-                      <span class="field-label">Room name</span>
-                      <input type="text" id="roomWizardRoomName" autocomplete="off" />
-                    </label>
-                    <label>
-                      <span class="field-label">Room id</span>
-                      <span class="field-help">Use `R1` or scoped ids like `RG-R1`.</span>
-                      <input type="text" id="roomWizardRoomId" autocomplete="off" spellcheck="false" />
-                    </label>
-                  </div>
+
+              <!-- Footer: validation + CTA -->
+              <div class="rw-identity-footer">
+                <div class="rw-identity-validation" id="roomWizardValidationInline" aria-live="polite">
+                  <span class="rw-identity-validation-icon rw-identity-validation-icon--info" aria-hidden="true">ⓘ</span>
+                  Enter a room name to continue
                 </div>
-                <div class="stage-card">
-                  <div class="stage-card-head">
-                    <h4>Before you continue</h4>
-                    <p class="small-note">Layout unlocks once name/id are valid.</p>
-                  </div>
-                  <div class="info-box">
-                    <p>Tip: keep ids short and stable so exports and map links stay readable.</p>
-                  </div>
-                  <button type="button" class="btn-secondary" id="roomWizardToLayout">Go to Layout →</button>
-                </div>
+                <button type="button" class="rw-identity-cta" id="roomWizardToLayout">Continue to Layout →</button>
               </div>
             </div>
-            <div id="roomWizardPanelLayout" class="rw-layout-panel">
-              <div class="phase-header">
-                <div class="phase-header-left">
-                  <span class="phase-header-num">Phase 2 · Layout</span>
-                  <h2>Layout</h2>
-                  <p class="phase-header-desc">
-                    Set name/id, choose footprint, align neighbors, then add platforms with presets or canvas tools.
-                  </p>
-                </div>
-              </div>
-              <div class="rw-layout-primary-grid">
-              <div class="stage-card">
-                <div class="stage-card-head">
-                  <h4>Footprint</h4>
-                  <p class="small-note">Presets fit common views. Custom uses width/height in px.</p>
-                </div>
-                <div class="rw-footprint-grid" id="roomWizardFootprintGroup">
-                  <label><input type="radio" name="roomWizardFootprint" value="small" /> Small (960×720)</label>
-                  <label><input type="radio" name="roomWizardFootprint" value="medium" /> Medium (1600×1200)</label>
-                  <label><input type="radio" name="roomWizardFootprint" value="large" /> Large (2240×1200)</label>
-                  <label><input type="radio" name="roomWizardFootprint" value="custom" /> Custom</label>
-                </div>
-                <div id="roomWizardCustomFootprint" class="rw-custom-footprint field-grid" hidden>
-                  <label>
-                    <span class="field-label">Width (px)</span>
-                    <input type="number" id="roomWizardCustomW" min="320" step="32" />
-                  </label>
-                  <label>
-                    <span class="field-label">Height (px)</span>
-                    <input type="number" id="roomWizardCustomH" min="320" step="32" />
-                  </label>
-                  <div style="grid-column:1/-1;">
-                    <button type="button" class="btn-secondary" id="roomWizardApplyCustomFootprint">Apply custom size</button>
-                  </div>
-                </div>
-              </div>
-              </div>
-              <div class="stage-card" id="roomWizardNeighborsCard">
-                <div class="stage-card-head">
-                  <h4>Neighbors &amp; alignment</h4>
-                  <p class="small-note">Link adjacent rooms, align edges, and match opening height along the shared wall.</p>
-                </div>
-                <div class="info-box" id="roomWizardNeighborHint">
-                  <p><strong>Align</strong> snaps shared edges flush. <strong>Match opening height</strong> slides along the wall. <strong>Match wall length</strong> resizes this room edge (rectangle rooms only).</p>
-                </div>
-                <div class="field-grid rw-neighbor-grid">
-                  <label>
-                    <span class="field-label">Adjoining room</span>
-                    <select id="roomWizardNeighbor"></select>
-                  </label>
-                  <label>
-                    <span class="field-label">This room’s edge</span>
-                    <select id="roomWizardMyEdge" aria-label="This room edge index"></select>
-                  </label>
-                  <label>
-                    <span class="field-label">Neighbor’s edge</span>
-                    <select id="roomWizardNeighborEdge" aria-label="Neighbor room edge index"></select>
-                  </label>
-                  <div class="rw-neighbor-actions">
-                    <button type="button" class="btn-secondary" id="roomWizardBtnAlign">Align with neighbor</button>
-                    <button type="button" class="btn-secondary" id="roomWizardBtnHatch">Match opening height</button>
-                    <button type="button" class="btn-secondary" id="roomWizardBtnMatchWallLen">Match wall length</button>
-                  </div>
-                </div>
-              </div>
-              <div class="stage-card" id="roomWizardTerrainPresetsCard">
-                <div class="stage-card-head">
-                  <h4>Preset library</h4>
-                  <p class="small-note">Adds starter platforms inside the footprint. Tweak on canvas after placing.</p>
-                </div>
-                <div class="rw-terrain-preset-grid" id="roomWizardTerrainPresets">
-                  <button type="button" class="btn-secondary" data-terrain-preset="ground_band" title="Wide run along the bottom of the room (shrinks to fit odd footprints)">Ground band</button>
-                  <button type="button" class="btn-secondary" data-terrain-preset="two_level" title="Floor band plus a second platform higher up">Two levels</button>
-                  <button type="button" class="btn-secondary" data-terrain-preset="step_up" title="Three steps rising diagonally (shrinks to fit)">Step up</button>
-                  <button type="button" class="btn-secondary" data-terrain-preset="ledge_pair" title="Two mid-height ledges toward left and right">Ledge pair</button>
-                  <button type="button" class="btn-secondary" data-terrain-preset="island" title="One platform near the middle of the room">Island</button>
-                </div>
-              </div>
-              <div class="stage-card" id="roomWizardLayoutToolsCard">
-                <div class="stage-card-head">
-                  <h4>Selection tools &amp; checks</h4>
-                  <p class="small-note">Duplicate uses snap step offset. Mirror clones across horizontal center.</p>
-                </div>
-                <div class="toolbar">
-                  <button type="button" class="btn-secondary" id="roomWizardTerrainDuplicate">Duplicate platform</button>
-                  <button type="button" class="btn-secondary" id="roomWizardTerrainMirror">Mirror platform</button>
-                </div>
-                <div class="stage-card-head">
-                  <h4>Door / platform checks</h4>
-                  <p class="small-note">Flags when a door anchor overlaps a platform walk band.</p>
-                </div>
-                <div class="info-box" id="roomWizardTerrainWarnings"><p class="hint">Complete layout (name, id, footprint) to refresh checks.</p></div>
-              </div>
+            <div id="roomWizardPanelLayout" class="rw-layout-panel" hidden>
+              <!-- Layout controls hoisted to canvas overlay (#rw-layout-canvas-panel) -->
             </div>
             <div id="roomWizardPanelEnvironment" hidden>
               <div class="phase-header">
                 <div class="phase-header-left">
-                  <span class="phase-header-num">Phase 2 · Environment</span>
+                  <span class="phase-header-num">Phase 3 · Environment</span>
                   <h2>Environment</h2>
                   <p class="phase-header-desc">
-                    In three steps: describe the room, generate preview pictures, then approve one picture and build final room art. Everything below follows that order.
+                    Generate previews from your Identity setup, approve one image, then build final room assets.
                   </p>
                 </div>
                 <button type="button" class="phase-back-btn" id="roomWizardBackToLayoutFromEnv">← Layout</button>
@@ -369,7 +286,7 @@
                 <div class="rw-env-wizard-rail" role="tablist" aria-label="Environment workflow">
                   <button type="button" class="rw-env-step-btn rw-env-step-btn--active" role="tab" id="rwEnvStepDescribe" data-rw-env-step="describe" aria-selected="true">
                     <strong>1 · Describe</strong>
-                    <span>Write the room; optional extras on the same page</span>
+                    <span>Uses Identity inputs to generate previews</span>
                   </button>
                   <button type="button" class="rw-env-step-btn" role="tab" id="rwEnvStepReview" data-rw-env-step="review" aria-selected="false">
                     <strong>2 · Preview &amp; build</strong>
@@ -381,20 +298,20 @@
                     <div class="rw-env-step-panel" id="rwEnvStepPanelDescribe">
                       <div class="rw-env-step-intro">
                         <p class="eyebrow">Step 1 — Describe</p>
-                        <h4>Tell us about this room</h4>
+                        <h4>Create preview options</h4>
                         <div class="rw-env-flow-steps" aria-label="Environment steps">
-                          <p class="rw-env-flow-step"><span class="rw-env-flow-num" aria-hidden="true">1</span><span>Write a short description (or start from a template).</span></p>
+                          <p class="rw-env-flow-step"><span class="rw-env-flow-num" aria-hidden="true">1</span><span>Use Identity settings (biome + description) as the source.</span></p>
                           <p class="rw-env-flow-step"><span class="rw-env-flow-num" aria-hidden="true">2</span><span>Click <strong>Generate preview pictures</strong> and wait for images.</span></p>
-                          <p class="rw-env-flow-step"><span class="rw-env-flow-num" aria-hidden="true">3</span><span>Open <strong>2 · Preview &amp; build</strong> above to approve one image and finish.</span></p>
+                          <p class="rw-env-flow-step"><span class="rw-env-flow-num" aria-hidden="true">3</span><span>Open <strong>2 · Preview &amp; build</strong> to approve one image and finish.</span></p>
                         </div>
-                        <p class="small-note rw-env-intro-after-flow">Fields below are on one scrollable page. Only the room description is required for a first preview; the rest is optional.</p>
+                        <p class="small-note rw-env-intro-after-flow">Optional extras are available below if you want more control before generating.</p>
                       </div>
                       <div class="stage-card rw-env-describe-stage" id="roomWizardCopilotCard">
                         <p class="rw-env-section-tag">Start here</p>
                         <div class="stage-card-head">
-                          <h4>Room description</h4>
+                          <h4>Generate preview pictures</h4>
                           <p class="small-note">
-                            Plain English is enough. This drives the AI preview. You can edit other sections on this page anytime; you do not need to complete them first.
+                            Description controls now live in Identity. Use this action to generate the first preview set.
                           </p>
                         </div>
                         <div class="rw-env-section-stack">
@@ -413,7 +330,7 @@
                           <span id="roomWizardGeminiProbeStatus" class="small-note" aria-live="polite"></span>
                         </div>
                         <label>
-                          <span class="field-label">What does this room look and feel like?</span>
+                          <span class="field-label" title="Plain-language room direction for preview generation.">Room description</span>
                           <textarea
                             id="roomWizardCopilotPrompt"
                             rows="3"
@@ -572,9 +489,9 @@
                           </div>
                         </div>
                         <div id="roomWizardResultsEmptyState" class="info-box rw-results-empty-state">
-                          <p><strong>No preview yet.</strong> Go to <strong>1 · Describe</strong>, write what the room should feel like, then click <strong>Generate preview pictures</strong>.</p>
+                          <p><strong>No preview yet.</strong> Return to <strong>Phase 1 · Identity</strong> to set biome + description, then run <strong>Generate preview pictures</strong> in this phase.</p>
                           <div class="rw-copilot-actions rw-env-empty-state-actions">
-                            <button type="button" class="btn-secondary" id="roomWizardReviewGoDescribe">Go to Describe</button>
+                            <button type="button" class="btn-secondary" id="roomWizardReviewGoDescribe">Go to Identity</button>
                           </div>
                         </div>
                         <div id="roomWizardCopilotPreview" hidden class="rw-copilot-preview-box rw-copilot-preview-box--flush">
@@ -651,7 +568,7 @@
             <div id="roomWizardPanelArtDirection" hidden>
               <div class="phase-header">
                 <div class="phase-header-left">
-                  <span class="phase-header-num">Project scope · Art direction</span>
+                  <span class="phase-header-num">Phase 4 · Art direction</span>
                   <h2>Art Direction</h2>
                   <p class="phase-header-desc">
                     Configure the project-wide visual direction here so room component prompts and previews stay coherent.
@@ -714,7 +631,7 @@
             <div id="roomWizardPanelReview" hidden>
               <div class="phase-header">
                 <div class="phase-header-left">
-                  <span class="phase-header-num">Phase 4 · Review</span>
+                  <span class="phase-header-num">Phase 5 · Review</span>
                   <h2>Review &amp; export</h2>
                   <p class="phase-header-desc">Confirm summary, scan validation, then export or open the game.</p>
                 </div>
@@ -848,31 +765,117 @@
           </div>
         </div>
           <canvas id="roomCanvas" width="960" height="720"></canvas>
-          <!-- P3: Task drawer (spec §4.3) -->
-          <div class="optb-task-drawer" id="optbTaskDrawer" aria-label="Phase tasks">
-            <div class="optb-drawer-handle" aria-hidden="true"></div>
-            <div class="optb-drawer-inner">
-              <div class="optb-drawer-tasks" id="optbDrawerTasks">
-                <div class="optb-task-card optb-task-card--done">
-                  <div class="optb-task-card-label">Done</div>
-                  <div class="optb-task-card-title">Name &amp; ID</div>
+          <!-- Layout phase: canvas-overlay toolbar + popups ─────────────────────── -->
+          <div id="rw-layout-canvas-panel" class="rw-layout-canvas-panel" aria-label="Layout controls">
+
+            <!-- Compact toolbar strip ─── -->
+            <div class="rw-layout-bar" role="toolbar" aria-label="Layout tools">
+              <button class="rw-layout-bar-btn" id="rwLayoutFootprintToggle" type="button"
+                      aria-haspopup="true" aria-expanded="false" aria-controls="rwLayoutFootprintPopup">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><rect x="1.5" y="1.5" width="11" height="11" rx="1" stroke="currentColor" stroke-width="1.3"/></svg>
+                Footprint
+                <span class="rw-layout-bar-meta" id="rwLayoutFootprintLabel">—</span>
+                <svg class="rw-layout-bar-chevron" width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true"><path d="M2.5 3.5L5 6L7.5 3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+              </button>
+              <button class="rw-layout-bar-btn" id="rwLayoutPresetsToggle" type="button"
+                      aria-haspopup="true" aria-expanded="false" aria-controls="rwLayoutPresetsPopup">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><rect x="1" y="7" width="12" height="3" rx="1" fill="currentColor" opacity="0.5"/><rect x="1" y="3" width="5" height="3" rx="1" fill="currentColor"/><rect x="8" y="3" width="5" height="3" rx="1" fill="currentColor"/></svg>
+                Presets
+                <svg class="rw-layout-bar-chevron" width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true"><path d="M2.5 3.5L5 6L7.5 3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+              </button>
+              <button class="rw-layout-bar-btn" id="rwLayoutNeighborsToggle" type="button"
+                      aria-haspopup="true" aria-expanded="false" aria-controls="rwLayoutNeighborsPopup">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><rect x="1" y="1" width="5" height="12" rx="1" stroke="currentColor" stroke-width="1.3"/><rect x="8" y="1" width="5" height="12" rx="1" stroke="currentColor" stroke-width="1.3"/><path d="M6 7h2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                Neighbors
+                <svg class="rw-layout-bar-chevron" width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true"><path d="M2.5 3.5L5 6L7.5 3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+              </button>
+              <div class="rw-layout-bar-sep" aria-hidden="true"></div>
+              <button type="button" class="rw-layout-bar-btn rw-layout-bar-btn--action" id="roomWizardTerrainDuplicate">Duplicate</button>
+              <button type="button" class="rw-layout-bar-btn rw-layout-bar-btn--action" id="roomWizardTerrainMirror">Mirror</button>
+              <div class="rw-layout-bar-sep" aria-hidden="true"></div>
+              <div class="rw-layout-warnings-inline" id="roomWizardTerrainWarnings" aria-live="polite">
+                <span class="rw-layout-warnings-hint">Draw a footprint to see checks.</span>
+              </div>
+            </div>
+
+            <!-- Footprint popup ─── -->
+            <div class="rw-layout-popup" id="rwLayoutFootprintPopup" hidden role="dialog" aria-label="Room footprint">
+              <div class="rw-layout-popup-inner">
+                <div class="rw-layout-popup-hd">Room size</div>
+                <div class="rw-layout-popup-grid" id="roomWizardFootprintGroup">
+                  <label class="rw-layout-radio"><input type="radio" name="roomWizardFootprint" value="small" /> Small <span class="rw-layout-radio-dim">960×720</span></label>
+                  <label class="rw-layout-radio"><input type="radio" name="roomWizardFootprint" value="medium" /> Medium <span class="rw-layout-radio-dim">1600×1200</span></label>
+                  <label class="rw-layout-radio"><input type="radio" name="roomWizardFootprint" value="large" /> Large <span class="rw-layout-radio-dim">2240×1200</span></label>
+                  <label class="rw-layout-radio"><input type="radio" name="roomWizardFootprint" value="custom" /> Custom</label>
                 </div>
-                <div class="optb-task-card optb-task-card--active">
-                  <div class="optb-task-card-label">Active</div>
-                  <div class="optb-task-card-title">Draw room footprint</div>
-                </div>
-                <div class="optb-task-card optb-task-card--pending">
-                  <div class="optb-task-card-label">Next</div>
-                  <div class="optb-task-card-title">Add platforms</div>
-                </div>
-                <div class="optb-task-card optb-task-card--pending">
-                  <div class="optb-task-card-label">Later</div>
-                  <div class="optb-task-card-title">Link neighbors</div>
+                <div id="roomWizardCustomFootprint" class="rw-layout-custom-fp" hidden>
+                  <div class="rw-layout-custom-fp-row">
+                    <label class="rw-layout-custom-fp-field">
+                      <span class="rw-layout-field-lbl">Width (px)</span>
+                      <input type="number" id="roomWizardCustomW" min="320" step="32" />
+                    </label>
+                    <label class="rw-layout-custom-fp-field">
+                      <span class="rw-layout-field-lbl">Height (px)</span>
+                      <input type="number" id="roomWizardCustomH" min="320" step="32" />
+                    </label>
+                  </div>
+                  <button type="button" class="rw-layout-popup-btn" id="roomWizardApplyCustomFootprint">Apply custom size</button>
                 </div>
               </div>
-              <div class="optb-drawer-actions">
-                <button class="optb-btn optb-btn--ghost" type="button" id="optbRoomSetup" title="Open room setup wizard">Room setup</button>
+            </div>
+
+            <!-- Presets popup ─── -->
+            <div class="rw-layout-popup" id="rwLayoutPresetsPopup" hidden role="dialog" aria-label="Terrain presets">
+              <div class="rw-layout-popup-inner">
+                <div class="rw-layout-popup-hd">Starter platforms</div>
+                <p class="rw-layout-popup-sub">Adds platforms inside the footprint. Tweak on canvas after placing.</p>
+                <div class="rw-terrain-preset-grid" id="roomWizardTerrainPresets">
+                  <button type="button" class="rw-layout-preset-btn" data-terrain-preset="ground_band" title="Wide run along the bottom of the room">Ground band</button>
+                  <button type="button" class="rw-layout-preset-btn" data-terrain-preset="two_level" title="Floor band plus a second platform higher up">Two levels</button>
+                  <button type="button" class="rw-layout-preset-btn" data-terrain-preset="step_up" title="Three steps rising diagonally">Step up</button>
+                  <button type="button" class="rw-layout-preset-btn" data-terrain-preset="ledge_pair" title="Two mid-height ledges toward left and right">Ledge pair</button>
+                  <button type="button" class="rw-layout-preset-btn" data-terrain-preset="island" title="One platform near the middle of the room">Island</button>
+                </div>
               </div>
+            </div>
+
+            <!-- Neighbors popup ─── -->
+            <div class="rw-layout-popup" id="rwLayoutNeighborsPopup" hidden role="dialog" aria-label="Neighbor alignment">
+              <div class="rw-layout-popup-inner">
+                <div class="rw-layout-popup-hd">Neighbors &amp; alignment</div>
+                <p class="rw-layout-popup-sub">Link adjacent rooms, align edges, and match opening height.</p>
+                <div class="info-box" id="roomWizardNeighborHint">
+                  <p><strong>Align</strong> snaps shared edges flush. <strong>Match opening height</strong> slides along the wall. <strong>Match wall length</strong> resizes this room edge (rectangle rooms only).</p>
+                </div>
+                <div class="rw-layout-neighbor-form">
+                  <label class="rw-layout-select-field">
+                    <span class="rw-layout-field-lbl">Adjoining room</span>
+                    <select id="roomWizardNeighbor"></select>
+                  </label>
+                  <label class="rw-layout-select-field">
+                    <span class="rw-layout-field-lbl">This room's edge</span>
+                    <select id="roomWizardMyEdge" aria-label="This room edge index"></select>
+                  </label>
+                  <label class="rw-layout-select-field">
+                    <span class="rw-layout-field-lbl">Neighbor's edge</span>
+                    <select id="roomWizardNeighborEdge" aria-label="Neighbor room edge index"></select>
+                  </label>
+                  <div class="rw-layout-neighbor-actions">
+                    <button type="button" class="rw-layout-popup-btn" id="roomWizardBtnAlign">Align with neighbor</button>
+                    <button type="button" class="rw-layout-popup-btn" id="roomWizardBtnHatch">Match opening height</button>
+                    <button type="button" class="rw-layout-popup-btn" id="roomWizardBtnMatchWallLen">Match wall length</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div><!-- #rw-layout-canvas-panel -->
+
+          <!-- Task drawer removed — controls moved to canvas overlay (#rw-layout-canvas-panel) -->
+          <div id="optbTaskDrawer" hidden>
+            <div id="optbDrawerTasks"></div>
+            <div class="optb-drawer-actions">
+              <button class="optb-btn optb-btn--ghost" type="button" id="optbRoomSetup" title="Open room setup wizard">Room setup</button>
             </div>
           </div>
         </div>
@@ -982,27 +985,15 @@
         </div>
         <canvas id="globalCanvas" width="960" height="720"></canvas>
       </div>
-      <div class="collapsible-section" id="advancedSection">
-        <button class="collapsible-toggle" id="advancedToggle" type="button" aria-expanded="false">
-          <span class="collapsible-label">Raw JSON / Debug Tools</span>
-          <svg class="collapsible-chevron" width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <path d="M3 5L7 9L11 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </button>
-        <div class="collapsible-body" id="advancedBody" hidden>
-          <div class="stack">
-          <div class="row">
-            <button id="applyJson" type="button">Import Layout</button>
-            <button id="saveJsonFile" class="secondary" type="button">Save To File</button>
-          </div>
-          <div class="row">
-            <button id="clearSavedLayout" class="secondary" type="button">Clear Scratch Save</button>
-          </div>
-          <textarea id="jsonText" spellcheck="false"></textarea>
-        </div>
-        </div>
-      </div>
-      <div class="status" id="statusText">Loading layout data…</div>
+      <!-- advancedSection and statusText removed — debug tools hidden from UI -->
+      <div id="advancedSection" hidden></div>
+      <button id="advancedToggle" type="button" hidden></button>
+      <div id="advancedBody" hidden></div>
+      <button id="applyJson" type="button" hidden></button>
+      <button id="saveJsonFile" type="button" hidden></button>
+      <button id="clearSavedLayout" type="button" hidden></button>
+      <textarea id="jsonText" hidden></textarea>
+      <div id="statusText" hidden></div>
       </div><!-- #optb-layout-surface -->
     </section>
 
@@ -1110,24 +1101,12 @@
       </div>
     </section>
 
-    <section class="panel validation-panel optb-layout-only" id="validationPanel">
-      <div class="validation-header">
-        <div>
-          <div class="eyebrow">Level Design</div>
-          <h2>Validation</h2>
-        </div>
-        <div class="validation-header-actions">
-          <span class="validation-summary-badge" id="validationSummaryBadge" aria-live="polite"></span>
-          <button id="runValidation" class="btn-sm" type="button">Run Validation</button>
-        </div>
-      </div>
-      <div id="validationResults" class="validation-results">
-        <div class="validation-results-intro">
-          <div class="empty-state-sub">Run validation to check your level's structural soundness and traversal rules.</div>
-        </div>
-      </div>
-    </section>
     </div><!-- #optbSideRail -->
+
+    <!-- Hidden stubs keep old panel JS references alive -->
+    <button id="runValidation" type="button" hidden></button>
+    <span id="validationSummaryBadge" hidden></span>
+    <div id="validationResults" hidden></div>
     </div><!-- #optb-stage-layout -->
 
     <div id="optb-stage-focus" class="optb-stage-focus" hidden aria-hidden="true">
@@ -1136,30 +1115,6 @@
         <div id="optb-wide-head-slot" class="optb-wide-head-slot"></div>
         <div id="optb-wide-main-slot" class="optb-wide-main-slot"></div>
       </div>
-      <!-- P4: Reference rail — phase-specific blocks + preview CTAs (spec §7) -->
-      <aside class="optb-ref-rail" aria-label="Reference" hidden aria-hidden="true">
-        <div class="optb-ref-eyebrow" aria-hidden="true">Reference</div>
-        <div class="optb-ref-block" data-ref="identity">
-          <p class="optb-ref-hint">Name and canonical ID set this room's identity in exports and the world graph.</p>
-          <div class="optb-mini-canvas" role="img" aria-label="Layout thumbnail"></div>
-          <button class="optb-btn optb-btn--ghost optb-ref-cta" data-modal-type="layout" type="button">Open layout preview</button>
-        </div>
-        <div class="optb-ref-block" data-ref="environment" hidden>
-          <p class="optb-ref-hint">Environment sets the room's visual direction and drives AI-generated art assets.</p>
-          <div class="optb-mini-canvas" role="img" aria-label="Decorated preview thumbnail"></div>
-          <button class="optb-btn optb-btn--ghost optb-ref-cta" data-modal-type="decor" type="button">Open decorated preview</button>
-        </div>
-        <div class="optb-ref-block" data-ref="entities" hidden>
-          <p class="optb-ref-hint">Place entity objects — doors, keys, abilities, movers — that define room traversal rules.</p>
-          <div class="optb-mini-canvas" role="img" aria-label="Entity placement thumbnail"></div>
-          <button class="optb-btn optb-btn--ghost optb-ref-cta" data-modal-type="layout" type="button">Open layout preview</button>
-        </div>
-        <div class="optb-ref-block" data-ref="review" hidden>
-          <p class="optb-ref-hint">Review validation results, approve the room, and export the runtime package.</p>
-          <div class="optb-mini-canvas" role="img" aria-label="Final room thumbnail"></div>
-          <button class="optb-btn optb-btn--ghost optb-ref-cta" data-modal-type="layout" type="button">Open final preview</button>
-        </div>
-      </aside>
     </div>
 
   </div>
@@ -1466,6 +1421,37 @@
     var insBody = document.getElementById('optb-ins-body');
     var slotHead = document.getElementById('optb-wide-head-slot');
     var slotBody = document.getElementById('optb-wide-main-slot');
+    var headerEyebrow = document.getElementById('optbHeaderEyebrow');
+    var headerTitle = document.getElementById('roomWizardTitle');
+    var headerCopy = document.getElementById('optbHeaderCopy');
+
+    var PHASE_HEADER = {
+      identity: {
+        eyebrow: 'Phase 1 · Identity',
+        title: 'Identity',
+        copy: 'Set room identity, pick biome, and write environment notes.'
+      },
+      layout: {
+        eyebrow: 'Phase 2 · Layout',
+        title: 'Layout',
+        copy: 'Choose footprint, align neighbors, and shape platform flow.'
+      },
+      environment: {
+        eyebrow: 'Phase 3 · Environment',
+        title: 'Environment',
+        copy: 'Generate previews, approve one, and build final room assets.'
+      },
+      entities: {
+        eyebrow: 'Phase 4 · Art direction',
+        title: 'Art direction',
+        copy: 'Set project-wide look guidance and freeze shared concept anchors.'
+      },
+      review: {
+        eyebrow: 'Phase 5 · Review',
+        title: 'Review',
+        copy: 'Run validation, confirm summary, and export.'
+      }
+    };
 
     if (!appEl || !rail) return;
 
@@ -1491,6 +1477,12 @@
       var panelEnv = document.getElementById('roomWizardPanelEnvironment');
       var panelArt = document.getElementById('roomWizardPanelArtDirection');
       var panelReview = document.getElementById('roomWizardPanelReview');
+      function setPanelVisible(panel, on) {
+        if (!panel) return;
+        panel.hidden = !on;
+        panel.style.display = on ? 'block' : 'none';
+        panel.setAttribute('aria-hidden', on ? 'false' : 'true');
+      }
       var show = {
         identity: phase === 'identity',
         layout: phase === 'layout',
@@ -1498,11 +1490,82 @@
         art: phase === 'entities',
         review: phase === 'review'
       };
-      if (panelIdentity) panelIdentity.hidden = !show.identity;
-      if (panelLayout) panelLayout.hidden = !show.layout;
-      if (panelEnv) panelEnv.hidden = !show.environment;
-      if (panelArt) panelArt.hidden = !show.art;
-      if (panelReview) panelReview.hidden = !show.review;
+      setPanelVisible(panelIdentity, show.identity);
+      setPanelVisible(panelLayout, show.layout);
+      setPanelVisible(panelEnv, show.environment);
+      setPanelVisible(panelArt, show.art);
+      setPanelVisible(panelReview, show.review);
+    }
+
+    function wireIdentityEnvironmentDescribeBridge() {
+      var mount = document.getElementById('roomWizardIdentityDescribeMount');
+      var sourceCard = document.getElementById('roomWizardCopilotCard');
+      if (!mount || !sourceCard) return;
+
+      var sectionStack = sourceCard.querySelector('.rw-env-section-stack');
+      var prompt = document.getElementById('roomWizardCopilotPrompt');
+      var promptLabel = prompt ? prompt.closest('label') : null;
+      var useV3 = document.getElementById('roomWizardUseV3Pipeline');
+      var useV3Label = useV3 ? useV3.closest('label') : null;
+
+      if (sectionStack && sectionStack.parentElement !== mount) mount.appendChild(sectionStack);
+      if (promptLabel && promptLabel.parentElement !== mount) mount.appendChild(promptLabel);
+      if (useV3Label && useV3Label.parentElement !== mount) mount.appendChild(useV3Label);
+
+      sourceCard.classList.add('rw-env-generate-only');
+
+      var adaptBtn = document.getElementById('roomWizardAdaptTemplate');
+      var identityAdaptBtn = document.getElementById('roomWizardIdentityAdaptTemplate');
+      if (adaptBtn) adaptBtn.hidden = true;
+      if (identityAdaptBtn && adaptBtn) {
+        identityAdaptBtn.addEventListener('click', function () {
+          adaptBtn.click();
+        });
+      }
+
+      var toEnvironmentBtn = document.getElementById('roomWizardToEnvironment');
+      if (toEnvironmentBtn) {
+        toEnvironmentBtn.addEventListener('click', function () {
+          setPhase('environment');
+        });
+      }
+
+      var biomeSelect = document.getElementById('roomWizardIdentityBiome');
+      if (biomeSelect && prompt) {
+        biomeSelect.addEventListener('change', function () {
+          var option = biomeSelect.options[biomeSelect.selectedIndex];
+          var label = option && option.textContent ? option.textContent.trim() : '';
+          if (!label) return;
+          var base = String(prompt.value || '').trim();
+          if (!base) {
+            prompt.value = label + ' atmosphere with clear traversal readability.';
+            return;
+          }
+          if (!new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i').test(base)) {
+            prompt.value = label + ' — ' + base;
+          }
+        });
+      }
+    }
+
+    function wireReadOnlyRoomIdDisplay() {
+      var roomIdInput = document.getElementById('roomWizardRoomId');
+      var roomIdDisplay = document.getElementById('roomWizardRoomIdDisplay');
+      if (!roomIdInput || !roomIdDisplay) return;
+
+      var lastValue = null;
+      function syncRoomId() {
+        var next = String(roomIdInput.value || '').trim();
+        if (next === lastValue) return;
+        lastValue = next;
+        roomIdDisplay.textContent = next || 'Not set yet';
+      }
+
+      roomIdInput.addEventListener('input', syncRoomId);
+      roomIdInput.addEventListener('change', syncRoomId);
+
+      syncRoomId();
+      setInterval(syncRoomId, 250);
     }
 
     function setPhase(phase) {
@@ -1516,6 +1579,13 @@
         pill.classList.toggle('optb-pill--active', on);
         pill.setAttribute('aria-selected', on ? 'true' : 'false');
       });
+
+      var head = PHASE_HEADER[phase];
+      if (head) {
+        if (headerEyebrow) headerEyebrow.textContent = head.eyebrow;
+        if (headerTitle) headerTitle.textContent = head.title;
+        if (headerCopy) headerCopy.textContent = head.copy;
+      }
 
       /* Spec §3: only Layout keeps stage; all other phases use focus workspace. */
       var isMainLayoutWorkspace = phase === 'layout';
@@ -1558,9 +1628,6 @@
         stageLayout.setAttribute('aria-hidden', isMainLayoutWorkspace ? 'false' : 'true');
       }
 
-      /* Ensure phase rail drives the actual wizard pane content (no stale Layout clone). */
-      syncWizardPanelsForPhase(phase);
-
       /* Bridge Option B rail -> legacy wizard handlers so Environment/Review logic runs. */
       (function syncLegacyWizardState() {
         var map = {
@@ -1576,6 +1643,12 @@
         legacyBtn.click();
       }());
 
+      /* Ensure phase rail drives the actual wizard pane content (legacy handlers may mutate visibility). */
+      syncWizardPanelsForPhase(phase);
+      if (typeof requestAnimationFrame === 'function') {
+        requestAnimationFrame(function () { syncWizardPanelsForPhase(phase); });
+      }
+
       if (prevBtn) {
         var prevIdx = (i - 1 + PHASES.length) % PHASES.length;
         prevBtn.textContent = '\u2190 ' + PHASE_LABEL[PHASES[prevIdx]];
@@ -1585,8 +1658,6 @@
         nextBtn.textContent = 'Next: ' + PHASE_LABEL[PHASES[nextIdx]] + ' \u2192';
       }
 
-      /* P4: sync reference rail blocks to current phase */
-      if (typeof syncRefRail === 'function') syncRefRail(phase);
     }
 
     rail.querySelectorAll('.optb-pill').forEach(function (pill) {
@@ -1625,6 +1696,15 @@
     if (optbValidate && runValidation) {
       optbValidate.addEventListener('click', function () { runValidation.click(); });
     }
+    var reviewGoDescribeBtn = document.getElementById('roomWizardReviewGoDescribe');
+    if (reviewGoDescribeBtn) {
+      reviewGoDescribeBtn.addEventListener('click', function (event) {
+        event.preventDefault();
+        setPhase('identity');
+      });
+    }
+    wireIdentityEnvironmentDescribeBridge();
+    wireReadOnlyRoomIdDisplay();
     setPhase('layout');
   }());
   </script>
@@ -1756,17 +1836,8 @@
   }());
   </script>
 
-  <!-- P4: Reference rail phase sync + preview modal -->
+  <!-- P4: Preview modal -->
   <script>
-  /* syncRefRail is called from setPhase in the phase-machine script above */
-  function syncRefRail(phase) {
-    var refPhaseMap = { identity: 'identity', environment: 'environment', entities: 'entities', review: 'review' };
-    var target = refPhaseMap[phase] || 'identity';
-    document.querySelectorAll('.optb-ref-block[data-ref]').forEach(function (block) {
-      block.hidden = block.dataset.ref !== target;
-    });
-  }
-
   (function () {
     'use strict';
     var modal    = document.getElementById('optb-modal');
@@ -1809,12 +1880,6 @@
     if (backdrop) backdrop.addEventListener('click', closeModal);
     if (closeBtn) closeBtn.addEventListener('click', closeModal);
 
-    /* Wire CTA buttons anywhere in the page */
-    document.addEventListener('click', function (e) {
-      var cta = e.target.closest('.optb-ref-cta[data-modal-type]');
-      if (cta) openModal(cta.dataset.modalType);
-    });
-
     /* Task drawer room-setup proxy */
     var drawerSetup = document.getElementById('optbRoomSetup');
     var legacySetup = document.getElementById('roomSetupBtn');
@@ -1830,6 +1895,163 @@
         if (layoutPill) layoutPill.click();
       });
     }
+
+    /* Layout canvas panel: popup toggle ──────────────────────────── */
+    (function () {
+      var PAIRS = [
+        ['rwLayoutFootprintToggle', 'rwLayoutFootprintPopup'],
+        ['rwLayoutPresetsToggle',   'rwLayoutPresetsPopup'],
+        ['rwLayoutNeighborsToggle', 'rwLayoutNeighborsPopup']
+      ];
+
+      function closeAll() {
+        PAIRS.forEach(function (pair) {
+          var popup = document.getElementById(pair[1]);
+          var btn   = document.getElementById(pair[0]);
+          if (popup) popup.hidden = true;
+          if (btn)   btn.setAttribute('aria-expanded', 'false');
+        });
+      }
+
+      PAIRS.forEach(function (pair) {
+        var btn   = document.getElementById(pair[0]);
+        var popup = document.getElementById(pair[1]);
+        if (!btn || !popup) return;
+        btn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          var wasOpen = !popup.hidden;
+          closeAll();
+          if (!wasOpen) {
+            popup.hidden = false;
+            btn.setAttribute('aria-expanded', 'true');
+          }
+        });
+        /* Clicks inside popup don't bubble to the outside-click handler */
+        popup.addEventListener('click', function (e) { e.stopPropagation(); });
+      });
+
+      /* Terrain preset buttons close popup after click */
+      var presetsGrid = document.getElementById('roomWizardTerrainPresets');
+      if (presetsGrid) {
+        presetsGrid.addEventListener('click', function (e) {
+          if (e.target.matches('[data-terrain-preset]')) closeAll();
+        });
+      }
+
+      /* Custom footprint apply button closes popup */
+      var applyBtn = document.getElementById('roomWizardApplyCustomFootprint');
+      if (applyBtn) {
+        applyBtn.addEventListener('click', function () { closeAll(); });
+      }
+
+      /* Close on outside click or Escape */
+      document.addEventListener('click', closeAll);
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closeAll();
+      });
+
+      /* Update footprint label in toolbar when selection changes */
+      var fpLabels = { small: '960×720', medium: '1600×1200', large: '2240×1200', custom: 'Custom' };
+      var fpGroup  = document.getElementById('roomWizardFootprintGroup');
+      var fpLabel  = document.getElementById('rwLayoutFootprintLabel');
+      if (fpGroup && fpLabel) {
+        fpGroup.addEventListener('change', function () {
+          var checked = fpGroup.querySelector('input[type="radio"]:checked');
+          if (checked) fpLabel.textContent = fpLabels[checked.value] || checked.value;
+        });
+      }
+    }());
+
+  }());
+  </script>
+
+  <!-- Layout diagnostics — live geometry checks on the active room -->
+  <script>
+  (function () {
+    'use strict';
+
+    var warnEl = document.getElementById('roomWizardTerrainWarnings');
+    if (!warnEl) return;
+
+    /* Get the active room data from the canvas engine */
+    function activeRoom() {
+      var st = globalThis.RoomEditor && globalThis.RoomEditor.State;
+      if (!st || !st.data || !Array.isArray(st.data.rooms)) return null;
+      var id = st.currentRoomId;
+      return st.data.rooms.find(function (r) { return r.id === id; }) || null;
+    }
+
+    /* Segment intersection — returns true if (p1→p2) crosses (p3→p4), endpoints excluded */
+    function segsIntersect(p1, p2, p3, p4) {
+      var ax = p2[0]-p1[0], ay = p2[1]-p1[1];
+      var bx = p4[0]-p3[0], by = p4[1]-p3[1];
+      var cx = p3[0]-p1[0], cy = p3[1]-p1[1];
+      var denom = ax*by - ay*bx;
+      if (Math.abs(denom) < 1e-9) return false;
+      var t = (cx*by - cy*bx) / denom;
+      var u = (cx*ay - cy*ax) / denom;
+      return t > 1e-9 && t < 1-1e-9 && u > 1e-9 && u < 1-1e-9;
+    }
+
+    function runDiagnostics() {
+      var room = activeRoom();
+      var msgs = [];
+
+      /* ── Polygon checks ── */
+      var poly = room && room.polygon;
+      if (poly && poly.length > 0 && poly.length < 3) {
+        msgs.push('Footprint needs at least 3 vertices to enclose the room');
+      } else if (poly && poly.length >= 3) {
+        var n = poly.length;
+        var crossed = false;
+        outer: for (var i = 0; i < n; i++) {
+          var a = poly[i], b = poly[(i+1) % n];
+          for (var j = i+2; j < n - (i === 0 ? 1 : 0); j++) {
+            if (segsIntersect(a, b, poly[j], poly[(j+1) % n])) {
+              crossed = true;
+              break outer;
+            }
+          }
+        }
+        if (crossed) msgs.push('Footprint has crossing or overlapping edges');
+      }
+
+      /* ── Platform overlap checks ── */
+      var plats = room && room.platforms;
+      if (plats && plats.length > 1) {
+        var GRID = 32;
+        var segs = plats.map(function (p) {
+          return { x1: p.x, x2: p.x + (p.len || 1) * GRID, y: p.y };
+        });
+        var overlapped = false;
+        for (var i = 0; i < segs.length && !overlapped; i++) {
+          for (var j = i+1; j < segs.length && !overlapped; j++) {
+            if (segs[i].y === segs[j].y &&
+                segs[i].x1 < segs[j].x2 && segs[j].x1 < segs[i].x2) {
+              overlapped = true;
+            }
+          }
+        }
+        if (overlapped) msgs.push('Overlapping platforms at the same height');
+      }
+
+      /* ── Render ── */
+      if (msgs.length === 0) {
+        warnEl.innerHTML = '<span class="rw-diag-ok">\u2713 Diagnostics OK</span>';
+      } else {
+        warnEl.innerHTML = msgs.map(function (m) {
+          return '<span class="rw-diag-warn">\u26a0 ' + m + '</span>';
+        }).join('');
+      }
+    }
+
+    /* Topbar Validate button triggers an immediate re-run */
+    var optbValidate = document.getElementById('optbValidate');
+    if (optbValidate) optbValidate.addEventListener('click', runDiagnostics);
+
+    /* Poll — canvas JS updates room data async after edits */
+    setInterval(runDiagnostics, 1200);
+
   }());
   </script>
 </body>
