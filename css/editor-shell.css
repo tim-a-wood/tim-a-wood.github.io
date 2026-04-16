@@ -2308,8 +2308,10 @@ body.game-preview-open {
 /* Body becomes 3-row grid when Option B shell is active */
 body#optb-app {
   display: grid;
-  grid-template-rows: 52px auto 1fr;
+  /* minmax(0,1fr) — plain 1fr uses min-size:auto and can refuse to absorb free space */
+  grid-template-rows: 52px auto minmax(0, 1fr);
   height: 100vh;
+  max-height: 100vh;
   overflow: hidden;
   /* override flex from base body */
   flex-direction: unset;
@@ -2318,12 +2320,16 @@ body#optb-app {
 
 /* app-shell fills the 1fr row without overflow */
 body#optb-app .app-shell {
-  /* Third body grid row is 1fr — fill it so % heights resolve down the chain */
+  /* Third body grid row — stretch to full remaining viewport height */
+  grid-row: 3;
   min-height: 0;
   height: 100%;
+  max-height: 100%;
   align-self: stretch;
   overflow: hidden;
   flex: unset;
+  /* One row that must fill the shell; implicit auto row was sizing to content only */
+  grid-template-rows: minmax(0, 1fr);
 }
 
 /* main-column fills height without overflow */
