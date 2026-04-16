@@ -2318,6 +2318,7 @@ body#optb-app {
 
 /* app-shell fills the 1fr row without overflow */
 body#optb-app .app-shell {
+  /* Third body grid row is 1fr — fill it so % heights resolve down the chain */
   min-height: 0;
   height: 100%;
   align-self: stretch;
@@ -2331,6 +2332,8 @@ body#optb-app .main-column {
   height: 100%;
   max-height: 100%;
   overflow: hidden;
+  align-self: stretch;
+  min-width: 0;
 }
 
 /* Suppress legacy workflow rail — phase bar is now at body grid level */
@@ -2349,12 +2352,14 @@ body#optb-app #workflowRailsStack {
 }
 
 body#optb-app .app {
-  flex: 1;
+  flex: 1 1 0%;
   min-height: 0;
+  height: 100%;
+  max-height: 100%;
   overflow: hidden;
-  /* Tighter padding than the default 18px — maximises canvas real-estate on laptop screens */
-  padding: 8px;
-  gap: 8px;
+  /* Full-bleed workbench: outer inset was shrinking the stage vs the viewport */
+  padding: 0;
+  gap: 0;
 }
 
 /*
@@ -2365,6 +2370,8 @@ body#optb-app #optb-stage-layout {
   /* 0% basis so this row consumes all remaining height under the top bars */
   flex: 1 1 0%;
   min-height: 0;
+  height: 100%;
+  max-height: 100%;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
   grid-template-rows: minmax(0, 1fr);
@@ -2381,6 +2388,10 @@ body#optb-app #optb-stage-layout > section.canvas-wrap {
   min-width: 0;
   min-height: 0;
   align-self: stretch;
+  height: 100%;
+  max-height: 100%;
+  /* .panel defaults to 18px padding — shrinks the canvas vs the screen */
+  padding: var(--space-2);
 }
 
 /* Inspector column — hoisted here by JS; hidden outside Layout via .optb-layout-only */
