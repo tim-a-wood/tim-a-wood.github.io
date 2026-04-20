@@ -20,11 +20,20 @@ from scripts.agent_os_standalone_templates import (
 )
 
 
-def _copy_path(src_root: Path, dest_root: Path, rel: str, *, force: bool) -> None:
-    src = src_root / rel
+def _resolve_manifest_source(rel: str) -> Path:
+    """Prefer orchestrator root; fall back to ``agent-os/`` submodule after reorg."""
+    direct = APP_ROOT / rel
+    if direct.exists():
+        return direct
+    nested = APP_ROOT / "agent-os" / rel
+    if nested.exists():
+        return nested
+    raise FileNotFoundError(f"Missing manifest path: {rel}")
+
+
+def _copy_path(dest_root: Path, rel: str, *, force: bool) -> None:
+    src = _resolve_manifest_source(rel)
     dest = dest_root / rel
-    if not src.exists():
-        raise FileNotFoundError(f"Missing manifest path: {rel}")
     if dest.exists():
         if not force:
             raise FileExistsError(f"Destination exists: {dest}")
@@ -54,7 +63,7 @@ def main() -> int:
     dest_root.mkdir(parents=True, exist_ok=True)
 
     for rel in PHASE1_COPY_PATHS:
-        _copy_path(APP_ROOT, dest_root, rel, force=args.force)
+        _copy_path(dest_root, rel, force=args.force)
 
     _write_text(dest_root / "README.md", STANDALONE_README)
     _write_text(dest_root / "AGENTS.md", STANDALONE_AGENTS)
