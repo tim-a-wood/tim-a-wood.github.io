@@ -8,7 +8,7 @@ This is the top-level orchestrator repo. It serves two roles:
    - `sprite-workbench/` — 2D sprite and animation editor
    - `agent-os/` — multi-agent runtime and tooling (reads this workspace via `MV_WORKSPACE_ROOT`)
 
-Before editing anything inside a submodule, read that submodule's own `CLAUDE.md`.
+Before editing anything inside a submodule, read that submodule's own instruction files: `AGENTS.md` (where present) and `CLAUDE.md`. Those wrap canonical shared bootstrap from the `agent-os` submodule (`../agent-os/AGENTS.md` and `../agent-os/CLAUDE.md` when nested in MV).
 
 ## Orchestrator-level rules
 
