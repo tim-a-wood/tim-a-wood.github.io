@@ -1,0 +1,3 @@
+[submodule "sprite-workbench"]
+	path = sprite-workbench
+	url = file:///tmp/reorg-remotes/sprite-workbench.git
