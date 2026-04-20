@@ -1,0 +1,1 @@
+sprite-workbench/STYLE_GUIDE.md
