@@ -17,7 +17,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 2  # need HEAD~1 to detect changed files
+          fetch-depth: 2 # need HEAD~1 to detect changed files
+          submodules: recursive
 
       - uses: actions/setup-python@v5
         with:
@@ -42,6 +43,7 @@ jobs:
 
       - name: Send competitive intelligence report
         env:
+          MV_WORKSPACE_ROOT: ${{ github.workspace }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           DIGEST_EMAIL_TO: ${{ vars.DIGEST_EMAIL_TO || 'tim.a.wood@outlook.com' }}
         run: |
@@ -52,7 +54,7 @@ jobs:
           fi
           echo "Sending: $REPORT"
           DATE=$(date +%Y-%m-%d)
-          python3 scripts/send_weekly_digest.py \
+          python3 agent-os/scripts/send_weekly_digest.py \
             --file "$REPORT" \
             --subject "[MV Toolchain] Competitive Intelligence — $DATE" \
             --subtitle "Metroidvania Toolchain — Competitive Intelligence"

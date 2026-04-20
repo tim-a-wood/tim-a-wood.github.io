@@ -13,10 +13,21 @@ if str(ROOT) not in sys.path:
 from scripts.agent_os_split_manifest import PHASE1_COPY_PATHS, PHASE1_EXCLUDE_PREFIXES
 
 
+def _resolve_manifest_path(rel: str) -> Path:
+    """After reorg, phase-1 files may live under ``agent-os/`` instead of the orchestrator root."""
+    direct = ROOT / rel
+    if direct.exists():
+        return direct
+    nested = ROOT / "agent-os" / rel
+    if nested.exists():
+        return nested
+    return direct
+
+
 class AgentOsSplitManifestTests(unittest.TestCase):
     def test_manifest_paths_exist(self) -> None:
         for rel in PHASE1_COPY_PATHS:
-            path = ROOT / rel
+            path = _resolve_manifest_path(rel)
             self.assertTrue(path.exists(), f"Missing manifest path: {rel}")
 
     def test_manifest_does_not_include_mv_source_of_truth_prefixes(self) -> None:

@@ -1,3 +1,0 @@
-# Optional: richer Markdown rendering for Agent OS / workbench /view/markdown
-# pip install -r requirements-agent-os.txt
-markdown>=3.5,<4

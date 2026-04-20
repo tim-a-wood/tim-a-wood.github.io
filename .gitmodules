@@ -1,0 +1,9 @@
+[submodule "sprite-workbench"]
+	path = sprite-workbench
+	url = https://github.com/tim-a-wood/sprite-workbench.git
+[submodule "agent-os"]
+	path = agent-os
+	url = https://github.com/tim-a-wood/agent-os.git
+[submodule "ashen-hollow"]
+	path = ashen-hollow
+	url = https://github.com/tim-a-wood/ashen-hollow.git

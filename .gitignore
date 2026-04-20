@@ -22,3 +22,28 @@ artifacts/ashen-hollow-art-bible-v0.3-*.pdf
 # Python caches
 __pycache__/
 *.pyc
+
+# macOS junk
+.DS_Store
+**/.DS_Store
+* 2.*
+
+# IDE / debug scratch
+.codex-debug/
+.coverage
+test-output-debug/
+tmp/
+
+# Cron / daemon logs
+*-cron.log
+*-launchd.stdout.log
+*-launchd.stderr.log
+
+# Dependencies (local tooling)
+node_modules/
+
+# Generated Agent OS scaffold (regenerate with scripts/bootstrap_agent_os_repo.py)
+agent-os-standalone/
+
+# Local Claude worktrees
+.claude/worktrees/

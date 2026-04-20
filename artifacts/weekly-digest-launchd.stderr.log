@@ -1,2 +1,0 @@
-shell-init: error retrieving current directory: getcwd: cannot access parent directories: Operation not permitted
-/bin/bash: /Users/timwood/Desktop/projects/PWA/MV/scripts/weekly_digest.sh: Operation not permitted
