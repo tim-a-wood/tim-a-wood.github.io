@@ -1,3 +1,6 @@
 [submodule "sprite-workbench"]
 	path = sprite-workbench
 	url = file:///tmp/reorg-remotes/sprite-workbench.git
+[submodule "agent-os"]
+	path = agent-os
+	url = file:///tmp/reorg-remotes/agent-os.git
