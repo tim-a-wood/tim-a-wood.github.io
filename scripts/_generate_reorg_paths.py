@@ -18,6 +18,44 @@ PLAN_DASHBOARDS_ORCHESTRATOR = True
 PHASE1 = tuple(p for p in PHASE1_COPY_PATHS if p != "README.md")
 PHASE1_SET = set(PHASE1_COPY_PATHS)
 
+# sprite-workbench submodule: room editor + authoring stack (not Ashen Hollow runtime).
+_SW = "sprite-workbench/"
+_SW_ROOM_SCRIPT_TAILS = (
+    "scripts/room_layout_canonical.py",
+    "scripts/room_layout_copilot.py",
+    "scripts/room_environment_system.py",
+    "scripts/room_environment_v3.py",
+    "scripts/generate-room-editor-chunks.py",
+    "scripts/build-room-editor-modules.cjs",
+    "scripts/_merged_editor_body.js",
+    "scripts/capture_room_results_calibration.js",
+    "scripts/capture_room_results_states.js",
+    "scripts/parse_room_spec.js",
+    "scripts/function-module-map.json",
+)
+
+
+def _is_sprite_workbench_room_authoring(path: str) -> bool:
+    """True for the room-layout editor UI, data, css/js modules, and authoring scripts in sprite-workbench."""
+    if path.startswith(_SW):
+        tail = path[len(_SW) :]
+        if tail in ("room-layout-editor.html", "room-layout-data.json", "room-layout-seed.json"):
+            return True
+        if tail.startswith("css/editor-") or tail == "css/room-wizard.css":
+            return True
+        if tail.startswith("js/editor/") or tail.startswith("js/wizard/"):
+            return True
+        if tail in _SW_ROOM_SCRIPT_TAILS or tail.startswith("scripts/environment_v3/"):
+            return True
+        if tail.startswith("tests/") and (
+            "room" in tail.lower() and ("editor" in tail.lower() or "wizard" in tail.lower() or "layout" in tail.lower())
+        ):
+            return True
+    # Orchestrator-root copies (if present) follow the workbench canonical tree.
+    if path in ("room-layout-editor.html", "room-layout-data.json", "room-layout-seed.json"):
+        return True
+    return False
+
 
 def git_ls_files() -> list[str]:
     out = subprocess.check_output(["git", "-C", str(ROOT), "ls-files"], text=True)
@@ -35,6 +73,10 @@ def classify(path: str) -> tuple[str, str]:
     if path == "STYLE_GUIDE.md" or path.startswith("tools/2d-sprite-and-animation/"):
         return "sprite-workbench", "Sprite Workbench product tree / style ownership"
 
+    # Room editor + authoring stack (sprite-workbench submodule only)
+    if _is_sprite_workbench_room_authoring(path):
+        return "sprite-workbench", "Room editor / authoring stack (workbench-owned)"
+
     # Ashen Hollow — game runtime + editor (explicit roots)
     ashen_prefixes = (
         "css/",
@@ -44,8 +86,6 @@ def classify(path: str) -> tuple[str, str]:
     )
     ashen_files = {
         "index.html",
-        "room-layout-editor.html",
-        "room-layout-data.json",
         "room-rules.md",
         "room-environment-preview-full.html",
         "level-viewer.html",
@@ -84,7 +124,7 @@ def classify(path: str) -> tuple[str, str]:
             or "handover-room" in path
             or "handover-map" in path
         ):
-            return "ashen-hollow", "Room / map product docs and mockups"
+            return "sprite-workbench", "Room editor / map authoring mockups and handovers"
         if path.startswith("docs/qa/") and "room" in path.lower():
             return "ashen-hollow", "Room QA doc"
         if "room-environment" in path.lower() and "sprite" not in path.lower():
@@ -115,11 +155,11 @@ def classify(path: str) -> tuple[str, str]:
         if path.startswith("tests/fixtures/room_environment") or path.startswith("tests/fixtures/room_environment_v3"):
             return "ashen-hollow", "Room environment fixtures"
         low = path.lower()
+        if any(x in low for x in ("room-wizard", "room_editor")):
+            return "sprite-workbench", "Room editor test"
         if any(
             x in low
             for x in (
-                "room-wizard",
-                "room_editor",
                 "room-environment",
                 "room_environment",
                 "game-logic",
@@ -174,17 +214,22 @@ def classify(path: str) -> tuple[str, str]:
             "verify_sprite",
             "gemini_prompt",
         )
-        if any(x in path for x in sw_hits) and "room_layout" not in path and "room_environment" not in path:
-            # workbench_* is mostly sprite; room_environment stays game
-            if "room_environment" in path or "room_layout" in path:
-                return "ashen-hollow", "Room tooling script"
+        if path.startswith(_SW) and (
+            "room_layout" in path
+            or "room_environment" in path
+            or path.startswith(_SW + "scripts/environment_v3/")
+            or name == "generate-room-editor-chunks.py"
+            or name in ("capture_room_results_states.js", "capture_room_results_calibration.js", "parse_room_spec.js")
+        ):
+            return "sprite-workbench", "Room editor / authoring scripts (sprite-workbench)"
+        if any(x in path for x in sw_hits):
             return "sprite-workbench", "Sprite / workbench script"
         if "room_environment" in path or "room_layout" in path or path.startswith("scripts/environment_v3/"):
-            return "ashen-hollow", "Room / environment / level tooling"
+            return "ashen-hollow", "Room / environment / level tooling (runtime or non-workbench)"
         if name in ("capture_room_results_states.js", "capture_room_results_calibration.js", "parse_room_spec.js"):
-            return "ashen-hollow", "Room capture / parse"
+            return "sprite-workbench", "Room editor capture / parse (authoring)"
         if name == "generate-room-editor-chunks.py":
-            return "ashen-hollow", "Room editor chunk generation"
+            return "sprite-workbench", "Room editor chunk generation (authoring)"
         return "orchestrator", "Orchestrator / shared script"
 
     # Top-level HTML: agent-os dashboards vs orchestrator adjuncts
