@@ -9,32 +9,47 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
-      - name: Run tests
-        run: node tests/game-logic.test.js && node tests/room-editor-export.test.js && node tests/room-wizard-footprint.test.js && node tests/room-wizard-neighbor-align.test.js && node tests/room-wizard-terrain.test.js && node tests/room-wizard-environment.test.js && node tests/room-wizard-environment-copilot.test.js && node tests/room-wizard-results-contract.test.js && node tests/room-wizard-overlay-alignment.test.js
+      - name: Ashen Hollow — JS room tests
+        run: |
+          cd ashen-hollow
+          node tests/room-editor-export.test.js
+          node tests/game-logic.test.js
+          node tests/room-wizard-footprint.test.js
+          node tests/room-wizard-neighbor-align.test.js
+          node tests/room-wizard-terrain.test.js
+          node tests/room-wizard-environment.test.js
+          node tests/room-wizard-environment-copilot.test.js
+          node tests/room-wizard-results-contract.test.js
+          node tests/room-wizard-overlay-alignment.test.js
 
-      - name: Room environment system (Python)
-        run: python3 tests/room_environment_system.test.py
+      - name: Ashen Hollow — room environment (Python)
+        run: |
+          cd ashen-hollow
+          python3 tests/room_environment_system.test.py
+          python3 tests/unified_shell_hole_baseline.test.py
+          python3 tests/room_environment_r1_scenic_baseline.test.py
 
-      - name: Unified shell hole baseline (Python)
-        run: python3 tests/unified_shell_hole_baseline.test.py
+      - name: Orchestrator — workspace / split-contract tests
+        run: |
+          python3 -m pytest tests/
 
-      - name: Room environment R1 scenic baseline fixture (Python)
-        run: python3 tests/room_environment_r1_scenic_baseline.test.py
+      - name: Agent OS — runtime tests (workspace checkout)
+        env:
+          MV_WORKSPACE_ROOT: ${{ github.workspace }}
+        run: |
+          cd agent-os
+          python3 -m pytest tests/
 
-      - name: Email digest theme (Python)
-        run: python3 tests/send_weekly_digest_email_theme_test.py
-
-      - name: Home dashboard snapshot (Python)
-        run: python3 tests/home_internal_snapshot.test.py
-
-      - name: Sprite workbench arch manifest extractor (Python)
-        run: python3 tests/extract_sprite_workbench_arch.test.py
-
-      - name: Sprite workbench arch manifest matches extractor (Python)
-        run: python3 scripts/verify_sprite_workbench_arch_manifest.py
+      - name: Sprite Workbench — arch manifest
+        run: |
+          cd sprite-workbench
+          python3 tests/extract_sprite_workbench_arch.test.py
+          python3 scripts/verify_sprite_workbench_arch_manifest.py

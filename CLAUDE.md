@@ -1,124 +1,37 @@
-# MV / Sprite Workbench — Claude Code Rules
+# MV Workbench — Orchestrator Rules
 
-This project is a browser-based game development toolchain (sprite editor, room layout editor, world builder) for a metroidvania-style game. The frontend is hand-crafted HTML/CSS/JS — no build step, no framework.
+This is the top-level orchestrator repo. It serves two roles:
 
----
+1. **MV workspace root** — owns operational state: agent charters, status JSONs, decisions, research, knowledge base, artifacts, and cross-cutting docs.
+2. **Submodule host** — three products live as git submodules:
+   - `ashen-hollow/` — metroidvania game runtime and level editor
+   - `sprite-workbench/` — 2D sprite and animation editor
+   - `agent-os/` — multi-agent runtime and tooling (reads this workspace via `MV_WORKSPACE_ROOT`)
 
-## Style Guide Enforcement
+Before editing anything inside a submodule, read that submodule's own `CLAUDE.md`.
 
-**ALL frontend work MUST conform to [`STYLE_GUIDE.md`](STYLE_GUIDE.md).**
+## Orchestrator-level rules
 
-Before writing any HTML, CSS, or frontend JS, read the relevant section of the style guide. The style guide is the canonical design system and was reverse-engineered from production code — it represents actual design decisions, not aspirational guidelines.
+- Workspace state (status JSONs, charters, decisions, research, knowledge, templates, playbooks, artifacts) lives at the orchestrator root per the Phase-1 split contract (`scripts/agent_os_split_manifest.py` here; mirrored in the `agent-os` submodule).
+- Do not duplicate workspace state inside any submodule.
+- Do not commit product-specific files to the orchestrator root except workspace state and shared governance.
+- Orchestrator scripts are for cross-cutting automation; single-product scripts belong in that product's submodule.
 
-### UI work: approved mockup first (Design charter)
+## Style guide
 
-The **Design** agent owns **HI-FI mockup before implementation** — see `agents/design/charter.md` (**Owns** and **Standing Directives**). Coding agents must align with that workflow:
+Frontend work must follow the canonical style guide. At the workspace root, `STYLE_GUIDE.md` is a symlink to `sprite-workbench/STYLE_GUIDE.md`.
 
-- **If an approved high-fidelity mockup exists** (e.g. under `docs/mockups/`, or another path the founder named as the visual source of truth): implement the real UI as a **faithful translation** — same layout, spacing hierarchy, and chrome. **Do not redesign** during implementation; treat token/style-guide fixes as compliance, not a visual refresh.
-- **If the task is a non-trivial UI or new front-end component and there is no approved HI-FI mockup:** **stop** and ask the founder to have Design produce one (or to explicitly waive mockup-first for this task). **Do not** skip straight to a self-authored layout and present it as the final design.
-- **Trivial changes** (copy, bugfix, single-token swap, wiring only) do not require a new mockup unless they change layout or composition.
+## Agent OS runtime
 
-### Spec and task fidelity (founder directive)
+Agent OS is launched with `MV_WORKSPACE_ROOT` pointing at this repo. The runtime reads status files, charters, and workspace docs from this workspace; it does not own that state.
 
-When work references a **named specification, sprint plan, acceptance criteria, module map, or explicit deliverable list**, implement that contract or **stop and ask** before substituting a shortcut or alternate architecture. **Do not** ship a substitute without **explicit founder waiver in the same thread**. If the spec cannot be met, **report the gap** and **wait for direction**. Label **partial** vs **complete** honestly. See [`agents/directives/spec-task-fidelity.md`](agents/directives/spec-task-fidelity.md) and `AGENTS.md`.
+## Submodule operations
 
----
+- Update submodules: `git submodule update --remote --merge`
+- Status: `git submodule status`
+- After pulling: `git submodule update --init --recursive`
 
-### Non-negotiables
+## Changes spanning multiple products
 
-**Colors:** Use only the CSS variables defined in `STYLE_GUIDE.md § 2`. Never introduce arbitrary hex values. Never use `#fff`, `#000`, or color names like `red`, `blue`. Always use `var(--accent)`, `var(--text)`, `var(--muted)`, etc.
-
-**Typography:** Always load the required fonts (`Bebas Neue`, `Plus Jakarta Sans`, `DM Mono`) in any new page. Use only the `--font-size-*` scale. Headings and panel titles use `var(--font-display)`. Body uses `var(--font-sans)`. Code/numbers use `var(--font-mono)`.
-
-**Spacing:** Every padding, margin, and gap must be a multiple of 4px. Use `--space-*` variables or explicit 4px-grid values. Never use 5px, 7px, 9px, 11px, 13px, 15px.
-
-**Border radius:** Use only the defined radius scale (`--radius-xs` through `--radius-full`). Standard buttons/inputs → `14px`. Panels → `18px–20px`. Full-round pills → `999px`.
-
-**Interactions:** Hover lifts use `translateY(-1px)` only. Transition duration is `120ms` (fast) or `200ms` (base). Always specify transition properties explicitly — never `transition: all`.
-
-**Dark theme only:** This product has no light mode. Backgrounds are always near-black (`#050709` and variants). Floating panels use `rgba` with `backdrop-filter: blur()`.
-
----
-
-## Project Structure
-
-```
-/MV
-├── index.html                        # Game canvas (runtime, not a tool)
-├── room-layout-editor.html           # Room editor tool
-├── room-wizard-workbench-shell.css   # Room editor styles
-├── STYLE_GUIDE.md                    # Canonical design system
-├── tools/
-│   └── 2d-sprite-and-animation/
-│       ├── index.html                # Sprite workbench homepage
-│       └── app/
-│           └── product-shell.css     # Sprite workbench styles
-└── assets/                           # Shared static assets
-```
-
-## File Conventions
-
-- **No build tooling.** All CSS is authored CSS. No SCSS, no Tailwind, no CSS Modules.
-- **CSS variables at `:root`.** All design tokens declared at root level in `<style>` blocks or external `.css` files.
-- **Semantic HTML.** Use `<button>`, `<nav>`, `<section>`, `<header>`, `<aside>` correctly.
-- **No third-party component libraries.** All UI components are hand-crafted to the design system.
-- **`image-rendering: pixelated`** on all canvas elements and sprite preview images.
-
-## New Page Checklist
-
-When creating a new HTML page or tool:
-
-1. Include the CSS token block from `STYLE_GUIDE.md § 13`
-2. Load fonts: `Bebas Neue`, `Plus Jakarta Sans`, `DM Mono` from Google Fonts
-3. Set `body { background: var(--bg); color: var(--text); font-family: var(--font-sans); }`
-4. Add `*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }`
-5. Ensure all interactive elements have `min-height: 44px` (standard) or `min-height: 28px` (compact)
-6. Add `:focus-visible { outline: 2px solid rgba(0,232,200,0.35); outline-offset: 2px; }` globally
-
-## Anti-Pattern Enforcement
-
-If you catch yourself about to do any of the following, stop and use the correct approach:
-
-| Anti-Pattern | Correct Approach |
-|---|---|
-| `color: white` or `color: #fff` | `color: var(--text)` |
-| `background: black` | `background: var(--bg)` |
-| `background: #0ae8c8` (novel cyan) | `background: var(--accent)` |
-| `border-radius: 6px` | `border-radius: var(--radius-sm)` (8px) |
-| `gap: 10px` (not on 4px grid) | `gap: 8px` or `gap: 12px` |
-| `font-size: 16px` | `font-size: var(--font-size-base)` (14px) or `var(--font-size-lg)` (18px) |
-| `transition: all 0.3s` | `transition: background 200ms ease, border-color 200ms ease` |
-| `font-family: Inter` | `font-family: var(--font-sans)` |
-| `box-shadow: 0 4px 12px red` | Never use colored shadows |
-| `border-radius: 50%` on a panel | Panels use `--radius-card` (18px) |
-
-## Domain Context
-
-This is a metroidvania game development tool. Key domain concepts:
-
-- **World** — the top-level map containing multiple rooms
-- **Room** — a discrete area with platforms, doors, enemies, items
-- **Entity types** — Platform (blue), Door (orange), Vertex (pink), Key (green), Ability (purple), Mover (yellow), Start Point (light purple)
-- **Sprite workbench** — tool for creating/animating pixel art sprites
-- **Room layout editor** — visual tool for placing entities and drawing room geometry
-- **Workflow rails** — step-by-step phase indicators for room/world creation wizards
-
-## Working with the Room Editor
-
-The room editor (`room-layout-editor.html` + `room-wizard-workbench-shell.css`) uses:
-- A floating canvas toolbar (absolute positioned, `z-index: 3`)
-- An inspector panel (slides in on entity selection, `z-index: 10`)
-- A workflow rail (fixed at top, `z-index: 5`)
-- A segmented World/Room scope toggle (centred in the rail header)
-
-Never restructure the shell layout without reading the full CSS file first.
-
-## Agent OS — My Actions after every task
-
-After completing a task, check **your** agent `*-status.json` so the **My Actions** board in `os-dashboard.html` stays accurate. You **may add, edit, or remove** founder-facing rows you own there (`founder_decisions`, `needs-review` priorities) when justified; do not edit another agent’s status file for this unless the founder asked. See `AGENTS.md` (**My Actions dashboard — check after completing every request**). No edit if nothing founder-facing changed for your agent.
-
-## Commit Style
-
-- Keep commits scoped: UI changes in one commit, logic changes in another
-- Never commit minified or generated files
-- CSS variables changes always go with the component changes that use them
+- Land submodule changes first (in each product repo).
+- Then bump submodule pointers in one orchestrator commit.
