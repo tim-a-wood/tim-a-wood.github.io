@@ -4,3 +4,6 @@
 [submodule "agent-os"]
 	path = agent-os
 	url = file:///tmp/reorg-remotes/agent-os.git
+[submodule "ashen-hollow"]
+	path = ashen-hollow
+	url = file:///tmp/reorg-remotes/ashen-hollow.git
