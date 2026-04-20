@@ -1,9 +1,9 @@
 [submodule "sprite-workbench"]
 	path = sprite-workbench
-	url = file:///tmp/reorg-remotes/sprite-workbench.git
+	url = https://github.com/tim-a-wood/sprite-workbench.git
 [submodule "agent-os"]
 	path = agent-os
-	url = file:///tmp/reorg-remotes/agent-os.git
+	url = https://github.com/tim-a-wood/agent-os.git
 [submodule "ashen-hollow"]
 	path = ashen-hollow
-	url = file:///tmp/reorg-remotes/ashen-hollow.git
+	url = https://github.com/tim-a-wood/ashen-hollow.git

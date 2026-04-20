@@ -39,6 +39,6 @@ export MV_WORKSPACE_ROOT="$(pwd)"
 ./agent-os/Agent-OS-Dashboard.command
 ```
 
-## Private Git remotes (this branch)
+## Submodule remotes
 
-Submodules may use `file:///tmp/reorg-remotes/...` bare remotes from the local reorg extraction. Replace with your GitHub SSH URLs and run `git remote set-url` in each submodule, then update `.gitmodules`, before publishing.
+Submodules are hosted as private repos under `github.com/tim-a-wood/` (HTTPS URLs in `.gitmodules`). Use SSH instead if you prefer: run `git config submodule.<name>.url git@github.com:tim-a-wood/<repo>.git` or edit `.gitmodules` and `git submodule sync`.
