@@ -44,3 +44,6 @@ node_modules/
 
 # Generated Agent OS scaffold (regenerate with scripts/bootstrap_agent_os_repo.py)
 agent-os-standalone/
+
+# Local Claude worktrees
+.claude/worktrees/

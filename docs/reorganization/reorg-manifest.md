@@ -10,7 +10,6 @@ Buckets: orchestrator (= MV workspace root) | ashen-hollow | sprite-workbench | 
 | `.claude/agents/research.md` | orchestrator | Orchestrator default |
 | `.claude/scheduled_tasks.lock` | orchestrator | Orchestrator default |
 | `.claude/settings.json` | orchestrator | Orchestrator default |
-| `.claude/worktrees/hardcore-goldstine` | orchestrator | Orchestrator default |
 | `.cursor/connector-conversations/04FC2EC9-9692-4ECA-91DE-E7CAFECD1F52.json` | orchestrator | Orchestrator default |
 | `.cursor/connector-conversations/04FC2EC9-9692-4ECA-91DE-E7CAFECD1F52.md` | orchestrator | Orchestrator default |
 | `.cursor/connector-conversations/1FBA8455-38D7-44E6-BF70-63B68D8552FC.json` | orchestrator | Orchestrator default |
