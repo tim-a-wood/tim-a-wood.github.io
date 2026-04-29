@@ -7,3 +7,6 @@
 [submodule "ashen-hollow"]
 	path = ashen-hollow
 	url = https://github.com/tim-a-wood/ashen-hollow.git
+[submodule "game-workbench"]
+	path = game-workbench
+	url = https://github.com/tim-a-wood/game-workbench.git
