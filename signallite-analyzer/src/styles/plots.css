@@ -1,5 +1,0 @@
-.plot-workspace { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
-.stacked-plots { flex: 1; overflow: hidden; min-height: 0; position: relative; }
-.x-axis-nav { height: 56px; display: flex; align-items: center; gap: 5px; padding: 0 10px; border-top: 1px solid var(--border); flex-shrink: 0; background: var(--panel); font-size: 12px; }
-.overview-brush-container { width: 200px; height: 38px; flex-shrink: 0; }
-.x-range-chip { background: var(--bg-1); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 2px 7px; font-family: var(--font-mono); font-size: 10px; color: var(--text-1); white-space: nowrap; }

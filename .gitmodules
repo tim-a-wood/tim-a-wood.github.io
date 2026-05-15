@@ -10,3 +10,6 @@
 [submodule "game-workbench"]
 	path = game-workbench
 	url = https://github.com/tim-a-wood/game-workbench.git
+[submodule "signallite-analyzer"]
+	path = signallite-analyzer
+	url = https://github.com/tim-a-wood/DataAnalysisTool.git
