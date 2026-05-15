@@ -18,19 +18,17 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   const isLoading = useAppStore(s => s.isLoading);
-  const loadError = useAppStore(s => s.loadError);
-  const setLoadError = useAppStore(s => s.setLoadError);
-  const loadSavedLayout = useAppStore(s => s.loadSavedLayout);
+  const activeError = useAppStore(s => s.activeError);
+  const clearError = useAppStore(s => s.clearError);
+  const loadLayout = useAppStore(s => s.loadLayout);
   const previousCase = useAppStore(s => s.previousCase);
   const nextCase = useAppStore(s => s.nextCase);
   const saveLayout = useAppStore(s => s.saveLayout);
 
-  // Load saved layout on mount
   useEffect(() => {
-    loadSavedLayout();
-  }, [loadSavedLayout]);
+    loadLayout();
+  }, [loadLayout]);
 
-  // Global keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement).tagName.toLowerCase();
@@ -56,7 +54,6 @@ export default function App() {
 
   return (
     <div className="app">
-      {/* Header */}
       <div className="app-header">
         <Header
           onOpenSettings={() => setSettingsOpen(true)}
@@ -64,37 +61,31 @@ export default function App() {
         />
       </div>
 
-      {/* Left Sidebar */}
       <div className="app-left-sidebar">
-        {loadError && (
-          <ErrorPanel message={loadError} onDismiss={() => setLoadError(null)} />
+        {activeError && (
+          <ErrorPanel message={activeError} onDismiss={clearError} />
         )}
         <DataGroupsPanel />
         <div className="divider" />
         <VariablesPanel />
       </div>
 
-      {/* Table */}
       <div className="app-table">
         <GroupedDataTable />
       </div>
 
-      {/* Plots */}
       <div className="app-plots">
         <PlotWorkspace />
       </div>
 
-      {/* Right Inspector */}
       <div className="app-right-inspector">
         <PlotFormattingPanel />
       </div>
 
-      {/* Bottom Status */}
       <div className="app-bottom-status">
         <BottomStatusBar />
       </div>
 
-      {/* Overlays */}
       {isLoading && <LoadingOverlay />}
       {helpOpen && <HelpDrawer onClose={() => setHelpOpen(false)} />}
       {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}

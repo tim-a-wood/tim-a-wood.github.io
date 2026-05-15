@@ -9,7 +9,7 @@ export function VariablesPanel() {
   const workbookModel = useAppStore(s => s.workbookModel);
   const layoutState = useAppStore(s => s.layoutState);
   const toggleVariable = useAppStore(s => s.toggleVariable);
-  const setCollapsedGroup = useAppStore(s => s.setCollapsedGroup);
+  const toggleGroupCollapse = useAppStore(s => s.toggleGroupCollapse);
 
   const [search, setSearch] = useState("");
 
@@ -82,10 +82,10 @@ export function VariablesPanel() {
             <div key={group.groupKey}>
               <div
                 className="variable-group-header"
-                onClick={() => setCollapsedGroup(group.groupKey, !isCollapsed)}
+                onClick={() => toggleGroupCollapse(group.groupKey)}
                 role="button"
                 tabIndex={0}
-                onKeyDown={e => { if (e.key === "Enter" || e.key === " ") setCollapsedGroup(group.groupKey, !isCollapsed); }}
+                onKeyDown={e => { if (e.key === "Enter" || e.key === " ") toggleGroupCollapse(group.groupKey); }}
                 aria-expanded={!isCollapsed}
               >
                 <span className={`variable-group-chevron${isCollapsed ? " collapsed" : ""}`}>▾</span>

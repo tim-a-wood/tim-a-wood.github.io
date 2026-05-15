@@ -1,7 +1,8 @@
 import React, { useRef, useCallback, useMemo } from "react";
 import ReactECharts from "echarts-for-react";
 import type { ECharts } from "echarts";
-import { useAppStore, setEChartsInstance } from "../store/useAppStore";
+import { useAppStore } from "../store/useAppStore";
+import { setEChartsInstance } from "./echartsInstance";
 import { getAllCases, getRowByCase } from "../model/selectors";
 import { nearestCase } from "../model/xRange";
 import { formatTooltipValue } from "../utils/format";
